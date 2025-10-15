@@ -411,6 +411,15 @@ class MedicationChatbotGroq {
 }
 
 // Initialize chatbot when page loads
-document.addEventListener('DOMContentLoaded', () => {
+console.log('🤖 Chatbot script loaded');
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('🤖 Initializing chatbot on DOMContentLoaded...');
+    window.medicationChatbot = new MedicationChatbotGroq();
+  });
+} else {
+  // DOM already loaded
+  console.log('🤖 Initializing chatbot immediately...');
   window.medicationChatbot = new MedicationChatbotGroq();
-});
+}

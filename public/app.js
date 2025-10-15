@@ -336,11 +336,15 @@ async function loadSchedules() {
             <span class="px-3 py-1 rounded-full text-sm ${schedule.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
               ${schedule.active ? 'Active' : 'Inactive'}
             </span>
+            <button onclick="editSchedule(${schedule.id})" 
+              class="text-blue-600 hover:text-blue-700" title="Edit">
+              <i class="fas fa-edit"></i>
+            </button>
             <button onclick="toggleSchedule(${schedule.id}, ${!schedule.active})" 
-              class="text-blue-600 hover:text-blue-700">
+              class="text-gray-600 hover:text-gray-700" title="Toggle Active">
               <i class="fas fa-toggle-${schedule.active ? 'on' : 'off'}"></i>
             </button>
-            <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-700">
+            <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-700" title="Delete">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -358,6 +362,102 @@ async function loadMedicationsForSchedule() {
     const data = await res.json();
     
     const select = document.getElementById('schedule-medication-select');
+    select.innerHTML = '<option value="">Select medication</option>' + 
+      data.medications.map(med => `<option value="${med.id}">${med.name} (${med.dosage})</option>`).join('');
+  } catch (error) {
+    console.error('Error loading medications:', error);
+  }
+}
+
+// Edit Schedule
+window.editSchedule = async function(scheduleId) {
+  try {
+    // Fetch schedule details
+    const res = await fetch(`${API_BASE}/schedules`);
+    const data = await res.json();
+    const schedule = data.schedules.find(s => s.id === scheduleId);
+    
+    if (!schedule) {
+      showNotification('Schedule not found', 'error');
+      return;
+    }
+    
+    // Load medications for dropdown
+    await loadMedicationsForEditSchedule();
+    
+    // Populate form
+    document.getElementById('edit-schedule-id').value = schedule.id;
+    document.getElementById('edit-medication-select').value = schedule.medication_id;
+    document.getElementById('edit-schedule-time').value = schedule.time;
+    document.getElementById('edit-schedule-frequency').value = schedule.frequency;
+    document.getElementById('edit-schedule-start').value = schedule.start_date || '';
+    document.getElementById('edit-schedule-end').value = schedule.end_date || '';
+    document.getElementById('edit-schedule-food').checked = schedule.with_food || false;
+    document.getElementById('edit-schedule-instructions').value = schedule.special_instructions || '';
+    
+    // Open modal
+    openModal('edit-schedule-modal');
+  } catch (error) {
+    console.error('Error loading schedule:', error);
+    showNotification('Error loading schedule details', 'error');
+  }
+}
+
+// Update Schedule
+window.updateSchedule = async function(event) {
+  event.preventDefault();
+  console.log('🔵 Updating schedule...');
+  
+  const formData = new FormData(event.target);
+  const scheduleId = formData.get('schedule_id');
+  const data = {};
+  
+  // Only include non-empty values
+  for (let [key, value] of formData.entries()) {
+    if (key !== 'schedule_id' && value && value.trim() !== '') {
+      data[key] = value.trim();
+    }
+  }
+  
+  // Handle checkbox separately
+  data.with_food = formData.get('with_food') === 'on';
+  
+  console.log('Update data:', data);
+  
+  try {
+    console.log('📤 Sending to API...');
+    const res = await fetch(`${API_BASE}/schedules/${scheduleId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    
+    console.log('📥 Response status:', res.status);
+    
+    if (res.ok) {
+      const result = await res.json();
+      console.log('✅ Success:', result);
+      closeModal('edit-schedule-modal');
+      event.target.reset();
+      loadSchedules();
+      showNotification('Schedule updated successfully!', 'success');
+    } else {
+      const errorText = await res.text();
+      console.error('❌ Server error:', errorText);
+      showNotification('Error: ' + errorText, 'error');
+    }
+  } catch (error) {
+    console.error('❌ Network error:', error);
+    showNotification('Error updating schedule: ' + error.message, 'error');
+  }
+}
+
+async function loadMedicationsForEditSchedule() {
+  try {
+    const res = await fetch(`${API_BASE}/medications`);
+    const data = await res.json();
+    
+    const select = document.getElementById('edit-medication-select');
     select.innerHTML = '<option value="">Select medication</option>' + 
       data.medications.map(med => `<option value="${med.id}">${med.name} (${med.dosage})</option>`).join('');
   } catch (error) {
