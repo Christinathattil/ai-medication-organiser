@@ -6,3 +6,7 @@ data/
 npm-debug.log*
 .env
 .env.local
+.env
+.env.example
+.env
+.env.example
