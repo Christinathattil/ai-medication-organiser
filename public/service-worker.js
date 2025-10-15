@@ -1,10 +1,10 @@
 // Service Worker for Medication Manager PWA
-const CACHE_NAME = 'medication-manager-v1';
+const CACHE_NAME = 'medication-manager-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/app.js',
-  '/chatbot-simple.js',
+  '/chatbot-groq.js',
   '/manifest.json',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css'
