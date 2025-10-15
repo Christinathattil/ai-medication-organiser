@@ -6,8 +6,29 @@ data/
 npm-debug.log*
 .env
 .env.local
-.env
-.env.example
-.env
 .env.example
 .env.template
+
+# Troubleshooting documentation (not needed in repo)
+AI-CHATBOT-FIX.md
+CACHE-FIX.md
+CHATBOT-NOW-WORKING.md
+CHATBOT-TEST-GUIDE.md
+CLEAR-CACHE-INSTRUCTIONS.md
+EMERGENCY-FIX.md
+FINAL-FIX-SUMMARY.md
+LATEST-FIXES.md
+REFRESH-AND-TEST.md
+SYNTAX-ERROR-FIXED.md
+
+# Old/unused files
+public/chatbot-simple.js
+public/chatbot.js
+public/sw.js
+public/test-chatbot.html
+
+# Configuration files that shouldn't be committed
+claude_desktop_config.json
+
+# Uploads (user data)
+uploads/
