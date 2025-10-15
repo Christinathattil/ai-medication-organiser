@@ -16,33 +16,24 @@ class MedicationChatbotGroq {
     console.log('🔧 Initializing chatbot...');
     console.log('📍 Document ready state:', document.readyState);
     
-    // Try to create UI immediately if DOM is ready
-    if (document.readyState === 'complete' || document.readyState === 'interactive') {
-      console.log('✅ DOM ready, creating UI now...');
+    // Simple approach: just create the UI
+    try {
+      this.createChatbotUI();
+      this.attachEventListeners();
+      console.log('✅ Chatbot UI created and attached');
+    } catch (error) {
+      console.error('❌ Error during init:', error);
+      // Retry after a short delay
       setTimeout(() => {
-        this.createChatbotUI();
-        this.attachEventListeners();
-        console.log('✅ Chatbot UI created and attached');
-      }, 100);
-    } else {
-      console.log('⏳ Waiting for DOM...');
-      document.addEventListener('DOMContentLoaded', () => {
-        console.log('✅ DOMContentLoaded fired, creating UI...');
-        this.createChatbotUI();
-        this.attachEventListeners();
-        console.log('✅ Chatbot UI created and attached');
-      });
+        try {
+          this.createChatbotUI();
+          this.attachEventListeners();
+          console.log('✅ Chatbot UI created on retry');
+        } catch (retryError) {
+          console.error('❌ Retry failed:', retryError);
+        }
+      }, 500);
     }
-    
-    // Backup: Force create after 1 second if not created
-    setTimeout(() => {
-      if (!document.getElementById('chatbot-toggle')) {
-        console.warn('⚠️ Chatbot not found, forcing creation...');
-        this.createChatbotUI();
-        this.attachEventListeners();
-        console.log('✅ Chatbot force-created');
-      }
-    }, 1000);
   }
 
   createChatbotUI() {
@@ -499,13 +490,23 @@ class MedicationChatbotGroq {
 // Initialize chatbot when page loads
 console.log('🤖 Chatbot script loaded');
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', () => {
-    console.log('🤖 Initializing chatbot on DOMContentLoaded...');
-    window.medicationChatbot = new MedicationChatbotGroq();
-  });
-} else {
-  // DOM already loaded
-  console.log('🤖 Initializing chatbot immediately...');
-  window.medicationChatbot = new MedicationChatbotGroq();
+// Simple initialization - just create the instance
+// The class constructor will handle the rest
+try {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('🤖 Initializing chatbot on DOMContentLoaded...');
+      if (!window.medicationChatbot) {
+        window.medicationChatbot = new MedicationChatbotGroq();
+      }
+    });
+  } else {
+    // DOM already loaded
+    console.log('🤖 Initializing chatbot immediately...');
+    if (!window.medicationChatbot) {
+      window.medicationChatbot = new MedicationChatbotGroq();
+    }
+  }
+} catch (error) {
+  console.error('❌ Error initializing chatbot:', error);
 }

@@ -601,7 +601,7 @@
   
   <!-- Emergency Chatbot Button (Fallback) -->
   <script>
-    // Wait 2 seconds, if chatbot button doesn't exist, create emergency button
+    // Wait 3 seconds, if chatbot button doesn't exist, create emergency button
     setTimeout(() => {
       if (!document.getElementById('chatbot-toggle')) {
         console.warn('⚠️ Chatbot button not found! Creating emergency button...');
@@ -615,19 +615,30 @@
           <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">AI</span>
         `;
         emergencyBtn.onclick = () => {
-          if (window.medicationChatbot) {
+          console.log('🖱️ Chatbot button clicked');
+          if (window.medicationChatbot && typeof window.medicationChatbot.toggle === 'function') {
+            console.log('✅ Using existing chatbot instance');
             window.medicationChatbot.toggle();
           } else {
             // Force create chatbot if it doesn't exist
             console.log('🔧 Force creating chatbot instance...');
             if (typeof MedicationChatbotGroq !== 'undefined') {
-              window.medicationChatbot = new MedicationChatbotGroq();
-              setTimeout(() => {
-                if (window.medicationChatbot) {
-                  window.medicationChatbot.toggle();
-                }
-              }, 500);
+              try {
+                window.medicationChatbot = new MedicationChatbotGroq();
+                console.log('✅ Chatbot instance created');
+                setTimeout(() => {
+                  if (window.medicationChatbot && typeof window.medicationChatbot.toggle === 'function') {
+                    window.medicationChatbot.toggle();
+                  } else {
+                    console.error('❌ Chatbot toggle function not available');
+                  }
+                }, 1000);
+              } catch (error) {
+                console.error('❌ Error creating chatbot:', error);
+                alert('Error loading chatbot. Please refresh the page.');
+              }
             } else {
+              console.error('❌ MedicationChatbotGroq class not found');
               alert('Chatbot script not loaded. Please refresh the page.');
             }
           }
@@ -637,7 +648,7 @@
       } else {
         console.log('✅ Chatbot button already exists');
       }
-    }, 2000);
+    }, 3000);
   </script>
   
   <!-- PWA Service Worker Registration -->
