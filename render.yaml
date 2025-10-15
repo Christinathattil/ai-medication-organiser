@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: medication-manager
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        generateValue: true

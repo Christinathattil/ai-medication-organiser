@@ -98,6 +98,16 @@ async function sendSMS(to, message) {
   }
 }
 
+// Health check endpoint for Render
+app.get('/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    version: '1.0.0'
+  });
+});
+
 // API Routes
 
 // Medications
@@ -606,23 +616,56 @@ cron.schedule('* * * * *', async () => {
   }
 });
 
+// Production error handling
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('🛑 SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('🛑 SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+
 app.listen(PORT, () => {
-  console.log(`\n🏥 Medication Manager Server running at http://localhost:${PORT}`);
-  console.log(`📊 Dashboard: http://localhost:${PORT}`);
+  const isProduction = process.env.NODE_ENV === 'production';
+  const baseUrl = isProduction ? `https://${process.env.RENDER_EXTERNAL_URL || 'your-app.render.com'}` : `http://localhost:${PORT}`;
+
+  console.log(`\n🏥 Medication Manager Server running`);
+  console.log(`🌐 Public URL: ${baseUrl}`);
+  console.log(`📊 Dashboard: ${baseUrl}`);
+  console.log(`❤️  Health Check: ${baseUrl}/health`);
   console.log(`🔔 Reminders: Active`);
   console.log(`📸 Photo uploads: Enabled`);
-  
+
   if (process.env.SUPABASE_URL) {
     console.log(`💾 Database: Supabase (persistent)`);
   } else {
     console.log(`⚠️  Database: JSON (temporary - setup Supabase!)`);
   }
-  
+
   if (twilioClient) {
     console.log(`📱 SMS: Enabled`);
   } else {
     console.log(`⚠️  SMS: Not configured`);
   }
-  
-  console.log(`\n`);
+
+  if (groqClient) {
+    console.log(`🤖 AI Chatbot: Enabled`);
+  } else {
+    console.log(`⚠️  AI Chatbot: Not configured (GROQ_API_KEY needed)`);
+  }
+
+  console.log(`\n🚀 Server ready!`);
 });
