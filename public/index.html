@@ -597,7 +597,60 @@
   </div>
 
   <script src="app.js"></script>
-  <script src="chatbot-groq.js?v=3" onerror="console.error('❌ Failed to load chatbot-groq.js'); alert('Chatbot script failed to load. Please check your internet connection and refresh.');"></script>
+  
+  <!-- Enhanced Chatbot Loading -->
+  <script>
+    console.log('🔄 Loading chatbot script...');
+    
+    function loadChatbotScript() {
+      return new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = 'chatbot-groq.js?v=' + Date.now();
+        script.onload = () => {
+          console.log('✅ Chatbot script loaded successfully');
+          resolve();
+        };
+        script.onerror = (error) => {
+          console.error('❌ Chatbot script failed to load:', error);
+          reject(error);
+        };
+        document.head.appendChild(script);
+      });
+    }
+    
+    function initializeChatbot() {
+      console.log('🤖 Checking for MedicationChatbotGroq class...');
+      if (typeof MedicationChatbotGroq !== 'undefined') {
+        console.log('✅ MedicationChatbotGroq class found');
+        if (!window.medicationChatbot) {
+          window.medicationChatbot = new MedicationChatbotGroq();
+          console.log('✅ Chatbot instance created');
+        }
+      } else {
+        console.error('❌ MedicationChatbotGroq class not found');
+        // Try loading again
+        setTimeout(() => {
+          loadChatbotScript().then(() => {
+            setTimeout(initializeChatbot, 500);
+          }).catch(error => {
+            console.error('❌ Retry failed:', error);
+          });
+        }, 1000);
+      }
+    }
+    
+    // Load and initialize
+    loadChatbotScript().then(() => {
+      setTimeout(initializeChatbot, 100);
+    }).catch(error => {
+      console.error('❌ Initial load failed:', error);
+      // Fallback: try with original method
+      const fallbackScript = document.createElement('script');
+      fallbackScript.src = 'chatbot-groq.js';
+      fallbackScript.onload = () => setTimeout(initializeChatbot, 100);
+      document.head.appendChild(fallbackScript);
+    });
+  </script>
   
   <!-- Verify Script Loaded -->
   <script>
@@ -678,20 +731,24 @@
     }, 3000);
   </script>
   
-  <!-- PWA Service Worker Registration -->
+  <!-- PWA Service Worker Registration - TEMPORARILY DISABLED -->
   <script>
+    // Temporarily disabled to fix caching issues
+    console.log('⚠️ Service Worker disabled for debugging');
+    
+    // Clear any existing service workers
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js')
-          .then((registration) => {
-            console.log('✅ Service Worker registered:', registration.scope);
-          })
-          .catch((error) => {
-            console.log('❌ Service Worker registration failed:', error);
-          });
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(reg => {
+          reg.unregister();
+          console.log('🧹 Unregistered service worker:', reg.scope);
+        });
       });
     }
-    
+  </script>
+  
+  <!-- PWA Install Prompt -->
+  <script>
     // Install prompt for PWA
     let deferredPrompt;
     window.addEventListener('beforeinstallprompt', (e) => {
