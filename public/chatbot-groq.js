@@ -1,7 +1,10 @@
 // AI Chatbot with Groq Integration for Medication Manager
-const API_BASE = window.location.hostname === 'localhost' 
-  ? `http://localhost:${window.location.port || 8080}/api` 
-  : '/api';
+// Check if API_BASE is already defined (by app.js), if not define it
+if (typeof API_BASE === 'undefined') {
+  var API_BASE = window.location.hostname === 'localhost' 
+    ? `http://localhost:${window.location.port || 8080}/api` 
+    : '/api';
+}
 
 class MedicationChatbotGroq {
   constructor() {
