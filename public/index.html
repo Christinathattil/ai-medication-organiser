@@ -618,7 +618,18 @@
           if (window.medicationChatbot) {
             window.medicationChatbot.toggle();
           } else {
-            alert('Chatbot is loading... Please wait a moment and try again.');
+            // Force create chatbot if it doesn't exist
+            console.log('🔧 Force creating chatbot instance...');
+            if (typeof MedicationChatbotGroq !== 'undefined') {
+              window.medicationChatbot = new MedicationChatbotGroq();
+              setTimeout(() => {
+                if (window.medicationChatbot) {
+                  window.medicationChatbot.toggle();
+                }
+              }, 500);
+            } else {
+              alert('Chatbot script not loaded. Please refresh the page.');
+            }
           }
         };
         document.body.appendChild(emergencyBtn);
