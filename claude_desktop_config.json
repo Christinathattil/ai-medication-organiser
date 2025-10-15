@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "medication-manager": {
+      "command": "node",
+      "args": ["/Users/christina/Desktop/medication-manager/mcp-server/index.js"]
+    }
+  }
+}

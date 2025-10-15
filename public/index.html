@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#2563EB">
+  <meta name="description" content="Smart medication management with AI assistance, reminders, and tracking">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Medication Manager - AI Powered</title>
+  <link rel="manifest" href="manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    
+    .card {
+      transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    }
+    
+    .status-pending {
+      background: #FEF3C7;
+      color: #92400E;
+    }
+    
+    .status-taken {
+      background: #D1FAE5;
+      color: #065F46;
+    }
+    
+    .status-missed {
+      background: #FEE2E2;
+      color: #991B1B;
+    }
+    
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 50;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+    
+    .modal.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .severity-mild { color: #F59E0B; }
+    .severity-moderate { color: #EF4444; }
+    .severity-severe { color: #DC2626; font-weight: bold; }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <!-- Navigation -->
+  <nav class="bg-white shadow-sm border-b">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16">
+        <div class="flex items-center">
+          <i class="fas fa-pills text-3xl text-blue-600 mr-3"></i>
+          <h1 class="text-2xl font-bold text-gray-900">Medication Manager</h1>
+        </div>
+        <div class="flex items-center space-x-4">
+          <button onclick="showTab('dashboard')" class="tab-btn px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-home mr-2"></i>Dashboard
+          </button>
+          <button onclick="showTab('medications')" class="tab-btn px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-pills mr-2"></i>Medications
+          </button>
+          <button onclick="showTab('schedules')" class="tab-btn px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-clock mr-2"></i>Schedules
+          </button>
+          <button onclick="showTab('history')" class="tab-btn px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-history mr-2"></i>History
+          </button>
+          <button onclick="showTab('stats')" class="tab-btn px-4 py-2 rounded-lg text-gray-700 hover:bg-gray-100">
+            <i class="fas fa-chart-line mr-2"></i>Stats
+          </button>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Dashboard Tab -->
+    <div id="dashboard-tab" class="tab-content">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Quick Stats -->
+        <div class="bg-white rounded-lg shadow-sm p-6 card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Active Medications</p>
+              <p class="text-3xl font-bold text-gray-900" id="stat-active-meds">0</p>
+            </div>
+            <i class="fas fa-pills text-4xl text-blue-500"></i>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Today's Doses</p>
+              <p class="text-3xl font-bold text-gray-900" id="stat-today-doses">0</p>
+            </div>
+            <i class="fas fa-calendar-day text-4xl text-green-500"></i>
+          </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-sm p-6 card">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm text-gray-600">Adherence Rate</p>
+              <p class="text-3xl font-bold text-gray-900" id="stat-adherence">0%</p>
+            </div>
+            <i class="fas fa-chart-line text-4xl text-purple-500"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Refill Alerts -->
+      <div class="bg-white rounded-lg shadow-sm p-6 mb-8 card" id="refill-alerts">
+        <h2 class="text-xl font-bold text-gray-900 mb-4">
+          <i class="fas fa-exclamation-triangle text-orange-500 mr-2"></i>Refill Alerts
+        </h2>
+        <div id="refill-list"></div>
+      </div>
+
+      <!-- Today's Schedule -->
+      <div class="bg-white rounded-lg shadow-sm p-6 card">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-bold text-gray-900">
+            <i class="fas fa-calendar-check text-blue-500 mr-2"></i>Today's Schedule
+          </h2>
+          <button onclick="loadTodaySchedule()" class="text-blue-600 hover:text-blue-700">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+        <div id="today-schedule"></div>
+      </div>
+    </div>
+
+    <!-- Medications Tab -->
+    <div id="medications-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Medications</h2>
+        <button onclick="showAddMedicationModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <i class="fas fa-plus mr-2"></i>Add Medication
+        </button>
+      </div>
+      
+      <div class="mb-4">
+        <input type="text" id="search-meds" placeholder="Search medications..." 
+          class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+          onkeyup="searchMedications()">
+      </div>
+      
+      <div id="medications-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </div>
+
+    <!-- Schedules Tab -->
+    <div id="schedules-tab" class="tab-content hidden">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Medication Schedules</h2>
+        <button onclick="showAddScheduleModal()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+          <i class="fas fa-plus mr-2"></i>Add Schedule
+        </button>
+      </div>
+      <div id="schedules-list"></div>
+    </div>
+
+    <!-- History Tab -->
+    <div id="history-tab" class="tab-content hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Medication History</h2>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+    <!-- Stats Tab -->
+    <div id="stats-tab" class="tab-content hidden">
+      <h2 class="text-2xl font-bold text-gray-900 mb-6">Adherence Statistics</h2>
+      <div class="bg-white rounded-lg shadow-sm p-6">
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-2">Period</label>
+          <select id="stats-period" onchange="loadAdherenceStats()" class="px-4 py-2 border rounded-lg">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+          </select>
+        </div>
+        <div id="stats-list"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Medication Modal -->
+  <div id="add-medication-modal" class="modal">
+    <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+      <h3 class="text-2xl font-bold mb-6">Add Medication</h3>
+      <form id="add-medication-form" onsubmit="addMedication(event)">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Medication Name *</label>
+            <input type="text" name="name" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Dosage *</label>
+            <input type="text" name="dosage" required placeholder="e.g., 500mg" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Form *</label>
+            <select name="form" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">Select form</option>
+              <option value="tablet">Tablet</option>
+              <option value="capsule">Capsule</option>
+              <option value="syrup">Syrup</option>
+              <option value="injection">Injection</option>
+              <option value="drops">Drops</option>
+              <option value="cream">Cream</option>
+              <option value="inhaler">Inhaler</option>
+            </select>
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Purpose</label>
+            <input type="text" name="purpose" placeholder="What is this for?" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Prescribing Doctor</label>
+            <input type="text" name="prescribing_doctor" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Prescription Date</label>
+            <input type="date" name="prescription_date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Total Quantity</label>
+            <input type="number" name="total_quantity" placeholder="e.g., 30" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Side Effects</label>
+            <textarea name="side_effects" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+            <textarea name="notes" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">📸 Photo (Optional)</label>
+            <input type="file" name="photo" accept="image/*" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <p class="text-xs text-gray-500 mt-1">Upload a photo of the medication (max 5MB)</p>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-4 mt-6">
+          <button type="button" onclick="closeModal('add-medication-modal')" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Medication</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Add Schedule Modal -->
+  <div id="add-schedule-modal" class="modal">
+    <div class="bg-white rounded-lg p-8 max-w-2xl w-full mx-4">
+      <h3 class="text-2xl font-bold mb-6">Add Schedule</h3>
+      <form id="add-schedule-form" onsubmit="addSchedule(event)">
+        <div class="grid grid-cols-2 gap-4">
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Medication *</label>
+            <select name="medication_id" id="schedule-medication-select" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="">Select medication</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Time *</label>
+            <input type="time" name="time" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Frequency *</label>
+            <select name="frequency" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="as_needed">As Needed</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+            <input type="date" name="start_date" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+            <input type="date" name="end_date" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Days of Week (for weekly)</label>
+            <input type="text" name="days_of_week" placeholder="e.g., Mon,Wed,Fri" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+          </div>
+          
+          <div class="col-span-2">
+            <label class="flex items-center">
+              <input type="checkbox" name="with_food" class="mr-2">
+              <span class="text-sm font-medium text-gray-700">Take with food</span>
+            </label>
+          </div>
+          
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+            <textarea name="special_instructions" rows="2" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"></textarea>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-4 mt-6">
+          <button type="button" onclick="closeModal('add-schedule-modal')" class="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
+          <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Add Schedule</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+  <script src="chatbot-simple.js"></script>
+  
+  <!-- PWA Service Worker Registration -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then((registration) => {
+            console.log('✅ Service Worker registered:', registration.scope);
+          })
+          .catch((error) => {
+            console.log('❌ Service Worker registration failed:', error);
+          });
+      });
+    }
+    
+    // Install prompt for PWA
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+      console.log('💡 App can be installed!');
+      
+      // Show install button after 3 seconds
+      setTimeout(() => {
+        if (confirm('📱 Install Medication Manager as an app on your device?')) {
+          deferredPrompt.prompt();
+          deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+              console.log('✅ User accepted the install prompt');
+            }
+            deferredPrompt = null;
+          });
+        }
+      }, 3000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  command = "echo 'No build needed - static site'"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[dev]
+  command = "npm start"
+  port = 3000
+  publish = "public"

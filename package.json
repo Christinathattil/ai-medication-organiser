@@ -1,0 +1,33 @@
+{
+  "name": "medication-manager",
+  "version": "1.0.0",
+  "description": "Comprehensive medication management system with MCP server and web interface",
+  "type": "module",
+  "main": "server/index.js",
+  "scripts": {
+    "start": "node server/enhanced-server.js",
+    "start-basic": "node server/index.js",
+    "mcp": "node mcp-server/index.js",
+    "dev": "node server/enhanced-server.js"
+  },
+  "keywords": [
+    "medication",
+    "health",
+    "reminders",
+    "mcp",
+    "healthcare"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "@supabase/supabase-js": "^2.39.0",
+    "express": "^4.18.2",
+    "node-cron": "^3.0.3",
+    "node-notifier": "^10.0.1",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "twilio": "^4.20.0",
+    "dotenv": "^16.3.1"
+  }
+}
