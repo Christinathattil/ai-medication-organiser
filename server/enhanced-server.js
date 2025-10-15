@@ -71,6 +71,16 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
   console.log('⚠️  Twilio not configured. SMS notifications disabled.');
 }
 
+// Groq AI setup
+let groqClient = null;
+if (process.env.GROQ_API_KEY) {
+  const Groq = await import('groq-sdk');
+  groqClient = new Groq.default({ apiKey: process.env.GROQ_API_KEY });
+  console.log('✅ Groq AI enabled');
+} else {
+  console.log('⚠️  Groq not configured. AI chatbot will use fallback mode.');
+}
+
 // Helper function to send SMS
 async function sendSMS(to, message) {
   if (!twilioClient) return false;
@@ -293,6 +303,155 @@ app.post('/api/send-sms', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// AI Chat endpoint with Groq
+app.post('/api/chat', async (req, res) => {
+  try {
+    const { message, history = [] } = req.body;
+    
+    if (!groqClient) {
+      // Fallback response if Groq is not configured
+      return res.json({
+        response: "I'm currently in basic mode. To enable AI-powered responses, please configure your GROQ_API_KEY in the .env file. You can get a free API key from https://console.groq.com",
+        action: null
+      });
+    }
+
+    // Get current medication context
+    const medications = await db.getMedications({});
+    const schedules = await db.getSchedules({});
+    const todaySchedule = await db.getTodaySchedule();
+    
+    // Build context for AI
+    const systemPrompt = `You are an intelligent medication management assistant. You help users manage their medications, schedules, and health tracking.
+
+Current Context:
+- User has ${medications.medications.length} active medications
+- User has ${schedules.schedules.length} medication schedules
+- Today's schedule has ${todaySchedule.length} doses
+
+Available Actions:
+1. show_schedule - Show today's medication schedule
+2. show_stats - Show adherence statistics
+3. show_refills - Show medications that need refilling
+4. add_medication - Add a new medication (extract: name, dosage, form, purpose)
+
+Guidelines:
+- Be friendly, professional, and concise
+- Understand natural language requests
+- Extract medication details from user input
+- Provide helpful suggestions
+- If user wants to add medication, extract details and suggest the action
+- If user asks about schedule, stats, or refills, suggest the appropriate action
+- Always prioritize user safety and medication adherence
+
+Respond in a helpful, conversational manner. If you detect an intent to perform an action, include it in your response.`;
+
+    // Build conversation messages
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: message }
+    ];
+
+    // Call Groq API
+    const completion = await groqClient.chat.completions.create({
+      model: 'llama-3.1-70b-versatile', // Fast and capable model
+      messages: messages,
+      temperature: 0.7,
+      max_tokens: 500,
+    });
+
+    const aiResponse = completion.choices[0].message.content;
+
+    // Detect intent and extract action
+    let action = null;
+    const lowerMessage = message.toLowerCase();
+    const lowerResponse = aiResponse.toLowerCase();
+
+    // Intent detection
+    if (lowerMessage.includes('schedule') || lowerMessage.includes('today') || lowerResponse.includes('schedule')) {
+      action = { type: 'show_schedule' };
+    } else if (lowerMessage.includes('stat') || lowerMessage.includes('adherence') || lowerResponse.includes('statistic')) {
+      action = { type: 'show_stats' };
+    } else if (lowerMessage.includes('refill') || lowerMessage.includes('low') || lowerMessage.includes('running out')) {
+      action = { type: 'show_refills' };
+    } else if (lowerMessage.includes('add') && (lowerMessage.includes('medication') || lowerMessage.includes('medicine') || lowerMessage.includes('drug'))) {
+      // Extract medication details
+      const medicationData = extractMedicationFromText(message);
+      if (medicationData.name) {
+        action = { type: 'add_medication', data: medicationData };
+      }
+    }
+
+    res.json({
+      response: aiResponse,
+      action: action
+    });
+
+  } catch (error) {
+    console.error('Chat error:', error);
+    res.status(500).json({ 
+      error: 'Failed to process chat request',
+      response: "I'm having trouble processing your request. Please try again or rephrase your question.",
+      action: null
+    });
+  }
+});
+
+// Helper function to extract medication details from text
+function extractMedicationFromText(text) {
+  const data = {
+    name: '',
+    dosage: '',
+    form: 'tablet',
+    purpose: ''
+  };
+
+  // Extract dosage (e.g., 500mg, 10ml, 2.5mg)
+  const dosageMatch = text.match(/(\d+\.?\d*)\s*(mg|ml|g|mcg|iu|units?)/i);
+  if (dosageMatch) {
+    data.dosage = dosageMatch[0];
+  }
+
+  // Extract form
+  const forms = ['tablet', 'capsule', 'syrup', 'injection', 'drops', 'cream', 'inhaler', 'patch', 'spray'];
+  for (const form of forms) {
+    if (text.toLowerCase().includes(form)) {
+      data.form = form;
+      break;
+    }
+  }
+
+  // Extract purpose
+  const purposeKeywords = ['for', 'treats', 'treating', 'to treat', 'because'];
+  for (const keyword of purposeKeywords) {
+    const index = text.toLowerCase().indexOf(keyword);
+    if (index !== -1) {
+      const afterKeyword = text.substring(index + keyword.length).trim();
+      const words = afterKeyword.split(' ').slice(0, 5);
+      data.purpose = words.join(' ').replace(/[.,!?]$/, '');
+      break;
+    }
+  }
+
+  // Extract medication name (look for capitalized words or common patterns)
+  const words = text.split(' ');
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    // Skip common words
+    if (['add', 'my', 'the', 'a', 'an', 'medication', 'medicine', 'drug', 'take', 'taking'].includes(word.toLowerCase())) {
+      continue;
+    }
+    // Look for medication name (usually comes after "add" or before dosage)
+    if (word.match(/^[A-Za-z]+$/) && word.length > 3) {
+      data.name = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      break;
+    }
+  }
+
+  return data;
+}
 
 // Reminder System - Check every minute
 cron.schedule('* * * * *', async () => {

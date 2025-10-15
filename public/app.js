@@ -11,16 +11,16 @@ window.showTab = function(tabName) {
   document.getElementById(`${tabName}-tab`).classList.remove('hidden');
   
   document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('bg-blue-100', 'text-blue-700');
-    btn.classList.add('text-gray-700');
+    btn.classList.remove('bg-white', 'shadow-md', 'text-purple-700', 'font-bold');
+    btn.classList.add('text-gray-600');
   });
   
   // Find and activate the correct tab button
   const tabButtons = document.querySelectorAll('.tab-btn');
   tabButtons.forEach(btn => {
     if (btn.textContent.toLowerCase().includes(tabName)) {
-      btn.classList.add('bg-blue-100', 'text-blue-700');
-      btn.classList.remove('text-gray-700');
+      btn.classList.add('bg-white', 'shadow-md', 'text-purple-700', 'font-bold');
+      btn.classList.remove('text-gray-600');
     }
   });
   
