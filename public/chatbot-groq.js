@@ -13,20 +13,47 @@ class MedicationChatbotGroq {
   }
 
   init() {
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', () => {
+    console.log('🔧 Initializing chatbot...');
+    console.log('📍 Document ready state:', document.readyState);
+    
+    // Try to create UI immediately if DOM is ready
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      console.log('✅ DOM ready, creating UI now...');
+      setTimeout(() => {
         this.createChatbotUI();
         this.attachEventListeners();
-        console.log('✅ Chatbot UI created');
-      });
+        console.log('✅ Chatbot UI created and attached');
+      }, 100);
     } else {
-      this.createChatbotUI();
-      this.attachEventListeners();
-      console.log('✅ Chatbot UI created');
+      console.log('⏳ Waiting for DOM...');
+      document.addEventListener('DOMContentLoaded', () => {
+        console.log('✅ DOMContentLoaded fired, creating UI...');
+        this.createChatbotUI();
+        this.attachEventListeners();
+        console.log('✅ Chatbot UI created and attached');
+      });
     }
+    
+    // Backup: Force create after 1 second if not created
+    setTimeout(() => {
+      if (!document.getElementById('chatbot-toggle')) {
+        console.warn('⚠️ Chatbot not found, forcing creation...');
+        this.createChatbotUI();
+        this.attachEventListeners();
+        console.log('✅ Chatbot force-created');
+      }
+    }, 1000);
   }
 
   createChatbotUI() {
+    console.log('🎨 Creating chatbot UI...');
+    
+    // Check if already exists
+    if (document.getElementById('chatbot-toggle')) {
+      console.log('ℹ️ Chatbot already exists, skipping creation');
+      return;
+    }
+    
     const chatbotHTML = `
       <!-- Chatbot Toggle Button - Mobile Optimized -->
       <button id="chatbot-toggle" class="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 z-50 touch-manipulation">
@@ -106,7 +133,21 @@ class MedicationChatbotGroq {
       </div>
     `;
 
-    document.body.insertAdjacentHTML('beforeend', chatbotHTML);
+    try {
+      document.body.insertAdjacentHTML('beforeend', chatbotHTML);
+      console.log('✅ Chatbot HTML inserted into DOM');
+      
+      // Verify button was created
+      const button = document.getElementById('chatbot-toggle');
+      if (button) {
+        console.log('✅ Chatbot button found in DOM');
+        console.log('📍 Button position:', button.getBoundingClientRect());
+      } else {
+        console.error('❌ Chatbot button NOT found after insertion!');
+      }
+    } catch (error) {
+      console.error('❌ Error inserting chatbot HTML:', error);
+    }
   }
 
   attachEventListeners() {
@@ -292,6 +333,11 @@ class MedicationChatbotGroq {
           await this.handleAddMedication(action.data);
         }
         break;
+      case 'add_schedule':
+        if (action.data) {
+          await this.handleAddSchedule(action.data);
+        }
+        break;
     }
   }
 
@@ -379,6 +425,46 @@ class MedicationChatbotGroq {
               if (data.dosage) form.querySelector('[name="dosage"]').value = data.dosage;
               if (data.form) form.querySelector('[name="form"]').value = data.form;
               if (data.purpose) form.querySelector('[name="purpose"]').value = data.purpose;
+            }
+          }, 100);
+        }
+      }, 300);
+    }, 500);
+  }
+
+  async handleAddSchedule(data) {
+    this.addMessage(`I'll help you schedule that. Opening the schedule form...`, 'bot');
+    
+    // Switch to schedules tab and open modal
+    setTimeout(() => {
+      if (typeof showTab === 'function') showTab('schedules');
+      setTimeout(() => {
+        if (typeof showAddScheduleModal === 'function') {
+          showAddScheduleModal();
+          // Pre-fill form if data available
+          setTimeout(() => {
+            const form = document.getElementById('add-schedule-form');
+            if (form && data) {
+              if (data.medication_id) {
+                const select = form.querySelector('[name="medication_id"]');
+                if (select) select.value = data.medication_id;
+              }
+              if (data.time) {
+                const timeInput = form.querySelector('[name="time"]');
+                if (timeInput) timeInput.value = data.time;
+              }
+              if (data.frequency) {
+                const freqSelect = form.querySelector('[name="frequency"]');
+                if (freqSelect) freqSelect.value = data.frequency;
+              }
+              if (data.with_food) {
+                const foodCheck = form.querySelector('[name="with_food"]');
+                if (foodCheck) foodCheck.checked = true;
+              }
+              if (data.special_instructions) {
+                const instructions = form.querySelector('[name="special_instructions"]');
+                if (instructions) instructions.value = data.special_instructions;
+              }
             }
           }, 100);
         }
