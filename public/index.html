@@ -597,7 +597,34 @@
   </div>
 
   <script src="app.js"></script>
-  <script src="chatbot-groq.js"></script>
+  <script src="chatbot-groq.js?v=2" onerror="console.error('❌ Failed to load chatbot-groq.js'); alert('Chatbot script failed to load. Please check your internet connection and refresh.');"></script>
+  
+  <!-- Verify Script Loaded -->
+  <script>
+    setTimeout(() => {
+      if (typeof MedicationChatbotGroq === 'undefined') {
+        console.error('❌ MedicationChatbotGroq class not found after script load');
+        console.log('🔍 Attempting to reload script...');
+        
+        // Try to load script again
+        const script = document.createElement('script');
+        script.src = 'chatbot-groq.js?v=' + Date.now();
+        script.onerror = () => {
+          console.error('❌ Script reload failed');
+          alert('Unable to load chatbot. Please refresh the page or check your connection.');
+        };
+        script.onload = () => {
+          console.log('✅ Script reloaded successfully');
+          if (typeof MedicationChatbotGroq !== 'undefined') {
+            window.medicationChatbot = new MedicationChatbotGroq();
+          }
+        };
+        document.head.appendChild(script);
+      } else {
+        console.log('✅ MedicationChatbotGroq class found');
+      }
+    }, 1000);
+  </script>
   
   <!-- Emergency Chatbot Button (Fallback) -->
   <script>
