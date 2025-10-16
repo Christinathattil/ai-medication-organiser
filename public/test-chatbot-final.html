@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Test Page</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .test-card {
+      background: white;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    }
+    .status-ok { color: #10b981; font-weight: bold; }
+    .status-error { color: #ef4444; font-weight: bold; }
+    .log-entry {
+      font-family: 'Monaco', monospace;
+      font-size: 12px;
+      padding: 8px;
+      margin: 4px 0;
+      background: #f3f4f6;
+      border-radius: 4px;
+      border-left: 3px solid #667eea;
+    }
+    .log-error {
+      border-left-color: #ef4444;
+      background: #fee2e2;
+    }
+    .log-success {
+      border-left-color: #10b981;
+      background: #d1fae5;
+    }
+  </style>
+</head>
+<body>
+  <div class="max-w-4xl mx-auto">
+    <div class="test-card">
+      <h1 class="text-3xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+        🧪 Chatbot Integration Test
+      </h1>
+      <p class="text-gray-600 mb-4">This page tests all aspects of the chatbot integration</p>
+    </div>
+
+    <!-- Test Results -->
+    <div class="test-card">
+      <h2 class="text-xl font-bold mb-4">Test Results</h2>
+      <div id="test-results" class="space-y-2"></div>
+    </div>
+
+    <!-- Console Logs -->
+    <div class="test-card">
+      <h2 class="text-xl font-bold mb-4">Console Logs</h2>
+      <div id="console-logs" class="space-y-1 max-h-96 overflow-y-auto"></div>
+    </div>
+
+    <!-- Button Verification -->
+    <div class="test-card">
+      <h2 class="text-xl font-bold mb-4">Visual Check</h2>
+      <div id="visual-check" class="space-y-2"></div>
+      <button onclick="manualTest()" class="mt-4 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-all">
+        Run Manual Test
+      </button>
+      <button onclick="testChatAPI()" class="mt-4 ml-2 bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-all">
+        Test Chat API
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Intercept console logs
+    const originalLog = console.log;
+    const originalError = console.error;
+    const logs = [];
+
+    function addLog(message, type = 'log') {
+      logs.push({ message, type, time: new Date() });
+      const logDiv = document.getElementById('console-logs');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type === 'error' ? 'log-error' : type === 'success' ? 'log-success' : ''}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.appendChild(entry);
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    console.log = function(...args) {
+      originalLog.apply(console, args);
+      addLog(args.join(' '), 'log');
+    };
+
+    console.error = function(...args) {
+      originalError.apply(console, args);
+      addLog(args.join(' '), 'error');
+    };
+
+    // Test results
+    const tests = {
+      scriptLoaded: false,
+      classExported: false,
+      chatbotInitialized: false,
+      buttonExists: false,
+      buttonVisible: false,
+      buttonClickable: false,
+      sidebarExists: false,
+      apiResponsive: false
+    };
+
+    function updateTestResults() {
+      const resultsDiv = document.getElementById('test-results');
+      resultsDiv.innerHTML = '';
+      
+      Object.entries(tests).forEach(([test, passed]) => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <div class="flex items-center justify-between p-3 rounded-lg ${passed ? 'bg-green-50' : 'bg-red-50'}">
+            <span class="font-medium">${test.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+            <span class="${passed ? 'status-ok' : 'status-error'}">${passed ? '✅ PASS' : '❌ FAIL'}</span>
+          </div>
+        `;
+        resultsDiv.appendChild(div);
+      });
+    }
+
+    // Run tests
+    function runTests() {
+      addLog('🧪 Starting chatbot tests...', 'success');
+
+      // Test 1: Script loaded
+      setTimeout(() => {
+        tests.scriptLoaded = document.querySelector('script[src*="chatbot-groq.js"]') !== null;
+        addLog(`Test 1: Script loaded = ${tests.scriptLoaded}`, tests.scriptLoaded ? 'success' : 'error');
+        updateTestResults();
+      }, 100);
+
+      // Test 2: Class exported
+      setTimeout(() => {
+        tests.classExported = typeof window.MedicationChatbotGroq !== 'undefined';
+        addLog(`Test 2: Class exported = ${tests.classExported}`, tests.classExported ? 'success' : 'error');
+        updateTestResults();
+      }, 200);
+
+      // Test 3: Chatbot initialized
+      setTimeout(() => {
+        tests.chatbotInitialized = window.medicationChatbot !== undefined;
+        addLog(`Test 3: Chatbot initialized = ${tests.chatbotInitialized}`, tests.chatbotInitialized ? 'success' : 'error');
+        updateTestResults();
+      }, 500);
+
+      // Test 4: Button exists
+      setTimeout(() => {
+        const button = document.getElementById('chatbot-toggle');
+        tests.buttonExists = button !== null;
+        addLog(`Test 4: Button exists = ${tests.buttonExists}`, tests.buttonExists ? 'success' : 'error');
+        
+        if (button) {
+          // Test 5: Button visible
+          const styles = window.getComputedStyle(button);
+          tests.buttonVisible = styles.display !== 'none' && styles.visibility !== 'hidden';
+          addLog(`Test 5: Button visible = ${tests.buttonVisible} (display: ${styles.display}, position: ${styles.position})`, tests.buttonVisible ? 'success' : 'error');
+          
+          // Test 6: Button clickable
+          tests.buttonClickable = !button.disabled;
+          addLog(`Test 6: Button clickable = ${tests.buttonClickable}`, tests.buttonClickable ? 'success' : 'error');
+
+          // Get button position
+          const rect = button.getBoundingClientRect();
+          addLog(`Button position: top=${rect.top}px, right=${rect.right}px, bottom=${rect.bottom}px, left=${rect.left}px`, 'log');
+        }
+        updateTestResults();
+      }, 1000);
+
+      // Test 7: Sidebar exists
+      setTimeout(() => {
+        tests.sidebarExists = document.getElementById('chatbot-sidebar') !== null;
+        addLog(`Test 7: Sidebar exists = ${tests.sidebarExists}`, tests.sidebarExists ? 'success' : 'error');
+        updateTestResults();
+      }, 1200);
+
+      // Visual check
+      setTimeout(() => {
+        performVisualCheck();
+      }, 1500);
+    }
+
+    function performVisualCheck() {
+      const visualDiv = document.getElementById('visual-check');
+      const button = document.getElementById('chatbot-toggle');
+      
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const styles = window.getComputedStyle(button);
+        
+        visualDiv.innerHTML = `
+          <div class="bg-green-50 p-4 rounded-lg">
+            <h3 class="font-bold text-green-800 mb-2">✅ Button Found</h3>
+            <div class="text-sm space-y-1">
+              <p><strong>Position:</strong> ${styles.position}</p>
+              <p><strong>Display:</strong> ${styles.display}</p>
+              <p><strong>Z-Index:</strong> ${styles.zIndex}</p>
+              <p><strong>Bottom:</strong> ${styles.bottom}</p>
+              <p><strong>Right:</strong> ${styles.right}</p>
+              <p><strong>Width:</strong> ${styles.width}</p>
+              <p><strong>Height:</strong> ${styles.height}</p>
+              <p><strong>Background:</strong> ${styles.background.substring(0, 50)}...</p>
+              <p><strong>Viewport Position:</strong> Bottom: ${window.innerHeight - rect.bottom}px, Right: ${window.innerWidth - rect.right}px</p>
+            </div>
+          </div>
+        `;
+      } else {
+        visualDiv.innerHTML = `
+          <div class="bg-red-50 p-4 rounded-lg">
+            <h3 class="font-bold text-red-800">❌ Button Not Found</h3>
+            <p class="text-sm">The chatbot button element does not exist in the DOM.</p>
+          </div>
+        `;
+      }
+    }
+
+    function manualTest() {
+      addLog('🔧 Running manual test...', 'success');
+      const button = document.getElementById('chatbot-toggle');
+      if (button) {
+        addLog('Button found! Attempting to click...', 'success');
+        button.click();
+        addLog('Click event triggered', 'success');
+        
+        setTimeout(() => {
+          const sidebar = document.getElementById('chatbot-sidebar');
+          if (sidebar) {
+            const isOpen = !sidebar.classList.contains('translate-x-full');
+            addLog(`Sidebar open = ${isOpen}`, isOpen ? 'success' : 'error');
+            if (isOpen) {
+              addLog('✅ Chatbot is fully functional!', 'success');
+            }
+          }
+        }, 500);
+      } else {
+        addLog('❌ Button not found! Chatbot not initialized.', 'error');
+      }
+    }
+
+    async function testChatAPI() {
+      addLog('🤖 Testing Chat API endpoint...', 'log');
+      
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            message: 'Hello, this is a test message',
+            history: []
+          })
+        });
+
+        const data = await response.json();
+        
+        if (response.ok) {
+          tests.apiResponsive = true;
+          addLog(`✅ API Response (${response.status}): ${data.response.substring(0, 100)}...`, 'success');
+        } else {
+          tests.apiResponsive = false;
+          addLog(`❌ API Error (${response.status}): ${data.response || data.error}`, 'error');
+        }
+        updateTestResults();
+      } catch (error) {
+        tests.apiResponsive = false;
+        addLog(`❌ API Request Failed: ${error.message}`, 'error');
+        updateTestResults();
+      }
+    }
+
+    // Start tests when page loads
+    window.addEventListener('load', () => {
+      addLog('📄 Page loaded, waiting for chatbot...', 'log');
+      setTimeout(runTests, 1000);
+    });
+
+    // Initial render
+    updateTestResults();
+  </script>
+
+  <!-- Load the actual chatbot script -->
+  <script src="chatbot-groq.js"></script>
+</body>
+</html>

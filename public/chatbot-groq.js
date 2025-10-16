@@ -45,20 +45,41 @@ class MedicationChatbotGroq {
 
   createChatbotUI() {
     console.log('🎨 Creating chatbot UI...');
+    console.log('🔍 Current document.body:', document.body ? 'EXISTS' : 'NULL');
     
-    // Check if already exists
-    if (document.getElementById('chatbot-toggle')) {
-      console.log('ℹ️ Chatbot already exists, skipping creation');
-      return;
+    // Remove any existing chatbot elements first
+    const existingToggle = document.getElementById('chatbot-toggle');
+    const existingSidebar = document.getElementById('chatbot-sidebar');
+    if (existingToggle) {
+      console.log('🧹 Removing existing toggle button');
+      existingToggle.remove();
+    }
+    if (existingSidebar) {
+      console.log('🧹 Removing existing sidebar');
+      existingSidebar.remove();
+    }
+    
+    // Add pulse animation keyframes to document if not already there
+    if (!document.getElementById('chatbot-pulse-animation')) {
+      const style = document.createElement('style');
+      style.id = 'chatbot-pulse-animation';
+      style.textContent = `
+        @keyframes chatbot-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.8; transform: scale(1.05); }
+        }
+      `;
+      document.head.appendChild(style);
+      console.log('✅ Pulse animation added to document');
     }
     
     const chatbotHTML = `
       <!-- Chatbot Toggle Button - Mobile Optimized -->
-      <button id="chatbot-toggle" class="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 z-50 touch-manipulation" style="position: fixed !important; bottom: 1rem !important; right: 1rem !important; z-index: 9999 !important; display: block !important;">
-        <svg class="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <button id="chatbot-toggle" style="position: fixed !important; bottom: 1.5rem !important; right: 1.5rem !important; z-index: 99999 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 60px !important; height: 60px !important; background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important; border-radius: 50% !important; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5) !important; border: none !important; cursor: pointer !important; transition: all 0.3s ease !important; visibility: visible !important; opacity: 1 !important;">
+        <svg style="width: 28px; height: 28px; color: white; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
         </svg>
-        <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold animate-pulse">AI</span>
+        <span style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 10px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; animation: chatbot-pulse 2s infinite; pointer-events: none;">AI</span>
       </button>
 
       <!-- Chatbot Sidebar - Full screen on mobile, sidebar on desktop -->
@@ -132,20 +153,112 @@ class MedicationChatbotGroq {
     `;
 
     try {
+      console.log('💉 Inserting chatbot HTML into body...');
       document.body.insertAdjacentHTML('beforeend', chatbotHTML);
       console.log('✅ Chatbot HTML inserted into DOM');
       
-      // Verify button was created
-      const button = document.getElementById('chatbot-toggle');
-      if (button) {
-        console.log('✅ Chatbot button found in DOM');
-        console.log('📍 Button position:', button.getBoundingClientRect());
-      } else {
-        console.error('❌ Chatbot button NOT found after insertion!');
-      }
+      // FALLBACK: If button doesn't exist, create it directly via DOM
+      setTimeout(() => {
+        if (!document.getElementById('chatbot-toggle')) {
+          console.warn('⚠️ Button not found, using direct DOM creation fallback...');
+          this.createButtonDirectly();
+        }
+      }, 50);
+      
+      // Verify button was created with detailed logging
+      setTimeout(() => {
+        const button = document.getElementById('chatbot-toggle');
+        if (button) {
+          const styles = window.getComputedStyle(button);
+          const rect = button.getBoundingClientRect();
+          
+          console.log('✅ Chatbot button FOUND in DOM!');
+          console.log('📍 Button Position (getBoundingClientRect):', {
+            top: rect.top,
+            right: rect.right,
+            bottom: rect.bottom,
+            left: rect.left,
+            width: rect.width,
+            height: rect.height
+          });
+          console.log('🎨 Button Computed Styles:', {
+            position: styles.position,
+            display: styles.display,
+            visibility: styles.visibility,
+            opacity: styles.opacity,
+            zIndex: styles.zIndex,
+            bottom: styles.bottom,
+            right: styles.right
+          });
+          console.log('✨ Button is visible:', rect.width > 0 && rect.height > 0 && styles.display !== 'none');
+          
+          // Log absolute position in viewport
+          const viewportW = window.innerWidth;
+          const viewportH = window.innerHeight;
+          console.log('🌍 Viewport size:', viewportW, 'x', viewportH);
+          console.log('📌 Button distance from viewport:', {
+            fromBottom: viewportH - rect.bottom + 'px',
+            fromRight: viewportW - rect.right + 'px'
+          });
+        } else {
+          console.error('❌ Chatbot button NOT found after insertion!');
+          console.error('🔍 Searching for button in entire document...');
+          const allButtons = document.querySelectorAll('button');
+          console.log('🔍 Total buttons in document:', allButtons.length);
+          const chatbotButtons = Array.from(allButtons).filter(b => b.id && b.id.includes('chatbot'));
+          console.log('🔍 Chatbot-related buttons:', chatbotButtons);
+        }
+      }, 100);
     } catch (error) {
       console.error('❌ Error inserting chatbot HTML:', error);
+      console.error('❌ Error stack:', error.stack);
     }
+  }
+
+  createButtonDirectly() {
+    console.log('🔧 Creating button using direct DOM manipulation...');
+    
+    // Create button element
+    const button = document.createElement('button');
+    button.id = 'chatbot-toggle';
+    button.style.cssText = 'position: fixed !important; bottom: 1.5rem !important; right: 1.5rem !important; z-index: 99999 !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 60px !important; height: 60px !important; background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%) !important; border-radius: 50% !important; box-shadow: 0 10px 25px rgba(124, 58, 237, 0.5) !important; border: none !important; cursor: pointer !important; transition: all 0.3s ease !important; visibility: visible !important; opacity: 1 !important;';
+    
+    // Create SVG icon
+    button.innerHTML = `
+      <svg style="width: 28px; height: 28px; color: white; pointer-events: none;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+      </svg>
+      <span style="position: absolute; top: -4px; right: -4px; background: #ef4444; color: white; font-size: 10px; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-weight: bold; animation: chatbot-pulse 2s infinite; pointer-events: none;">AI</span>
+    `;
+    
+    // Add click event
+    button.addEventListener('click', () => this.toggle());
+    
+    // Add hover effects
+    button.addEventListener('mouseenter', () => {
+      button.style.transform = 'scale(1.1)';
+      button.style.boxShadow = '0 15px 35px rgba(124, 58, 237, 0.6)';
+    });
+    button.addEventListener('mouseleave', () => {
+      button.style.transform = 'scale(1)';
+      button.style.boxShadow = '0 10px 25px rgba(124, 58, 237, 0.5)';
+    });
+    
+    // Append to body
+    document.body.appendChild(button);
+    console.log('✅ Button created directly and appended to body');
+    
+    // Verify
+    setTimeout(() => {
+      const check = document.getElementById('chatbot-toggle');
+      if (check) {
+        console.log('✅ Direct button creation successful!');
+        const rect = check.getBoundingClientRect();
+        console.log('📍 Button rect:', rect);
+      } else {
+        console.error('❌ Direct button creation FAILED!');
+      }
+    }, 100);
   }
 
   attachEventListeners() {
@@ -159,7 +272,19 @@ class MedicationChatbotGroq {
       return;
     }
     
+    // Toggle button click
     toggleBtn.addEventListener('click', () => this.toggle());
+    
+    // Hover effects for toggle button
+    toggleBtn.addEventListener('mouseenter', () => {
+      toggleBtn.style.transform = 'scale(1.1)';
+      toggleBtn.style.boxShadow = '0 15px 35px rgba(124, 58, 237, 0.6)';
+    });
+    toggleBtn.addEventListener('mouseleave', () => {
+      toggleBtn.style.transform = 'scale(1)';
+      toggleBtn.style.boxShadow = '0 10px 25px rgba(124, 58, 237, 0.5)';
+    });
+    
     closeBtn.addEventListener('click', () => this.close());
     sendBtn.addEventListener('click', () => this.sendMessage());
     input.addEventListener('keypress', (e) => {
@@ -497,31 +622,122 @@ class MedicationChatbotGroq {
   }
 }
 
-// Export the class to global scope FIRST
+// Export the class to global scope
 window.MedicationChatbotGroq = MedicationChatbotGroq;
 console.log('✅ MedicationChatbotGroq class exported to window');
 
-// Initialize chatbot - simple and reliable
+// Initialize chatbot with multiple fallback attempts
 console.log('📦 Chatbot script loaded');
 
+let chatbotInitAttempts = 0;
+const MAX_INIT_ATTEMPTS = 5;
+
 function initChatbot() {
-  if (window.medicationChatbot) {
-    console.log('ℹ️ Chatbot already initialized');
-    return;
+  chatbotInitAttempts++;
+  
+  // Check if already initialized
+  if (window.medicationChatbot && document.getElementById('chatbot-toggle')) {
+    console.log('✅ Chatbot already initialized and button exists');
+    return true;
+  }
+  
+  // Check if DOM is ready
+  if (!document.body) {
+    console.log('⏳ Waiting for document.body...');
+    if (chatbotInitAttempts < MAX_INIT_ATTEMPTS) {
+      setTimeout(initChatbot, 100);
+    }
+    return false;
   }
   
   try {
+    console.log(`🚀 Initializing chatbot (attempt ${chatbotInitAttempts})...`);
     window.medicationChatbot = new MedicationChatbotGroq();
-    console.log('✅ Chatbot initialized successfully');
+    
+    // Verify button was created
+    setTimeout(() => {
+      const button = document.getElementById('chatbot-toggle');
+      if (button) {
+        console.log('✅ Chatbot initialized successfully - button is visible');
+        console.log('📍 Button position:', window.getComputedStyle(button).position);
+        console.log('📍 Button display:', window.getComputedStyle(button).display);
+      } else {
+        console.error('❌ Button not found after initialization');
+        if (chatbotInitAttempts < MAX_INIT_ATTEMPTS) {
+          console.log('🔄 Retrying initialization...');
+          window.medicationChatbot = null;
+          setTimeout(initChatbot, 200);
+        }
+      }
+    }, 100);
+    
+    return true;
   } catch (error) {
     console.error('❌ Chatbot initialization failed:', error);
+    if (chatbotInitAttempts < MAX_INIT_ATTEMPTS) {
+      console.log('🔄 Retrying initialization...');
+      setTimeout(initChatbot, 200);
+    }
+    return false;
   }
 }
 
-// Wait for DOM to be ready
+// IMMEDIATE TEST: Show we're here
+console.log('');
+console.log('═══════════════════════════════════════════════');
+console.log('🚀 CHATBOT SCRIPT IS LOADING NOW! (v6)');
+console.log('═══════════════════════════════════════════════');
+console.log('');
+
+// Add visual indicator that script loaded (temporary notification)
+if (document.body) {
+  const loadNotification = document.createElement('div');
+  loadNotification.style.cssText = 'position: fixed; top: 20px; right: 20px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; padding: 15px 20px; border-radius: 10px; z-index: 999999; font-family: sans-serif; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-size: 14px; font-weight: bold;';
+  loadNotification.textContent = '✅ Chatbot Script Loaded (v6)';
+  document.body.appendChild(loadNotification);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    loadNotification.style.transition = 'opacity 0.5s';
+    loadNotification.style.opacity = '0';
+    setTimeout(() => loadNotification.remove(), 500);
+  }, 3000);
+  
+  console.log('✅ Load notification displayed');
+}
+
+// Multiple initialization strategies
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initChatbot);
+  // Strategy 1: DOMContentLoaded
+  document.addEventListener('DOMContentLoaded', () => {
+    console.log('📌 DOMContentLoaded fired');
+    initChatbot();
+  });
 } else {
-  // DOM already loaded
+  // Strategy 2: DOM already loaded
+  console.log('📌 DOM already loaded - initializing immediately');
   initChatbot();
 }
+
+// Strategy 3: Window load as final fallback
+window.addEventListener('load', () => {
+  console.log('📌 Window load event fired');
+  if (!window.medicationChatbot || !document.getElementById('chatbot-toggle')) {
+    console.log('🔄 Reinitializing on window load...');
+    initChatbot();
+  }
+});
+
+// Strategy 4: Manual reinit function for debugging
+window.reinitChatbot = function() {
+  console.log('🔧 Manual reinitialization triggered');
+  if (window.medicationChatbot) {
+    const toggle = document.getElementById('chatbot-toggle');
+    const sidebar = document.getElementById('chatbot-sidebar');
+    if (toggle) toggle.remove();
+    if (sidebar) sidebar.remove();
+    window.medicationChatbot = null;
+  }
+  chatbotInitAttempts = 0;
+  initChatbot();
+};
