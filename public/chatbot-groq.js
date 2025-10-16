@@ -490,8 +490,12 @@ class MedicationChatbotGroq {
   }
 }
 
+// Export the class to global scope
+window.MedicationChatbotGroq = MedicationChatbotGroq;
+
 // Initialize chatbot when page loads
 console.log('🤖 Chatbot script loaded');
+console.log('🤖 MedicationChatbotGroq class available:', typeof MedicationChatbotGroq !== 'undefined');
 
 // Simple initialization - just create the instance
 // The class constructor will handle the rest
@@ -501,6 +505,7 @@ try {
       console.log('🤖 Initializing chatbot on DOMContentLoaded...');
       if (!window.medicationChatbot) {
         window.medicationChatbot = new MedicationChatbotGroq();
+        console.log('✅ Chatbot instance created successfully');
       }
     });
   } else {
@@ -508,6 +513,7 @@ try {
     console.log('🤖 Initializing chatbot immediately...');
     if (!window.medicationChatbot) {
       window.medicationChatbot = new MedicationChatbotGroq();
+      console.log('✅ Chatbot instance created successfully');
     }
   }
 } catch (error) {
