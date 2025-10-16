@@ -17,36 +17,29 @@ class MedicationChatbotGroq {
 
   init() {
     console.log('🔧 Initializing chatbot...');
-    console.log('📍 Document ready state:', document.readyState);
-    console.log('📍 Body exists:', !!document.body);
     
-    // Simple approach: just create the UI
+    // Ensure body exists
+    if (!document.body) {
+      console.log('⏳ Waiting for body...');
+      setTimeout(() => this.init(), 50);
+      return;
+    }
+    
     try {
       this.createChatbotUI();
       this.attachEventListeners();
-      console.log('✅ Chatbot UI created and attached');
       
       // Verify button exists
       const button = document.getElementById('chatbot-toggle');
       if (button) {
-        console.log('✅ Chatbot button verified in DOM');
-        console.log('📍 Button styles:', window.getComputedStyle(button).display);
+        console.log('✅ Chatbot button created successfully');
       } else {
-        console.error('❌ Chatbot button NOT found after creation!');
+        console.error('❌ Button creation failed, retrying...');
+        setTimeout(() => this.init(), 100);
       }
     } catch (error) {
-      console.error('❌ Error during init:', error);
-      console.error('Error stack:', error.stack);
-      // Retry after a short delay
-      setTimeout(() => {
-        try {
-          this.createChatbotUI();
-          this.attachEventListeners();
-          console.log('✅ Chatbot UI created on retry');
-        } catch (retryError) {
-          console.error('❌ Retry failed:', retryError);
-        }
-      }, 500);
+      console.error('❌ Init error:', error);
+      setTimeout(() => this.init(), 200);
     }
   }
 
@@ -508,53 +501,27 @@ class MedicationChatbotGroq {
 window.MedicationChatbotGroq = MedicationChatbotGroq;
 console.log('✅ MedicationChatbotGroq class exported to window');
 
-// Initialize chatbot when DOM is fully ready
+// Initialize chatbot - simple and reliable
+console.log('📦 Chatbot script loaded');
+
 function initChatbot() {
-  console.log('🤖 Initializing chatbot...');
+  if (window.medicationChatbot) {
+    console.log('ℹ️ Chatbot already initialized');
+    return;
+  }
+  
   try {
-    if (!window.medicationChatbot) {
-      window.medicationChatbot = new MedicationChatbotGroq();
-      console.log('✅ Chatbot instance created successfully');
-    } else {
-      console.log('ℹ️ Chatbot already initialized');
-    }
+    window.medicationChatbot = new MedicationChatbotGroq();
+    console.log('✅ Chatbot initialized successfully');
   } catch (error) {
-    console.error('❌ Error initializing chatbot:', error);
-    console.error('Error details:', error.message, error.stack);
+    console.error('❌ Chatbot initialization failed:', error);
   }
 }
 
-// Wait for DOM to be fully loaded
+// Wait for DOM to be ready
 if (document.readyState === 'loading') {
-  console.log('⏳ Waiting for DOM to load...');
   document.addEventListener('DOMContentLoaded', initChatbot);
 } else {
-  console.log('✅ DOM already loaded, initializing now...');
-  // Add small delay to ensure everything is ready
-  setTimeout(initChatbot, 100);
+  // DOM already loaded
+  initChatbot();
 }
-
-// Also try on window load as a fallback
-window.addEventListener('load', () => {
-  console.log('🔄 Window loaded, checking chatbot...');
-  if (!document.getElementById('chatbot-toggle')) {
-    console.log('⚠️ Chatbot button not found, re-initializing...');
-    setTimeout(initChatbot, 200);
-  } else {
-    console.log('✅ Chatbot button exists');
-  }
-});
-
-// Expose a global function to manually reinitialize the chatbot
-window.reinitChatbot = function() {
-  console.log('🔄 Manual chatbot reinitialization requested');
-  if (window.medicationChatbot) {
-    console.log('⚠️ Removing existing chatbot instance');
-    const existing = document.getElementById('chatbot-toggle');
-    if (existing) existing.remove();
-    const sidebar = document.getElementById('chatbot-sidebar');
-    if (sidebar) sidebar.remove();
-  }
-  window.medicationChatbot = new MedicationChatbotGroq();
-  console.log('✅ Chatbot reinitialized');
-};
