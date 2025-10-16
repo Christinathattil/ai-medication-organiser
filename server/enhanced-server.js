@@ -330,7 +330,11 @@ app.post('/api/chat', async (req, res) => {
     }
 
     // Get current medication context
+    console.log('🔍 Fetching medications for chat context...');
     const medications = await db.getMedications({});
+    console.log('📋 Medications fetched:', medications);
+    console.log('📊 Medications count:', medications?.medications?.length || 0);
+    
     const schedules = await db.getSchedules({});
     const todaySchedule = await db.getTodaySchedule();
     
@@ -338,6 +342,8 @@ app.post('/api/chat', async (req, res) => {
     const medCount = medications?.medications?.length || 0;
     const schedCount = schedules?.schedules?.length || 0;
     const todayCount = Array.isArray(todaySchedule) ? todaySchedule.length : 0;
+    
+    console.log(`📈 Context: ${medCount} meds, ${schedCount} schedules, ${todayCount} today`);
     
     // Build context for AI
     const systemPrompt = `You are an intelligent medication management assistant. You help users manage their medications, schedules, and health tracking seamlessly.
