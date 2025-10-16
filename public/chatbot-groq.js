@@ -490,32 +490,32 @@ class MedicationChatbotGroq {
   }
 }
 
-// Export the class to global scope
+// Export the class to global scope FIRST
 window.MedicationChatbotGroq = MedicationChatbotGroq;
+console.log('✅ MedicationChatbotGroq class exported to window');
 
-// Initialize chatbot when page loads
-console.log('🤖 Chatbot script loaded');
-console.log('🤖 MedicationChatbotGroq class available:', typeof MedicationChatbotGroq !== 'undefined');
-
-// Simple initialization - just create the instance
-// The class constructor will handle the rest
-try {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      console.log('🤖 Initializing chatbot on DOMContentLoaded...');
-      if (!window.medicationChatbot) {
-        window.medicationChatbot = new MedicationChatbotGroq();
-        console.log('✅ Chatbot instance created successfully');
-      }
-    });
-  } else {
-    // DOM already loaded
-    console.log('🤖 Initializing chatbot immediately...');
+// Initialize chatbot when DOM is fully ready
+function initChatbot() {
+  console.log('🤖 Initializing chatbot...');
+  try {
     if (!window.medicationChatbot) {
       window.medicationChatbot = new MedicationChatbotGroq();
       console.log('✅ Chatbot instance created successfully');
+    } else {
+      console.log('ℹ️ Chatbot already initialized');
     }
+  } catch (error) {
+    console.error('❌ Error initializing chatbot:', error);
+    console.error('Error details:', error.message, error.stack);
   }
-} catch (error) {
-  console.error('❌ Error initializing chatbot:', error);
+}
+
+// Wait for DOM to be fully loaded
+if (document.readyState === 'loading') {
+  console.log('⏳ Waiting for DOM to load...');
+  document.addEventListener('DOMContentLoaded', initChatbot);
+} else {
+  console.log('✅ DOM already loaded, initializing now...');
+  // Add small delay to ensure everything is ready
+  setTimeout(initChatbot, 100);
 }
