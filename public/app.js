@@ -190,6 +190,9 @@ async function loadMedications() {
           <button onclick="viewMedication(${med.id})" class="text-blue-600 hover:text-blue-700">
             <i class="fas fa-eye mr-1"></i>View
           </button>
+          <button onclick="editMedication(${med.id})" class="text-green-600 hover:text-green-700">
+            <i class="fas fa-edit mr-1"></i>Edit
+          </button>
           <button onclick="deleteMedication(${med.id})" class="text-red-600 hover:text-red-700">
             <i class="fas fa-trash mr-1"></i>Delete
           </button>
@@ -207,7 +210,12 @@ function searchMedications() {
 
 async function addMedication(event) {
   event.preventDefault();
-  console.log('🔵 Adding medication...');
+  
+  // Check if we're in edit mode
+  const editId = event.target.dataset.editId;
+  const isEditing = !!editId;
+  
+  console.log(isEditing ? '🔵 Updating medication...' : '🔵 Adding medication...');
   
   const formData = new FormData(event.target);
   
@@ -228,8 +236,11 @@ async function addMedication(event) {
   
   try {
     console.log('📤 Sending to API...');
-    const res = await fetch(`${API_BASE}/medications`, {
-      method: 'POST',
+    const url = isEditing ? `${API_BASE}/medications/${editId}` : `${API_BASE}/medications`;
+    const method = isEditing ? 'PUT' : 'POST';
+    
+    const res = await fetch(url, {
+      method: method,
       body: cleanedData
     });
     
@@ -238,10 +249,15 @@ async function addMedication(event) {
     if (res.ok) {
       const data = await res.json();
       console.log('✅ Success:', data);
+      
+      // Reset modal to add mode
+      event.target.removeAttribute('data-edit-id');
+      document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
+      
       closeModal('add-medication-modal');
       event.target.reset();
       loadMedications();
-      showNotification('Medication added successfully!', 'success');
+      showNotification(isEditing ? 'Medication updated successfully!' : 'Medication added successfully!', 'success');
     } else {
       const errorText = await res.text();
       console.error('❌ Server error:', errorText);
@@ -249,7 +265,7 @@ async function addMedication(event) {
     }
   } catch (error) {
     console.error('❌ Network error:', error);
-    showNotification('Error adding medication: ' + error.message, 'error');
+    showNotification(isEditing ? 'Error updating medication: ' + error.message : 'Error adding medication: ' + error.message, 'error');
   }
 }
 
@@ -273,6 +289,41 @@ ${med.notes ? `Notes: ${med.notes}` : ''}`);
     }
   } catch (error) {
     console.error('Error viewing medication:', error);
+    showNotification('Error loading medication details', 'error');
+  }
+}
+
+async function editMedication(id) {
+  try {
+    const res = await fetch(`${API_BASE}/medications/${id}`);
+    const data = await res.json();
+    
+    if (data.medication) {
+      const med = data.medication;
+      
+      // Fill the form with existing data
+      document.getElementById('med-name').value = med.name || '';
+      document.getElementById('med-dosage').value = med.dosage || '';
+      document.getElementById('med-form').value = med.form || 'tablet';
+      document.getElementById('med-purpose').value = med.purpose || '';
+      document.getElementById('med-doctor').value = med.prescribing_doctor || '';
+      document.getElementById('med-prescription-date').value = med.prescription_date || '';
+      document.getElementById('med-quantity').value = med.total_quantity || '';
+      document.getElementById('med-side-effects').value = med.side_effects || '';
+      document.getElementById('med-notes').value = med.notes || '';
+      
+      // Change modal title and button
+      const modal = document.getElementById('add-medication-modal');
+      modal.querySelector('h2').textContent = 'Edit Medication';
+      
+      // Store the ID in a data attribute for the submit handler
+      document.getElementById('medication-form').dataset.editId = id;
+      
+      // Open the modal
+      openModal('add-medication-modal');
+    }
+  } catch (error) {
+    console.error('Error loading medication for edit:', error);
     showNotification('Error loading medication details', 'error');
   }
 }

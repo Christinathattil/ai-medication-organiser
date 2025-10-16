@@ -492,32 +492,37 @@ function extractScheduleFromText(text, medications) {
     }
   }
 
-  // Extract time (various formats)
-  // Format: "8am", "8:00am", "08:00", "8 am", "8:00 AM"
-  const timePatterns = [
-    /(\d{1,2}):(\d{2})\s*(am|pm)?/i,  // 8:00am, 8:00 PM
-    /(\d{1,2})\s*(am|pm)/i,            // 8am, 8 PM
-    /at\s+(\d{1,2}):(\d{2})/i,         // at 08:00
-    /at\s+(\d{1,2})\s*(am|pm)/i        // at 8 am
-  ];
-
-  for (const pattern of timePatterns) {
-    const match = text.match(pattern);
-    if (match) {
-      let hour = parseInt(match[1]);
-      const minute = match[2] ? parseInt(match[2]) : 0;
-      const period = match[3] || match[2];
-
-      // Convert to 24-hour format
-      if (period && period.toLowerCase() === 'pm' && hour < 12) {
-        hour += 12;
-      } else if (period && period.toLowerCase() === 'am' && hour === 12) {
-        hour = 0;
-      }
-
-      data.time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
-      break;
+  // Extract time with proper minute/period detection
+  let timeMatch = null;
+  let hour = 0;
+  let minute = 0;
+  let period = null;
+  
+  // Try HH:MM am/pm format first
+  timeMatch = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (timeMatch) {
+    hour = parseInt(timeMatch[1]);
+    minute = parseInt(timeMatch[2]);
+    period = timeMatch[3];
+  } else {
+    // Try H am/pm format (no minutes)
+    timeMatch = text.match(/(\d{1,2})\s*(am|pm)/i);
+    if (timeMatch) {
+      hour = parseInt(timeMatch[1]);
+      minute = 0;
+      period = timeMatch[2];
     }
+  }
+  
+  if (timeMatch) {
+    // Convert to 24-hour format
+    if (period && period.toLowerCase() === 'pm' && hour < 12) {
+      hour += 12;
+    } else if (period && period.toLowerCase() === 'am' && hour === 12) {
+      hour = 0;
+    }
+    
+    data.time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
   // Extract frequency
