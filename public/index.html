@@ -945,7 +945,8 @@
     }
     
     async function addSchedule(data) {
-      console.log('📅 Adding schedule:', data);
+      console.log('📅 Adding schedule with data:', JSON.stringify(data, null, 2));
+      console.log('📝 Last added medication:', lastAddedMedication);
       
       // If medication_id is missing, use last added medication
       if (!data.medication_id && lastAddedMedication) {
@@ -955,14 +956,20 @@
       
       // Validate we have required fields
       if (!data.medication_id) {
+        console.error('❌ Validation failed: No medication_id');
         addMessage('❌ I couldn\'t identify which medication to schedule. Please specify the medication name, like: "Schedule aspirin at 8am daily"', 'bot', true);
         return;
       }
       
       if (!data.time) {
+        console.error('❌ Validation failed: No time');
         addMessage('❌ I couldn\'t identify the time. Please include a time like: "at 8am" or "at 10:30"', 'bot', true);
         return;
       }
+      
+      console.log('✅ Validation passed, calling API...');
+      console.log('API URL:', `${API_BASE}/schedules`);
+      console.log('Request body:', JSON.stringify(data, null, 2));
       
       try {
         const response = await fetch(`${API_BASE}/schedules`, {
@@ -971,9 +978,17 @@
           body: JSON.stringify(data)
         });
         
+        console.log('API Response status:', response.status);
+        console.log('API Response ok:', response.ok);
+        
+        const responseText = await response.text();
+        console.log('API Response body:', responseText);
+        
         if (response.ok) {
-          const result = await response.json();
-          const medName = lastAddedMedication?.name || 'Your medication';
+          const result = JSON.parse(responseText);
+          console.log('✅ Schedule created successfully:', result);
+          
+          const medName = lastAddedMedication?.name || data.medication_name || 'Your medication';
           addMessage(`✅ Schedule created! ${medName} is now scheduled for ${data.time} ${data.frequency}.`, 'bot');
           
           lastAddedMedication = null; // Clear context
@@ -988,11 +1003,14 @@
             }
           }, 1500);
         } else {
-          const error = await response.json().catch(() => ({}));
-          throw new Error(error.message || 'Failed to create schedule');
+          console.error('❌ API returned error status:', response.status);
+          const error = JSON.parse(responseText);
+          console.error('Error details:', error);
+          throw new Error(error.message || error.error || 'Failed to create schedule');
         }
       } catch (error) {
-        console.error('Error creating schedule:', error);
+        console.error('❌ Exception in addSchedule:', error);
+        console.error('Error stack:', error.stack);
         addMessage(`❌ Failed to create schedule: ${error.message}. Please try again or use the Schedule button.`, 'bot', true);
       }
     }
