@@ -886,10 +886,10 @@
       try {
         switch (action.type) {
           case 'add_medication':
-            await addMedication(action.data);
+            showMedicationPreview(action.data);
             break;
           case 'add_schedule':
-            await addSchedule(action.data);
+            showSchedulePreview(action.data);
             break;
           case 'show_schedule':
             await showTodaySchedule();
@@ -907,6 +907,119 @@
         console.error('Action handling error:', error);
         addMessage('Sorry, I had trouble executing that action. Please try again.', 'bot', true);
       }
+    }
+    
+    function showMedicationPreview(data) {
+      const preview = `📋 I've extracted the following medication details:
+
+• Name: ${data.name}
+• Dosage: ${data.dosage}
+• Form: ${data.form}
+${data.purpose ? `• Purpose: ${data.purpose}` : ''}
+
+Would you like to add this medication?`;
+      
+      addMessage(preview, 'bot');
+      
+      // Add action button
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '➕ Add This Medication';
+      addBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      addBtn.onclick = () => {
+        openAddMedicationModal(data);
+        buttonDiv.remove();
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Cancelled. Let me know if you need anything else!', 'bot');
+      };
+      
+      buttonDiv.appendChild(addBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function showSchedulePreview(data) {
+      const preview = `📅 I've extracted the following schedule details:
+
+• Medication: ${lastAddedMedication?.name || 'Selected medication'}
+• Time: ${data.time}
+• Frequency: ${data.frequency}
+${data.with_food ? '• Take with food' : ''}
+
+Would you like to create this schedule?`;
+      
+      addMessage(preview, 'bot');
+      
+      // Add action button
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const scheduleBtn = document.createElement('button');
+      scheduleBtn.textContent = '📅 Create This Schedule';
+      scheduleBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      scheduleBtn.onclick = () => {
+        openScheduleModal(data);
+        buttonDiv.remove();
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Cancelled. Let me know if you need anything else!', 'bot');
+      };
+      
+      buttonDiv.appendChild(scheduleBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    function openAddMedicationModal(data) {
+      // Fill the form
+      document.getElementById('med-name').value = data.name || '';
+      document.getElementById('med-dosage').value = data.dosage || '';
+      document.getElementById('med-form').value = data.form || 'tablet';
+      document.getElementById('med-purpose').value = data.purpose || '';
+      
+      // Open modal
+      if (typeof openModal === 'function') {
+        openModal('add-medication-modal');
+      }
+      addMessage('✅ Form opened! Please review and click "Add Medication" to confirm.', 'bot');
+    }
+    
+    function openScheduleModal(data) {
+      // We need to open the schedule modal - but first let's check if there's a function for it
+      addMessage('✅ Please use the "Schedule" button on the medication card to create a schedule, or I can help you add it directly if you confirm.', 'bot');
+      
+      // Fallback: directly add the schedule
+      const confirmBtn = document.createElement('button');
+      confirmBtn.textContent = '✅ Confirm & Add Schedule';
+      confirmBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; margin-top: 8px; margin-bottom: 16px;';
+      confirmBtn.onclick = async () => {
+        await addSchedule(data);
+        confirmBtn.remove();
+      };
+      
+      messagesDiv.appendChild(confirmBtn);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
     
     async function addMedication(data) {
