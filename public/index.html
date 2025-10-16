@@ -747,6 +747,12 @@
             { role: 'user', content: message },
             { role: 'assistant', content: data.response }
           );
+          
+          // Handle action if AI detected intent
+          if (data.action) {
+            console.log('🎯 Action detected:', data.action);
+            await handleAction(data.action);
+          }
         } else {
           const error = await response.json().catch(() => ({}));
           addMessage(error.response || 'Sorry, I encountered an error. Please check that Groq API is configured.', 'bot', true);
@@ -852,6 +858,125 @@
         }
       } catch (error) {
         addMessage('Error fetching statistics.', 'bot', true);
+      }
+    }
+    
+    async function handleAction(action) {
+      console.log('🔧 Handling action:', action.type);
+      
+      try {
+        switch (action.type) {
+          case 'add_medication':
+            await addMedication(action.data);
+            break;
+          case 'add_schedule':
+            await addSchedule(action.data);
+            break;
+          case 'show_schedule':
+            await showTodaySchedule();
+            break;
+          case 'show_stats':
+            await showStats();
+            break;
+          case 'show_refills':
+            await showRefills();
+            break;
+          default:
+            console.log('Unknown action type:', action.type);
+        }
+      } catch (error) {
+        console.error('Action handling error:', error);
+        addMessage('Sorry, I had trouble executing that action. Please try again.', 'bot', true);
+      }
+    }
+    
+    async function addMedication(data) {
+      console.log('💊 Adding medication:', data);
+      
+      try {
+        const response = await fetch(`${API_BASE}/medications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          addMessage(`✅ Successfully added ${data.name}! The medication has been saved to your list.`, 'bot');
+          
+          // Close chat and refresh the page to show new medication
+          setTimeout(() => {
+            sidebar.style.transform = 'translateX(100%)';
+            if (typeof loadMedications === 'function') {
+              loadMedications();
+            } else {
+              window.location.reload();
+            }
+          }, 1500);
+        } else {
+          throw new Error('Failed to add medication');
+        }
+      } catch (error) {
+        console.error('Error adding medication:', error);
+        addMessage('❌ Failed to add medication. Please try again or add it manually using the Add Medication button.', 'bot', true);
+      }
+    }
+    
+    async function addSchedule(data) {
+      console.log('📅 Adding schedule:', data);
+      
+      try {
+        const response = await fetch(`${API_BASE}/schedules`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        if (response.ok) {
+          const result = await response.json();
+          addMessage(`✅ Schedule created! Your medication is scheduled for ${data.time}.`, 'bot');
+          
+          // Close chat and refresh
+          setTimeout(() => {
+            sidebar.style.transform = 'translateX(100%)';
+            if (typeof loadSchedules === 'function') {
+              loadSchedules();
+            } else {
+              window.location.reload();
+            }
+          }, 1500);
+        } else {
+          throw new Error('Failed to create schedule');
+        }
+      } catch (error) {
+        console.error('Error creating schedule:', error);
+        addMessage('❌ Failed to create schedule. Please try again or use the Schedule button.', 'bot', true);
+      }
+    }
+    
+    async function showRefills() {
+      try {
+        const response = await fetch(`${API_BASE}/medications`);
+        const data = await response.json();
+        
+        const lowStock = data.medications.filter(m => {
+          const remaining = m.quantity || 0;
+          return remaining <= 10;
+        });
+        
+        if (lowStock.length === 0) {
+          addMessage('🎉 All medications have sufficient quantity!', 'bot');
+        } else {
+          let msg = '🔔 Medications that need refilling:\n\n';
+          lowStock.forEach(m => {
+            const qty = m.quantity || 0;
+            msg += `⚠️ ${m.name} - Only ${qty} ${m.form || 'doses'} left\n`;
+          });
+          msg += '\nConsider refilling these soon!';
+          addMessage(msg, 'bot');
+        }
+      } catch (error) {
+        addMessage('Error checking refills.', 'bot', true);
       }
     }
     
