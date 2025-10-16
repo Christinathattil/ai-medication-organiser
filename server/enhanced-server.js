@@ -604,6 +604,15 @@ cron.schedule('* * * * *', async () => {
           wait: false,
         });
         
+        // SMS notification (if configured)
+        if (twilioClient && process.env.USER_PHONE_NUMBER) {
+          const smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})${schedule.with_food ? ' - Take with food' : ''}`;
+          const smsSent = await sendSMS(process.env.USER_PHONE_NUMBER, smsMessage);
+          if (smsSent) {
+            console.log(`   📱 SMS sent to ${process.env.USER_PHONE_NUMBER}`);
+          }
+        }
+        
         notificationsSent++;
       }
     }

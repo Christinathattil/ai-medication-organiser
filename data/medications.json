@@ -1,0 +1,30 @@
+{
+  "medications": [
+    {
+      "id": 3,
+      "name": "aspirin",
+      "dosage": "500",
+      "form": "tablet",
+      "purpose": "headache",
+      "prescribing_doctor": "",
+      "prescription_date": "2025-10-09",
+      "total_quantity": "",
+      "side_effects": "",
+      "notes": "",
+      "photo_url": "/uploads/med-1760545895804-762399440-Screenshot 2025-10-15 at 8.28.50â¯PM.png",
+      "refill_count": 0,
+      "remaining_quantity": null,
+      "created_at": "2025-10-15T16:31:35.808Z",
+      "updated_at": "2025-10-15T16:31:35.808Z"
+    }
+  ],
+  "schedules": [],
+  "logs": [],
+  "interactions": [],
+  "nextId": {
+    "medication": 4,
+    "schedule": 1,
+    "log": 1,
+    "interaction": 1
+  }
+}

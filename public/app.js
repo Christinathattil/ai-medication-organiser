@@ -45,6 +45,10 @@ window.closeModal = function(modalId) {
   document.getElementById(modalId).classList.remove('active');
 }
 
+window.openModal = function(modalId) {
+  document.getElementById(modalId).classList.add('active');
+}
+
 // Dashboard Functions
 async function loadDashboard() {
   await Promise.all([
