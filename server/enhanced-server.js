@@ -320,9 +320,11 @@ app.post('/api/chat', async (req, res) => {
     const { message, history = [] } = req.body;
     
     if (!groqClient) {
-      // Fallback response if Groq is not configured
-      return res.json({
-        response: "I'm currently in basic mode. To enable AI-powered responses, please configure your GROQ_API_KEY in the .env file. You can get a free API key from https://console.groq.com",
+      // Return error if Groq is not configured
+      console.error('❌ Groq API not configured - GROQ_API_KEY missing');
+      return res.status(500).json({
+        error: 'AI service not configured',
+        response: "⚠️ AI Assistant is not configured. Please ensure GROQ_API_KEY is set in your environment variables.",
         action: null
       });
     }

@@ -231,7 +231,10 @@ class MedicationChatbotGroq {
           await this.executeAction(data.action);
         }
       } else {
-        this.addMessage("I'm having trouble connecting. Please try again.", 'bot', 'error');
+        const errorData = await response.json().catch(() => ({}));
+        const errorMsg = errorData.response || "I'm having trouble connecting to the AI service. Please check that your Groq API key is configured correctly.";
+        this.addMessage(errorMsg, 'bot', 'error');
+        console.error('❌ Chat API error:', response.status, errorData);
       }
     } catch (error) {
       this.removeTypingIndicator(typingId);
