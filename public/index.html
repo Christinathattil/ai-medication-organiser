@@ -599,33 +599,272 @@
     </div>
   </div>
 
+  <!-- ==================== INLINE AI CHATBOT (NO CACHING) ==================== -->
+  <!-- Chatbot Button - Always Visible, Embedded Directly -->
+  <button id="ai-chat-toggle" style="position: fixed; bottom: 24px; right: 24px; z-index: 999999; width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); border: none; cursor: pointer; box-shadow: 0 10px 30px rgba(124, 58, 237, 0.5); display: flex; align-items: center; justify-content: center; transition: all 0.3s ease;">
+    <svg style="width: 32px; height: 32px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+    </svg>
+    <span style="position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; font-size: 11px; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: bold;">AI</span>
+  </button>
+
+  <!-- Chatbot Sidebar -->
+  <div id="ai-chat-sidebar" style="position: fixed; top: 0; right: 0; bottom: 0; width: 100%; max-width: 450px; background: white; box-shadow: -5px 0 30px rgba(0,0,0,0.3); transform: translateX(100%); transition: transform 0.3s ease; z-index: 999998; display: flex; flex-direction: column;">
+    <!-- Header -->
+    <div style="background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; padding: 20px; display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <div style="background: rgba(255,255,255,0.2); padding: 10px; border-radius: 12px;">
+          <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+          </svg>
+        </div>
+        <div>
+          <h3 style="margin: 0; font-size: 18px; font-weight: bold;">AI Health Assistant</h3>
+          <p style="margin: 0; font-size: 12px; opacity: 0.9;">Powered by Groq</p>
+        </div>
+      </div>
+      <button id="ai-chat-close" style="background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+        <svg style="width: 24px; height: 24px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div id="ai-chat-messages" style="flex: 1; overflow-y: auto; padding: 20px; background: linear-gradient(to bottom, #f9fafb, #ffffff);"></div>
+
+    <!-- Input -->
+    <div style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
+      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+        <input id="ai-chat-input" type="text" placeholder="Ask me anything..." style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 14px; outline: none;">
+        <button id="ai-chat-send" style="background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">
+          <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+          </svg>
+        </button>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button class="quick-btn" data-action="today" style="background: #dbeafe; color: #1e40af; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">📅 Today</button>
+        <button class="quick-btn" data-action="add" style="background: #dcfce7; color: #166534; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">➕ Add</button>
+        <button class="quick-btn" data-action="stats" style="background: #f3e8ff; color: #6b21a8; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">📊 Stats</button>
+      </div>
+    </div>
+  </div>
+
   <script src="app.js"></script>
   
-  <!-- Clear browser cache aggressively -->
+  <!-- ==================== INLINE AI CHATBOT LOGIC (NO EXTERNAL FILES) ==================== -->
   <script>
-    // Clear all caches to force fresh load
-    if ('caches' in window) {
-      caches.keys().then(names => {
-        names.forEach(name => caches.delete(name));
+  console.log('🤖 AI Chatbot initializing (inline, no cache)...');
+  
+  (function() {
+    const API_BASE = window.location.hostname === 'localhost' 
+      ? `http://localhost:${window.location.port || 8080}/api` 
+      : '/api';
+    
+    let chatHistory = [];
+    let isProcessing = false;
+    
+    // DOM elements
+    const toggleBtn = document.getElementById('ai-chat-toggle');
+    const sidebar = document.getElementById('ai-chat-sidebar');
+    const closeBtn = document.getElementById('ai-chat-close');
+    const sendBtn = document.getElementById('ai-chat-send');
+    const input = document.getElementById('ai-chat-input');
+    const messagesDiv = document.getElementById('ai-chat-messages');
+    
+    console.log('✅ AI Chatbot elements found:', {
+      toggleBtn: !!toggleBtn,
+      sidebar: !!sidebar,
+      closeBtn: !!closeBtn,
+      sendBtn: !!sendBtn,
+      input: !!input,
+      messagesDiv: !!messagesDiv
+    });
+    
+    // Add welcome message
+    addMessage('👋 Hi! I\'m your AI medication assistant powered by Groq. I can help you:\n\n• Add medications naturally\n• Create schedules\n• Check your plan\n• View statistics\n\nTry: "Add aspirin 500mg for headaches"', 'bot');
+    
+    // Event listeners
+    toggleBtn.addEventListener('click', () => {
+      sidebar.style.transform = 'translateX(0)';
+      input.focus();
+    });
+    
+    closeBtn.addEventListener('click', () => {
+      sidebar.style.transform = 'translateX(100%)';
+    });
+    
+    sendBtn.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && !isProcessing) sendMessage();
+    });
+    
+    // Quick actions
+    document.querySelectorAll('.quick-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const action = btn.dataset.action;
+        if (action === 'today') await showTodaySchedule();
+        else if (action === 'add') addMessage('What medication would you like to add? Tell me naturally, like: "Add aspirin 500mg tablet for headaches"', 'bot');
+        else if (action === 'stats') await showStats();
       });
-    }
-    console.log('🧹 Browser caches cleared');
-  </script>
-  
-  <!-- Load Chatbot Script -->
-  <script src="chatbot-groq.js?t=1760637808"></script>
-  
-  <!-- Verify chatbot script loaded -->
-  <script>
-    setTimeout(() => {
-      if (typeof window.MedicationChatbotGroq === 'undefined') {
-        console.error('❌❌❌ CHATBOT SCRIPT DID NOT LOAD! ❌❌❌');
-        console.error('Check Network tab to see if chatbot-groq.js loaded');
-      } else {
-        console.log('✅✅✅ CHATBOT SCRIPT LOADED SUCCESSFULLY! ✅✅✅');
+    });
+    
+    // Hover effect
+    toggleBtn.addEventListener('mouseenter', () => {
+      toggleBtn.style.transform = 'scale(1.1)';
+      toggleBtn.style.boxShadow = '0 15px 40px rgba(124, 58, 237, 0.6)';
+    });
+    toggleBtn.addEventListener('mouseleave', () => {
+      toggleBtn.style.transform = 'scale(1)';
+      toggleBtn.style.boxShadow = '0 10px 30px rgba(124, 58, 237, 0.5)';
+    });
+    
+    async function sendMessage() {
+      const message = input.value.trim();
+      if (!message || isProcessing) return;
+      
+      addMessage(message, 'user');
+      input.value = '';
+      isProcessing = true;
+      sendBtn.disabled = true;
+      
+      const typingId = addTypingIndicator();
+      
+      try {
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message, history: chatHistory.slice(-10) })
+        });
+        
+        removeTypingIndicator(typingId);
+        
+        if (response.ok) {
+          const data = await response.json();
+          addMessage(data.response, 'bot');
+          chatHistory.push(
+            { role: 'user', content: message },
+            { role: 'assistant', content: data.response }
+          );
+        } else {
+          const error = await response.json().catch(() => ({}));
+          addMessage(error.response || 'Sorry, I encountered an error. Please check that Groq API is configured.', 'bot', true);
+        }
+      } catch (error) {
+        removeTypingIndicator(typingId);
+        addMessage('Connection error. Please try again.', 'bot', true);
+        console.error('Chat error:', error);
+      } finally {
+        isProcessing = false;
+        sendBtn.disabled = false;
       }
-    }, 1000);
+    }
+    
+    function addMessage(text, sender, isError = false) {
+      const div = document.createElement('div');
+      div.style.marginBottom = '16px';
+      div.style.display = 'flex';
+      div.style.flexDirection = sender === 'user' ? 'row-reverse' : 'row';
+      div.style.gap = '8px';
+      
+      const bubble = document.createElement('div');
+      bubble.style.padding = '12px 16px';
+      bubble.style.borderRadius = '16px';
+      bubble.style.maxWidth = '80%';
+      bubble.style.fontSize = '14px';
+      bubble.style.lineHeight = '1.5';
+      bubble.style.whiteSpace = 'pre-line';
+      
+      if (sender === 'user') {
+        bubble.style.background = 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)';
+        bubble.style.color = 'white';
+        bubble.style.marginLeft = 'auto';
+      } else {
+        bubble.style.background = isError ? '#fee2e2' : '#f3f4f6';
+        bubble.style.color = isError ? '#991b1b' : '#111827';
+        bubble.style.border = isError ? '1px solid #fecaca' : 'none';
+      }
+      
+      bubble.textContent = text;
+      div.appendChild(bubble);
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      
+      return div;
+    }
+    
+    function addTypingIndicator() {
+      const div = document.createElement('div');
+      div.id = 'typing-' + Date.now();
+      div.style.display = 'flex';
+      div.style.gap = '8px';
+      div.style.padding = '12px 16px';
+      div.style.background = '#f3f4f6';
+      div.style.borderRadius = '16px';
+      div.style.width = 'fit-content';
+      div.innerHTML = '<span style="width: 8px; height: 8px; background: #9ca3af; border-radius: 50%; animation: bounce 1s infinite;"></span>'.repeat(3);
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      return div.id;
+    }
+    
+    function removeTypingIndicator(id) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
+    
+    async function showTodaySchedule() {
+      try {
+        const response = await fetch(`${API_BASE}/schedule/today`);
+        const data = await response.json();
+        
+        if (data.schedules.length === 0) {
+          addMessage('📅 No medications scheduled for today.', 'bot');
+        } else {
+          let msg = `📅 Today's Schedule (${data.schedules.length} medications):\n\n`;
+          data.schedules.forEach(s => {
+            const status = s.status === 'taken' ? '✅' : s.status === 'missed' ? '❌' : '⏰';
+            msg += `${status} ${s.time} - ${s.name} (${s.dosage})\n`;
+            if (s.with_food) msg += '   🍽️ Take with food\n';
+          });
+          addMessage(msg, 'bot');
+        }
+      } catch (error) {
+        addMessage('Error fetching schedule.', 'bot', true);
+      }
+    }
+    
+    async function showStats() {
+      try {
+        const response = await fetch(`${API_BASE}/stats/adherence?days=30`);
+        const data = await response.json();
+        
+        if (data.statistics.length === 0) {
+          addMessage('📊 No statistics available yet.', 'bot');
+        } else {
+          let msg = '📊 Your 30-day Adherence:\n\n';
+          data.statistics.forEach(s => {
+            msg += `${s.medication_name}: ${s.adherence_rate}%\n`;
+            msg += `  ✅ Taken: ${s.taken_count} | ❌ Missed: ${s.missed_count}\n\n`;
+          });
+          addMessage(msg, 'bot');
+        }
+      } catch (error) {
+        addMessage('Error fetching statistics.', 'bot', true);
+      }
+    }
+    
+    console.log('✅ AI Chatbot ready! Button visible at bottom-right.');
+  })();
   </script>
+  
+  <style>
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+  </style>
   
   <!-- PWA Service Worker Registration - TEMPORARILY DISABLED -->
   <script>
