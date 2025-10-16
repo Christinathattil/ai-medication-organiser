@@ -40,7 +40,8 @@ class SupabaseDatabase {
     
     const { data, error } = await query;
     if (error) throw error;
-    return data || [];
+    // Return wrapped in object for consistency with API endpoints
+    return { medications: data || [] };
   }
 
   async getMedication(id) {
@@ -107,10 +108,12 @@ class SupabaseDatabase {
     const { data, error } = await query;
     if (error) throw error;
     
-    return (data || []).map(s => ({
+    const schedules = (data || []).map(s => ({
       ...s,
       medication_name: s.medications?.name || 'Unknown'
     }));
+    
+    return { schedules };
   }
 
   async updateSchedule(id, updates) {

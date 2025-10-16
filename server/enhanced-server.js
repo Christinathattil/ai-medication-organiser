@@ -113,8 +113,8 @@ app.get('/health', (req, res) => {
 // Medications
 app.get('/api/medications', async (req, res) => {
   try {
-    const medications = await db.getMedications(req.query);
-    res.json({ medications });
+    const result = await db.getMedications(req.query);
+    res.json(result); // Already wrapped with { medications: [...] }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -180,8 +180,8 @@ app.delete('/api/medications/:id', async (req, res) => {
 // Schedules
 app.get('/api/schedules', async (req, res) => {
   try {
-    const schedules = await db.getSchedules(req.query);
-    res.json({ schedules });
+    const result = await db.getSchedules(req.query);
+    res.json(result); // Already wrapped with { schedules: [...] }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -476,7 +476,8 @@ function extractScheduleFromText(text, medications) {
     time: '',
     frequency: 'daily',
     with_food: false,
-    special_instructions: ''
+    special_instructions: '',
+    start_date: new Date().toISOString().split('T')[0] // Add today's date
   };
 
   const lowerText = text.toLowerCase();

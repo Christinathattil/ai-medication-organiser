@@ -1049,7 +1049,8 @@
         time: '',
         frequency: 'daily',
         with_food: false,
-        special_instructions: ''
+        special_instructions: '',
+        start_date: new Date().toISOString().split('T')[0] // Add today's date as start_date
       };
       
       // Extract time
