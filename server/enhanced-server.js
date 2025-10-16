@@ -409,9 +409,17 @@ IMPORTANT: When you detect medication or schedule intent, be explicit about what
     // 1. Check for schedule creation intent (e.g., "schedule X at Y")
     if ((lowerMessage.includes('schedule') && (lowerMessage.includes(' at ') || lowerMessage.includes('daily') || lowerMessage.includes('time'))) ||
         (lowerMessage.includes('take') && lowerMessage.includes(' at '))) {
-      const scheduleData = extractScheduleFromText(message, medications.medications);
+      const medList = medications?.medications || [];
+      console.log('📋 Available medications for scheduling:', medList.map(m => ({ id: m.id, name: m.name })));
+      
+      const scheduleData = extractScheduleFromText(message, medList);
+      console.log('📅 Extracted schedule data:', scheduleData);
+      
       if (scheduleData.medication_id && scheduleData.time) {
         action = { type: 'add_schedule', data: scheduleData };
+        console.log('✅ Schedule action created:', action);
+      } else {
+        console.log('⚠️ Missing required fields - medication_id:', scheduleData.medication_id, 'time:', scheduleData.time);
       }
     }
     // 2. Check for medication addition intent
@@ -468,10 +476,12 @@ function extractScheduleFromText(text, medications) {
   const lowerText = text.toLowerCase();
 
   // Extract medication name by matching against existing medications
-  for (const med of medications) {
-    if (lowerText.includes(med.name.toLowerCase())) {
-      data.medication_id = med.id;
-      break;
+  if (Array.isArray(medications) && medications.length > 0) {
+    for (const med of medications) {
+      if (med && med.name && lowerText.includes(med.name.toLowerCase())) {
+        data.medication_id = med.id;
+        break;
+      }
     }
   }
 
