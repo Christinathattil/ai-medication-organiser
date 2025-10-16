@@ -722,10 +722,19 @@
     });
     
     async function sendMessage() {
-      const message = input.value.trim();
+      let message = input.value.trim();
       if (!message || isProcessing) return;
       
-      addMessage(message, 'user');
+      // If user says "schedule it" and we have last medication, replace "it" with medication name
+      if (lastAddedMedication && 
+          (message.toLowerCase().includes('schedule it') || 
+           message.toLowerCase().includes('schedule the medication'))) {
+        message = message.replace(/\bit\b/gi, lastAddedMedication.name);
+        message = message.replace(/the medication/gi, lastAddedMedication.name);
+        console.log('💡 Replaced "it" with medication name:', message);
+      }
+      
+      addMessage(input.value.trim(), 'user'); // Show original message
       input.value = '';
       isProcessing = true;
       sendBtn.disabled = true;
@@ -753,6 +762,15 @@
           if (data.action) {
             console.log('🎯 Action detected:', data.action);
             await handleAction(data.action);
+          } else if (lastAddedMedication && 
+                     (message.toLowerCase().includes('schedule') && 
+                      message.toLowerCase().includes(lastAddedMedication.name.toLowerCase()))) {
+            // Manual fallback if server didn't detect action but we have context
+            console.log('💡 No action from server, attempting manual schedule...');
+            const scheduleData = extractScheduleDataManually(message);
+            if (scheduleData) {
+              await handleAction({ type: 'add_schedule', data: scheduleData });
+            }
           }
         } else {
           const error = await response.json().catch(() => ({}));
@@ -1003,6 +1021,61 @@
       } catch (error) {
         addMessage('Error checking refills.', 'bot', true);
       }
+    }
+    
+    function extractScheduleDataManually(text) {
+      if (!lastAddedMedication) return null;
+      
+      const data = {
+        medication_id: lastAddedMedication.id,
+        time: '',
+        frequency: 'daily',
+        with_food: false,
+        special_instructions: ''
+      };
+      
+      // Extract time
+      const timePatterns = [
+        /(\d{1,2}):(\d{2})\s*(am|pm)?/i,
+        /(\d{1,2})\s*(am|pm)/i,
+        /at\s+(\d{1,2}):(\d{2})/i,
+        /at\s+(\d{1,2})\s*(am|pm)/i
+      ];
+      
+      for (const pattern of timePatterns) {
+        const match = text.match(pattern);
+        if (match) {
+          let hour = parseInt(match[1]);
+          const minute = match[2] ? parseInt(match[2]) : 0;
+          const period = match[3] || match[2];
+          
+          if (period && period.toLowerCase() === 'pm' && hour < 12) {
+            hour += 12;
+          } else if (period && period.toLowerCase() === 'am' && hour === 12) {
+            hour = 0;
+          }
+          
+          data.time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+          break;
+        }
+      }
+      
+      // Extract frequency
+      const lowerText = text.toLowerCase();
+      if (lowerText.includes('daily') || lowerText.includes('every day')) {
+        data.frequency = 'daily';
+      } else if (lowerText.includes('weekly')) {
+        data.frequency = 'weekly';
+      } else if (lowerText.includes('as needed')) {
+        data.frequency = 'as_needed';
+      }
+      
+      // Check for food requirement
+      if (lowerText.includes('with food')) {
+        data.with_food = true;
+      }
+      
+      return data.time ? data : null;
     }
     
     console.log('✅ AI Chatbot ready! Button visible at bottom-right.');
