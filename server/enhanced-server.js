@@ -407,6 +407,11 @@ Capabilities:
 2. Create schedules: Extract time, frequency, instructions
 3. Show schedule, stats, or refills
 
+IMPORTANT RULES:
+- NEVER provide health advice, medical recommendations, or suggest medications
+- For any health-related questions, always direct the user to consult their doctor
+- Only help with managing existing medications that the user already has
+
 Response format:
 - Keep responses under 2-3 sentences
 - Confirm extracted details clearly
@@ -440,9 +445,9 @@ When detecting intent, state what you understood and the action to be taken.`;
 
     // Intent detection with priority order
     
-    // 1. Check for schedule creation intent (e.g., "schedule X at Y")
-    if ((lowerMessage.includes('schedule') && (lowerMessage.includes(' at ') || lowerMessage.includes('daily') || lowerMessage.includes('time'))) ||
-        (lowerMessage.includes('take') && lowerMessage.includes(' at '))) {
+    // 1. Check for schedule creation intent (e.g., "schedule X at Y" or "schedule X for Y")
+    if ((lowerMessage.includes('schedule') && (lowerMessage.includes(' at ') || lowerMessage.includes(' for ') || lowerMessage.includes('daily') || lowerMessage.includes('time') || lowerMessage.match(/\d+\s*(am|pm)/i))) ||
+        (lowerMessage.includes('take') && (lowerMessage.includes(' at ') || lowerMessage.includes(' for ')))) {
       const medList = medications?.medications || [];
       console.log('📋 Available medications for scheduling:', medList.map(m => ({ id: m.id, name: m.name })));
       
@@ -511,11 +516,23 @@ function extractScheduleFromText(text, medications) {
   const lowerText = text.toLowerCase();
 
   // Extract medication name by matching against existing medications
+  // Use flexible matching: exact match, partial match, or first word match
   if (Array.isArray(medications) && medications.length > 0) {
     for (const med of medications) {
-      if (med && med.name && lowerText.includes(med.name.toLowerCase())) {
-        data.medication_id = med.id;
-        break;
+      if (med && med.name) {
+        const medNameLower = med.name.toLowerCase();
+        const medFirstWord = medNameLower.split(' ')[0]; // e.g., "aspirin" from "aspirin 500mg"
+        
+        // Try exact match first
+        if (lowerText.includes(medNameLower)) {
+          data.medication_id = med.id;
+          break;
+        }
+        // Try matching first word (handles "aspirin" matching "Aspirin 500mg")
+        if (medFirstWord.length > 3 && lowerText.includes(medFirstWord)) {
+          data.medication_id = med.id;
+          break;
+        }
       }
     }
   }
