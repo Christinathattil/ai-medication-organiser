@@ -31,4 +31,4 @@ public/test-chatbot.html
 claude_desktop_config.json
 
 # Uploads (user data)
-uploads/
+uploads/.env*
