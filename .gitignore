@@ -1,34 +1,34 @@
+# Dependencies
 node_modules/
+
+# Database
 data/
 *.db
 *.db-journal
+
+# Environment variables (NEVER commit these!)
+.env
+.env.*
+!.env.example
+
+# System files
 .DS_Store
 npm-debug.log*
-.env
-.env.local
-.env.example
-.env.template
-
-# Troubleshooting documentation (not needed in repo)
-AI-CHATBOT-FIX.md
-CACHE-FIX.md
-CHATBOT-NOW-WORKING.md
-CHATBOT-TEST-GUIDE.md
-CLEAR-CACHE-INSTRUCTIONS.md
-EMERGENCY-FIX.md
-FINAL-FIX-SUMMARY.md
-LATEST-FIXES.md
-REFRESH-AND-TEST.md
-SYNTAX-ERROR-FIXED.md
-
-# Old/unused files
-public/chatbot-simple.js
-public/chatbot.js
-public/sw.js
-public/test-chatbot.html
-
-# Configuration files that shouldn't be committed
-claude_desktop_config.json
+*.log
 
 # Uploads (user data)
-uploads/.env*
+uploads/
+
+# Build outputs
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+.cache/
