@@ -83,18 +83,21 @@ if (process.env.GROQ_API_KEY) {
 
 // Helper function to send SMS
 async function sendSMS(to, message) {
-  if (!twilioClient) return false;
+  if (!twilioClient) return { success: false, error: 'Twilio not configured' };
   
   try {
-    await twilioClient.messages.create({
+    const result = await twilioClient.messages.create({
       body: message,
       from: process.env.TWILIO_PHONE_NUMBER,
       to: to
     });
-    return true;
+    console.log('✅ SMS sent:', result.sid);
+    return { success: true, sid: result.sid };
   } catch (error) {
-    console.error('SMS error:', error.message);
-    return false;
+    console.error('❌ SMS error:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   More info:', error.moreInfo);
+    return { success: false, error: error.message, code: error.code, moreInfo: error.moreInfo };
   }
 }
 
@@ -307,10 +310,59 @@ app.post('/api/interactions', async (req, res) => {
 app.post('/api/send-sms', async (req, res) => {
   try {
     const { phone, message } = req.body;
-    const sent = await sendSMS(phone, message);
-    res.json({ success: sent, message: sent ? 'SMS sent' : 'SMS not configured' });
+    const result = await sendSMS(phone, message);
+    res.json({ success: result.success, message: result.success ? 'SMS sent' : result.error || 'SMS not configured' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// Test SMS endpoint - diagnostic tool
+app.get('/api/test-sms', async (req, res) => {
+  try {
+    const diagnostics = {
+      twilioConfigured: !!twilioClient,
+      twilioAccountSid: process.env.TWILIO_ACCOUNT_SID ? '✅ Set' : '❌ Missing',
+      twilioAuthToken: process.env.TWILIO_AUTH_TOKEN ? '✅ Set' : '❌ Missing',
+      twilioPhone: process.env.TWILIO_PHONE_NUMBER || '❌ Missing',
+      userPhone: process.env.USER_PHONE_NUMBER || '❌ Missing'
+    };
+    
+    if (!twilioClient) {
+      return res.json({ 
+        success: false, 
+        message: 'Twilio not configured',
+        diagnostics 
+      });
+    }
+    
+    if (!process.env.USER_PHONE_NUMBER) {
+      return res.json({ 
+        success: false, 
+        message: 'USER_PHONE_NUMBER not set in .env',
+        diagnostics 
+      });
+    }
+    
+    // Send test SMS
+    const testMessage = '🧪 Test SMS from Medication Manager - Your Twilio setup is working! 💊';
+    const result = await sendSMS(process.env.USER_PHONE_NUMBER, testMessage);
+    
+    res.json({ 
+      success: result.success, 
+      message: result.success ? 'Test SMS sent successfully!' : `Failed: ${result.error}`,
+      sentTo: process.env.USER_PHONE_NUMBER,
+      twilioError: result.error || null,
+      twilioErrorCode: result.code || null,
+      twilioMoreInfo: result.moreInfo || null,
+      diagnostics
+    });
+  } catch (error) {
+    res.status(500).json({ 
+      success: false,
+      error: error.message,
+      details: error.toString()
+    });
   }
 });
 
@@ -346,46 +398,22 @@ app.post('/api/chat', async (req, res) => {
     console.log(`📈 Context: ${medCount} meds, ${schedCount} schedules, ${todayCount} today`);
     
     // Build context for AI
-    const systemPrompt = `You are an intelligent medication management assistant. You help users manage their medications, schedules, and health tracking seamlessly.
+    const systemPrompt = `You are a medication management assistant. Be concise, accurate, and direct.
 
-Current Context:
-- User has ${medCount} active medications
-- User has ${schedCount} medication schedules
-- Today's schedule has ${todayCount} doses
+Context: ${medCount} medications, ${schedCount} schedules, ${todayCount} doses today.
 
-Your Capabilities:
-1. ADD MEDICATIONS: Extract medication details from natural language
-   - Name (e.g., "aspirin", "lisinopril", "metformin")
-   - Dosage (e.g., "500mg", "10mg", "1000mg")
-   - Form (tablet, capsule, syrup, injection, drops, cream, inhaler, patch, spray)
-   - Purpose (e.g., "for headaches", "blood pressure", "diabetes")
-   
-2. CREATE SCHEDULES: Extract schedule details from natural language
-   - Time (e.g., "8am", "10:00", "morning", "evening")
-   - Frequency (daily, weekly, as_needed)
-   - Special instructions (e.g., "with food", "before bed")
+Capabilities:
+1. Add medications: Extract name, dosage, form, purpose
+2. Create schedules: Extract time, frequency, instructions
+3. Show schedule, stats, or refills
 
-3. SHOW INFORMATION:
-   - Today's schedule
-   - Adherence statistics
-   - Refill alerts
+Response format:
+- Keep responses under 2-3 sentences
+- Confirm extracted details clearly
+- Ask for missing info directly
+- No verbose explanations
 
-Natural Language Examples You Should Understand:
-- "I need to add aspirin 500mg for headaches" → Extract: name=Aspirin, dosage=500mg, form=tablet, purpose=headaches
-- "Add my blood pressure medication lisinopril 10mg" → Extract: name=Lisinopril, dosage=10mg, purpose=blood pressure
-- "Schedule aspirin at 8am daily" → Extract: medication=aspirin, time=08:00, frequency=daily
-- "I take metformin 1000mg twice a day at 8am and 8pm" → Extract: medication=Metformin, dosage=1000mg, times=[08:00, 20:00]
-- "Add vitamin D 1000 IU capsule" → Extract: name=Vitamin D, dosage=1000 IU, form=capsule
-
-Response Guidelines:
-- Be conversational and friendly
-- When user wants to add medication, confirm what you extracted
-- When user wants to schedule, confirm the time and frequency
-- Always ask for clarification if details are missing
-- Provide helpful suggestions
-- Prioritize user safety
-
-IMPORTANT: When you detect medication or schedule intent, be explicit about what you understood and what action will be taken.`;
+When detecting intent, state what you understood and the action to be taken.`;
 
 
     // Build conversation messages
@@ -400,7 +428,7 @@ IMPORTANT: When you detect medication or schedule intent, be explicit about what
       model: 'llama-3.3-70b-versatile', // Updated to supported model
       messages: messages,
       temperature: 0.7,
-      max_tokens: 500,
+      max_tokens: 200, // Reduced for concise responses
     });
 
     const aiResponse = completion.choices[0].message.content;
@@ -636,9 +664,11 @@ cron.schedule('* * * * *', async () => {
         // SMS notification (if configured)
         if (twilioClient && process.env.USER_PHONE_NUMBER) {
           const smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})${schedule.with_food ? ' - Take with food' : ''}`;
-          const smsSent = await sendSMS(process.env.USER_PHONE_NUMBER, smsMessage);
-          if (smsSent) {
+          const smsResult = await sendSMS(process.env.USER_PHONE_NUMBER, smsMessage);
+          if (smsResult.success) {
             console.log(`   📱 SMS sent to ${process.env.USER_PHONE_NUMBER}`);
+          } else {
+            console.error(`   ❌ SMS failed: ${smsResult.error}`);
           }
         }
         
