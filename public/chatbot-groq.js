@@ -18,14 +18,25 @@ class MedicationChatbotGroq {
   init() {
     console.log('🔧 Initializing chatbot...');
     console.log('📍 Document ready state:', document.readyState);
+    console.log('📍 Body exists:', !!document.body);
     
     // Simple approach: just create the UI
     try {
       this.createChatbotUI();
       this.attachEventListeners();
       console.log('✅ Chatbot UI created and attached');
+      
+      // Verify button exists
+      const button = document.getElementById('chatbot-toggle');
+      if (button) {
+        console.log('✅ Chatbot button verified in DOM');
+        console.log('📍 Button styles:', window.getComputedStyle(button).display);
+      } else {
+        console.error('❌ Chatbot button NOT found after creation!');
+      }
     } catch (error) {
       console.error('❌ Error during init:', error);
+      console.error('Error stack:', error.stack);
       // Retry after a short delay
       setTimeout(() => {
         try {
@@ -50,7 +61,7 @@ class MedicationChatbotGroq {
     
     const chatbotHTML = `
       <!-- Chatbot Toggle Button - Mobile Optimized -->
-      <button id="chatbot-toggle" class="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 z-50 touch-manipulation">
+      <button id="chatbot-toggle" class="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600 text-white p-4 md:p-5 rounded-2xl shadow-2xl hover:shadow-purple-500/50 transition-all hover:scale-110 z-50 touch-manipulation" style="position: fixed !important; bottom: 1rem !important; right: 1rem !important; z-index: 9999 !important; display: block !important;">
         <svg class="w-6 h-6 md:w-7 md:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
         </svg>
@@ -58,7 +69,7 @@ class MedicationChatbotGroq {
       </button>
 
       <!-- Chatbot Sidebar - Full screen on mobile, sidebar on desktop -->
-      <div id="chatbot-sidebar" class="fixed inset-0 md:top-0 md:right-0 md:left-auto h-full w-full md:w-[450px] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col z-50 md:max-w-[90vw]">
+      <div id="chatbot-sidebar" class="fixed inset-0 md:top-0 md:right-0 md:left-auto h-full w-full md:w-[450px] bg-white shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col z-50 md:max-w-[90vw]" style="z-index: 9999 !important;">
         <!-- Header - Mobile Optimized -->
         <div class="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 text-white p-4 md:p-6 flex justify-between items-center">
           <div class="flex items-center space-x-2 md:space-x-3">
@@ -522,3 +533,28 @@ if (document.readyState === 'loading') {
   // Add small delay to ensure everything is ready
   setTimeout(initChatbot, 100);
 }
+
+// Also try on window load as a fallback
+window.addEventListener('load', () => {
+  console.log('🔄 Window loaded, checking chatbot...');
+  if (!document.getElementById('chatbot-toggle')) {
+    console.log('⚠️ Chatbot button not found, re-initializing...');
+    setTimeout(initChatbot, 200);
+  } else {
+    console.log('✅ Chatbot button exists');
+  }
+});
+
+// Expose a global function to manually reinitialize the chatbot
+window.reinitChatbot = function() {
+  console.log('🔄 Manual chatbot reinitialization requested');
+  if (window.medicationChatbot) {
+    console.log('⚠️ Removing existing chatbot instance');
+    const existing = document.getElementById('chatbot-toggle');
+    if (existing) existing.remove();
+    const sidebar = document.getElementById('chatbot-sidebar');
+    if (sidebar) sidebar.remove();
+  }
+  window.medicationChatbot = new MedicationChatbotGroq();
+  console.log('✅ Chatbot reinitialized');
+};

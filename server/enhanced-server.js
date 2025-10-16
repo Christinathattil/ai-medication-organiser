@@ -334,13 +334,18 @@ app.post('/api/chat', async (req, res) => {
     const schedules = await db.getSchedules({});
     const todaySchedule = await db.getTodaySchedule();
     
+    // Safely get counts with fallbacks
+    const medCount = medications?.medications?.length || 0;
+    const schedCount = schedules?.schedules?.length || 0;
+    const todayCount = Array.isArray(todaySchedule) ? todaySchedule.length : 0;
+    
     // Build context for AI
     const systemPrompt = `You are an intelligent medication management assistant. You help users manage their medications, schedules, and health tracking seamlessly.
 
 Current Context:
-- User has ${medications.medications.length} active medications
-- User has ${schedules.schedules.length} medication schedules
-- Today's schedule has ${todaySchedule.length} doses
+- User has ${medCount} active medications
+- User has ${schedCount} medication schedules
+- Today's schedule has ${todayCount} doses
 
 Your Capabilities:
 1. ADD MEDICATIONS: Extract medication details from natural language
@@ -386,7 +391,7 @@ IMPORTANT: When you detect medication or schedule intent, be explicit about what
 
     // Call Groq API
     const completion = await groqClient.chat.completions.create({
-      model: 'llama-3.1-70b-versatile', // Fast and capable model
+      model: 'llama-3.3-70b-versatile', // Updated to supported model
       messages: messages,
       temperature: 0.7,
       max_tokens: 500,

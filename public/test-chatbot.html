@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chatbot Test</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-xl p-8">
+    <h1 class="text-3xl font-bold mb-4">Chatbot Visibility Test</h1>
+    <p class="mb-4">This page tests if the chatbot button appears correctly.</p>
+    
+    <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+      <h2 class="font-bold text-lg mb-2">Expected Behavior:</h2>
+      <ul class="list-disc list-inside space-y-1">
+        <li>A purple/blue gradient button should appear in the bottom-right corner</li>
+        <li>The button should have a chat icon and a red "AI" badge</li>
+        <li>Clicking it should open a sidebar with the AI assistant</li>
+      </ul>
+    </div>
+    
+    <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+      <h2 class="font-bold text-lg mb-2">Debug Info:</h2>
+      <div id="debug-info" class="space-y-2 text-sm font-mono"></div>
+    </div>
+    
+    <button onclick="checkChatbot()" class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700">
+      Check Chatbot Status
+    </button>
+  </div>
+
+  <!-- Load Chatbot Script -->
+  <script src="chatbot-groq.js?v=2"></script>
+  
+  <script>
+    function checkChatbot() {
+      const debugInfo = document.getElementById('debug-info');
+      const button = document.getElementById('chatbot-toggle');
+      const sidebar = document.getElementById('chatbot-sidebar');
+      
+      let html = '';
+      html += `<p>✓ Chatbot script loaded: ${typeof MedicationChatbotGroq !== 'undefined' ? 'YES' : 'NO'}</p>`;
+      html += `<p>✓ Chatbot instance exists: ${typeof window.medicationChatbot !== 'undefined' ? 'YES' : 'NO'}</p>`;
+      html += `<p>✓ Button element exists: ${button ? 'YES' : 'NO'}</p>`;
+      html += `<p>✓ Sidebar element exists: ${sidebar ? 'YES' : 'NO'}</p>`;
+      
+      if (button) {
+        const rect = button.getBoundingClientRect();
+        const styles = window.getComputedStyle(button);
+        html += `<p>✓ Button position: bottom=${styles.bottom}, right=${styles.right}</p>`;
+        html += `<p>✓ Button display: ${styles.display}</p>`;
+        html += `<p>✓ Button z-index: ${styles.zIndex}</p>`;
+        html += `<p>✓ Button visible: ${rect.width > 0 && rect.height > 0 ? 'YES' : 'NO'}</p>`;
+      }
+      
+      debugInfo.innerHTML = html;
+    }
+    
+    // Auto-check after 2 seconds
+    setTimeout(checkChatbot, 2000);
+  </script>
+</body>
+</html>
