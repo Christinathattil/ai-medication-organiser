@@ -10,7 +10,6 @@ data/
 .env
 .env.*
 !.env.example
-
 # System files
 .DS_Store
 npm-debug.log*
