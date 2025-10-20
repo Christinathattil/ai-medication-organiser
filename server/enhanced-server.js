@@ -9,7 +9,6 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
 import passport, { ensureAuthenticated, ensureAuthenticatedHTML } from './auth.js';
 import {
   securityHeaders,
@@ -69,31 +68,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
-// Session configuration with error handling
-const PgSession = connectPgSimple(session);
-let sessionStore = null;
-
-if (process.env.DATABASE_URL) {
-  try {
-    sessionStore = new PgSession({
-      conString: process.env.DATABASE_URL,
-      tableName: 'session',
-      createTableIfMissing: false,
-      errorLog: (err) => {
-        console.error('⚠️  Session store error:', err.message);
-      }
-    });
-    console.log('✅ Session store: PostgreSQL');
-  } catch (error) {
-    console.error('⚠️  Failed to create session store:', error.message);
-    console.log('⚠️  Using memory sessions (will not persist across restarts)');
-  }
-} else {
-  console.log('⚠️  No DATABASE_URL - using memory sessions');
-}
+// Session configuration - Using memory store for now (simpler, works immediately)
+// For production with persistence, add DATABASE_URL later
+console.log('📝 Using memory sessions (simple, works immediately)');
+console.log('⚠️  Note: Sessions will reset on server restart');
 
 app.use(session({
-  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
   saveUninitialized: false,
