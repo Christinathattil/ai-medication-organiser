@@ -71,9 +71,9 @@ app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
 // Session configuration
 const PgSession = connectPgSimple(session);
-const sessionStore = process.env.SUPABASE_URL && process.env.SUPABASE_KEY
+const sessionStore = process.env.DATABASE_URL
   ? new PgSession({
-      conString: `postgresql://postgres:${process.env.SUPABASE_KEY.split('.')[0]}@${new URL(process.env.SUPABASE_URL).hostname}:5432/postgres`,
+      conString: process.env.DATABASE_URL,
       tableName: 'session',
       createTableIfMissing: false
     })
