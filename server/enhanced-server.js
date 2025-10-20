@@ -69,15 +69,28 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
-// Session configuration
+// Session configuration with error handling
 const PgSession = connectPgSimple(session);
-const sessionStore = process.env.DATABASE_URL
-  ? new PgSession({
+let sessionStore = null;
+
+if (process.env.DATABASE_URL) {
+  try {
+    sessionStore = new PgSession({
       conString: process.env.DATABASE_URL,
       tableName: 'session',
-      createTableIfMissing: false
-    })
-  : null;
+      createTableIfMissing: false,
+      errorLog: (err) => {
+        console.error('⚠️  Session store error:', err.message);
+      }
+    });
+    console.log('✅ Session store: PostgreSQL');
+  } catch (error) {
+    console.error('⚠️  Failed to create session store:', error.message);
+    console.log('⚠️  Using memory sessions (will not persist across restarts)');
+  }
+} else {
+  console.log('⚠️  No DATABASE_URL - using memory sessions');
+}
 
 app.use(session({
   store: sessionStore,

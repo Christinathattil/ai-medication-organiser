@@ -123,10 +123,16 @@ export function ensureAuthenticated(req, res, next) {
 
 // Middleware to check auth for HTML pages
 export function ensureAuthenticatedHTML(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
+  try {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    res.redirect('/login');
+  } catch (error) {
+    console.error('❌ Auth check error:', error);
+    // If authentication check fails, redirect to login
+    res.redirect('/login');
   }
-  res.redirect('/login');
 }
 
 export default passport;
