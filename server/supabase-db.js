@@ -9,12 +9,23 @@ const supabase = createClient(
 );
 
 class SupabaseDatabase {
+  // Set user context for RLS
+  async setUserContext(userId) {
+    if (userId) {
+      const { error } = await supabase.rpc('set_current_user_id', { p_user_id: userId });
+      if (error) console.error('Error setting user context:', error);
+    }
+  }
+
   // Medications
-  async addMedication(data) {
+  async addMedication(data, userId = null) {
+    if (userId) await this.setUserContext(userId);
+    
     const { data: medication, error } = await supabase
       .from('medications')
       .insert([{
         ...data,
+        user_id: userId, // Link to user
         refill_count: 0,
         remaining_quantity: data.total_quantity || null,
       }])
@@ -25,9 +36,12 @@ class SupabaseDatabase {
     return medication;
   }
 
-  async getMedications(filter = {}) {
+  async getMedications(filter = {}, userId = null) {
+    if (userId) await this.setUserContext(userId);
+    
     let query = supabase.from('medications').select('*');
     
+    // RLS will automatically filter by user_id
     if (filter.search) {
       query = query.or(`name.ilike.%${filter.search}%,purpose.ilike.%${filter.search}%`);
     }
@@ -357,6 +371,89 @@ class SupabaseDatabase {
       medication1_name: i.med1?.name || 'Unknown',
       medication2_name: i.med2?.name || 'Unknown'
     }));
+  }
+
+  // SMS Reminders Tracking
+  async addSMSReminder(data) {
+    const { data: smsReminder, error } = await supabase
+      .from('sms_reminders')
+      .insert([{
+        medication_id: data.medication_id,
+        schedule_id: data.schedule_id,
+        phone_number: data.phone_number,
+        reminder_message: data.reminder_message,
+        twilio_message_sid: data.twilio_message_sid,
+        status: data.status || 'sent'
+      }])
+      .select()
+      .single();
+    
+    if (error) throw error;
+    return smsReminder;
+  }
+
+  async updateSMSReminder(id, updates) {
+    const { error } = await supabase
+      .from('sms_reminders')
+      .update(updates)
+      .eq('id', id);
+    
+    if (error) throw error;
+    return true;
+  }
+
+  async getSMSReminderByMessageSid(messageSid) {
+    const { data, error } = await supabase
+      .from('sms_reminders')
+      .select('*')
+      .eq('twilio_message_sid', messageSid)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error; // PGRST116 = not found
+    return data;
+  }
+
+  async findRecentSMSReminder(phoneNumber, scheduleId) {
+    // Find the most recent SMS reminder for this phone and schedule within the last 2 hours
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    
+    const { data, error } = await supabase
+      .from('sms_reminders')
+      .select('*')
+      .eq('phone_number', phoneNumber)
+      .eq('schedule_id', scheduleId)
+      .gte('sent_at', twoHoursAgo)
+      .order('sent_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (error && error.code !== 'PGRST116') throw error;
+    return data;
+  }
+
+  async logMedicationFromSMS(smsReminderId, medicationId, scheduleId, status) {
+    // Add a log entry
+    const { data: log, error: logError } = await supabase
+      .from('medication_logs')
+      .insert([{
+        medication_id: medicationId,
+        schedule_id: scheduleId,
+        status: status,
+        logged_via_sms: true,
+        sms_reminder_id: smsReminderId,
+        taken_at: new Date().toISOString()
+      }])
+      .select()
+      .single();
+    
+    if (logError) throw logError;
+    
+    // Update quantity if taken
+    if (status === 'taken') {
+      await supabase.rpc('decrement_quantity', { med_id: medicationId });
+    }
+    
+    return log;
   }
 }
 

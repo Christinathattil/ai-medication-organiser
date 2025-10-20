@@ -7,6 +7,23 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
 import fs from 'fs';
+import { createClient } from '@supabase/supabase-js';
+import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import passport, { ensureAuthenticated, ensureAuthenticatedHTML } from './auth.js';
+import {
+  securityHeaders,
+  apiLimiter,
+  authLimiter,
+  smsLimiter,
+  parameterPollutionProtection,
+  stripSensitiveData,
+  secureErrorHandler,
+  validateMedication,
+  validateSchedule,
+  validateId,
+  validateLog
+} from './security.js';
 
 // Load environment variables
 dotenv.config();
@@ -46,14 +63,55 @@ const upload = multer({
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
+
+// Session configuration
+const PgSession = connectPgSimple(session);
+const sessionStore = process.env.SUPABASE_URL && process.env.SUPABASE_KEY
+  ? new PgSession({
+      conString: `postgresql://postgres:${process.env.SUPABASE_KEY.split('.')[0]}@${new URL(process.env.SUPABASE_URL).hostname}:5432/postgres`,
+      tableName: 'session',
+      createTableIfMissing: false
+    })
+  : null;
+
+app.use(session({
+  store: sessionStore,
+  secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+  }
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// ========================================
+// Security Middleware
+// ========================================
+app.use(securityHeaders); // Security headers
+app.use(parameterPollutionProtection); // HPP protection
+app.use(stripSensitiveData); // Strip sensitive data from responses
+app.use('/api/', apiLimiter); // Rate limiting for API routes
+
+// Public routes (before auth)
+app.use('/login', express.static(join(__dirname, '..', 'public/login.html')));
+app.use('/loading', express.static(join(__dirname, '..', 'public/loading.html')));
 app.use(express.static(join(__dirname, '..', 'public')));
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
 // Import database (will use Supabase if configured, otherwise JSON)
 let db;
+let supabase = null;
 if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
   const { default: supabaseDB } = await import('./supabase-db.js');
   db = supabaseDB;
+  supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
   console.log('✅ Using Supabase (persistent storage)');
 } else {
   const { default: jsonDB } = await import('./database.js');
@@ -81,8 +139,8 @@ if (process.env.GROQ_API_KEY) {
   console.log('⚠️  Groq not configured. AI chatbot will use fallback mode.');
 }
 
-// Helper function to send SMS
-async function sendSMS(to, message) {
+// Helper function to send SMS with database tracking
+async function sendSMS(to, message, metadata = {}) {
   if (!twilioClient) return { success: false, error: 'Twilio not configured' };
   
   try {
@@ -92,6 +150,23 @@ async function sendSMS(to, message) {
       to: to
     });
     console.log('✅ SMS sent:', result.sid);
+    
+    // Track SMS in database if metadata provided
+    if (metadata.medication_id && metadata.schedule_id && db.addSMSReminder) {
+      try {
+        await db.addSMSReminder({
+          medication_id: metadata.medication_id,
+          schedule_id: metadata.schedule_id,
+          phone_number: to,
+          reminder_message: message,
+          twilio_message_sid: result.sid,
+          status: 'sent'
+        });
+        console.log('✅ SMS tracked in database');
+      } catch (dbError) {
+        console.error('⚠️  Failed to track SMS in database:', dbError.message);
+      }
+    }
     return { success: true, sid: result.sid };
   } catch (error) {
     console.error('❌ SMS error:', error.message);
@@ -111,27 +186,94 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
+// ========================================
+// Authentication Routes (with rate limiting)
+// ========================================
 
-// Medications
-app.get('/api/medications', async (req, res) => {
+// Google OAuth login
+app.get('/auth/google',
+  authLimiter,
+  passport.authenticate('google', { scope: ['profile', 'email'] })
+);
+
+// Google OAuth callback
+app.get('/auth/google/callback',
+  authLimiter,
+  passport.authenticate('google', { failureRedirect: '/login' }),
+  (req, res) => {
+    // Successful authentication, redirect to loading page then dashboard
+    res.redirect('/loading');
+  }
+);
+
+// Logout
+app.get('/auth/logout', (req, res) => {
+  req.logout((err) => {
+    if (err) {
+      return res.status(500).json({ error: 'Logout failed' });
+    }
+    res.redirect('/login');
+  });
+});
+
+// Check auth status
+app.get('/api/auth/status', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({
+      authenticated: true,
+      user: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        picture: req.user.picture
+      }
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+// Get current user
+app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
+  res.json({
+    id: req.user.id,
+    name: req.user.name,
+    email: req.user.email,
+    picture: req.user.picture,
+    last_login: req.user.last_login
+  });
+});
+
+// Protect the main app (redirect to login if not authenticated)
+app.get('/', ensureAuthenticatedHTML, (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'index.html'));
+});
+
+// ========================================
+// API Routes (Protected)
+// ========================================
+
+// Medications (Protected & Validated)
+app.get('/api/medications', ensureAuthenticated, async (req, res) => {
   try {
-    const result = await db.getMedications(req.query);
+    const userId = req.user?.id;
+    const result = await db.getMedications(req.query, userId);
     res.json(result); // Already wrapped with { medications: [...] }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.get('/api/medications/:id', async (req, res) => {
+app.get('/api/medications/:id', ensureAuthenticated, validateId, async (req, res) => {
   try {
-    const medication = await db.getMedication(req.params.id);
+    const userId = req.user?.id;
+    const medication = await db.getMedication(req.params.id, userId);
     if (!medication) {
       return res.status(404).json({ error: 'Medication not found' });
     }
 
-    const schedules = await db.getSchedules({ medication_id: req.params.id });
-    const logs = await db.getLogs({ medication_id: req.params.id, limit: 10 });
+    const schedules = await db.getSchedules({ medication_id: req.params.id }, userId);
+    const logs = await db.getLogs({ medication_id: req.params.id, limit: 10 }, userId);
 
     res.json({ medication, schedules, recent_logs: logs });
   } catch (error) {
@@ -139,8 +281,9 @@ app.get('/api/medications/:id', async (req, res) => {
   }
 });
 
-app.post('/api/medications', upload.single('photo'), async (req, res) => {
+app.post('/api/medications', ensureAuthenticated, upload.single('photo'), validateMedication, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const medicationData = { ...req.body };
     
     // Add photo URL if uploaded
@@ -148,15 +291,16 @@ app.post('/api/medications', upload.single('photo'), async (req, res) => {
       medicationData.photo_url = `/uploads/${req.file.filename}`;
     }
     
-    const medication = await db.addMedication(medicationData);
+    const medication = await db.addMedication(medicationData, userId);
     res.json({ success: true, medication_id: medication.id, medication });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.put('/api/medications/:id', upload.single('photo'), async (req, res) => {
+app.put('/api/medications/:id', ensureAuthenticated, validateId, upload.single('photo'), validateMedication, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const updates = { ...req.body };
     
     // Add photo URL if uploaded
@@ -363,6 +507,99 @@ app.get('/api/test-sms', async (req, res) => {
       error: error.message,
       details: error.toString()
     });
+  }
+});
+
+// Twilio webhook endpoint to receive SMS responses
+app.post('/api/sms/webhook', async (req, res) => {
+  try {
+    const { From: phoneNumber, Body: messageBody, MessageSid } = req.body;
+    
+    console.log(`📱 Received SMS from ${phoneNumber}: "${messageBody}"`);
+    
+    // Parse the response
+    const response = messageBody.trim().toUpperCase();
+    let status = null;
+    let replyMessage = '';
+    
+    if (response === 'YES' || response === 'Y' || response === '1') {
+      status = 'taken';
+      replyMessage = '✅ Great! Marked as taken. Stay healthy! 💊';
+    } else if (response === 'NO' || response === 'N' || response === '0') {
+      status = 'skipped';
+      replyMessage = '⏭️ Noted. Marked as skipped. Remember to take it when you can!';
+    } else {
+      // Unknown response
+      replyMessage = 'Please reply with YES if you took your medication, or NO if you skipped it.';
+      
+      // Send TwiML response
+      res.type('text/xml');
+      res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${replyMessage}</Message>
+</Response>`);
+      return;
+    }
+    
+    // Find the most recent SMS reminder for this phone number
+    try {
+      // Look for any recent reminder from this phone number (within last 2 hours)
+      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+      
+      const { data: recentReminders, error } = await supabase
+        .from('sms_reminders')
+        .select('*')
+        .eq('phone_number', phoneNumber)
+        .eq('response_received', false)
+        .gte('sent_at', twoHoursAgo)
+        .order('sent_at', { ascending: false })
+        .limit(1);
+      
+      if (error) throw error;
+      
+      if (recentReminders && recentReminders.length > 0) {
+        const reminder = recentReminders[0];
+        
+        // Update the SMS reminder
+        await db.updateSMSReminder(reminder.id, {
+          response_received: true,
+          response_text: messageBody,
+          response_at: new Date().toISOString(),
+          status: status === 'taken' ? 'responded_yes' : 'responded_no'
+        });
+        
+        // Log the medication
+        await db.logMedicationFromSMS(
+          reminder.id,
+          reminder.medication_id,
+          reminder.schedule_id,
+          status
+        );
+        
+        console.log(`✅ Logged medication ${status} for reminder ${reminder.id} via SMS`);
+      } else {
+        console.log('⚠️  No matching recent reminder found');
+        replyMessage = 'No recent medication reminder found. Please use the app to log your medication.';
+      }
+    } catch (dbError) {
+      console.error('❌ Database error processing SMS response:', dbError);
+      replyMessage = 'Sorry, there was an error processing your response. Please try again or use the app.';
+    }
+    
+    // Send TwiML response
+    res.type('text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>${replyMessage}</Message>
+</Response>`);
+    
+  } catch (error) {
+    console.error('❌ Error processing SMS webhook:', error);
+    res.type('text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Message>Sorry, there was an error. Please try again later.</Message>
+</Response>`);
   }
 });
 
@@ -680,8 +917,26 @@ cron.schedule('* * * * *', async () => {
         
         // SMS notification (if configured)
         if (twilioClient && process.env.USER_PHONE_NUMBER) {
-          const smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})${schedule.with_food ? ' - Take with food' : ''}`;
-          const smsResult = await sendSMS(process.env.USER_PHONE_NUMBER, smsMessage);
+          // Enhanced SMS message with YES/NO response instructions
+          let smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})`;
+          if (schedule.with_food) {
+            smsMessage += ' - Take with food';
+          }
+          if (schedule.special_instructions) {
+            smsMessage += ` - ${schedule.special_instructions}`;
+          }
+          smsMessage += '\n\nReply YES when taken or NO if skipped.';
+          
+          // Send SMS with tracking metadata
+          const smsResult = await sendSMS(
+            process.env.USER_PHONE_NUMBER, 
+            smsMessage,
+            {
+              medication_id: schedule.medication_id,
+              schedule_id: schedule.id
+            }
+          );
+          
           if (smsResult.success) {
             console.log(`   📱 SMS sent to ${process.env.USER_PHONE_NUMBER}`);
           } else {
@@ -700,6 +955,11 @@ cron.schedule('* * * * *', async () => {
     console.error('❌ Reminder error:', error);
   }
 });
+
+// ========================================
+// Error Handling Middleware (must be last)
+// ========================================
+app.use(secureErrorHandler);
 
 // Production error handling
 process.on('uncaughtException', (error) => {

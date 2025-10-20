@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#2563EB">
+  <title>Login - Medication Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .login-card {
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      padding: 48px;
+      max-width: 440px;
+      width: 100%;
+      animation: slideUp 0.5s ease-out;
+    }
+    
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(30px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .google-btn {
+      background: white;
+      border: 2px solid #e5e7eb;
+      color: #1f2937;
+      font-weight: 600;
+      padding: 14px 24px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      transition: all 0.3s;
+      font-size: 16px;
+      text-decoration: none;
+      width: 100%;
+    }
+    
+    .google-btn:hover {
+      background: #f9fafb;
+      border-color: #4285f4;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(66, 133, 244, 0.2);
+    }
+    
+    .google-btn:active {
+      transform: translateY(0);
+    }
+    
+    .pill {
+      width: 60px;
+      height: 60px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(102, 126, 234, 0.7);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(102, 126, 234, 0);
+      }
+    }
+    
+    .feature {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      color: #6b7280;
+      font-size: 14px;
+    }
+    
+    .feature i {
+      color: #667eea;
+      width: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <!-- Logo -->
+    <div class="pill">
+      <i class="fas fa-pills text-white text-2xl"></i>
+    </div>
+    
+    <!-- Title -->
+    <h1 class="text-3xl font-bold text-center text-gray-900 mb-2">
+      Medication Manager
+    </h1>
+    <p class="text-center text-gray-600 mb-8">
+      AI-powered medication tracking & reminders
+    </p>
+    
+    <!-- Google Sign In Button -->
+    <a href="/auth/google" class="google-btn">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M19.6 10.227c0-.709-.064-1.39-.182-2.045H10v3.868h5.382a4.6 4.6 0 01-1.996 3.018v2.51h3.232c1.891-1.742 2.982-4.305 2.982-7.35z" fill="#4285F4"/>
+        <path d="M10 20c2.7 0 4.964-.895 6.618-2.423l-3.232-2.509c-.895.6-2.04.955-3.386.955-2.605 0-4.81-1.76-5.595-4.123H1.064v2.59A9.996 9.996 0 0010 20z" fill="#34A853"/>
+        <path d="M4.405 11.9c-.2-.6-.314-1.24-.314-1.9 0-.66.114-1.3.314-1.9V5.51H1.064A9.996 9.996 0 000 10c0 1.614.386 3.14 1.064 4.49l3.34-2.59z" fill="#FBBC05"/>
+        <path d="M10 3.977c1.468 0 2.786.505 3.823 1.496l2.868-2.868C14.959.99 12.695 0 10 0 6.09 0 2.71 2.24 1.064 5.51l3.34 2.59C5.19 5.736 7.395 3.977 10 3.977z" fill="#EA4335"/>
+      </svg>
+      Sign in with Google
+    </a>
+    
+    <!-- Divider -->
+    <div class="flex items-center my-8">
+      <div class="flex-1 h-px bg-gray-200"></div>
+      <div class="px-4 text-sm text-gray-500">Why sign in?</div>
+      <div class="flex-1 h-px bg-gray-200"></div>
+    </div>
+    
+    <!-- Features -->
+    <div class="space-y-2">
+      <div class="feature">
+        <i class="fas fa-shield-alt"></i>
+        <span>Secure, private medication data</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-bell"></i>
+        <span>Personalized SMS & push reminders</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-sync"></i>
+        <span>Sync across all your devices</span>
+      </div>
+      <div class="feature">
+        <i class="fas fa-robot"></i>
+        <span>AI-powered medication assistant</span>
+      </div>
+    </div>
+    
+    <!-- Privacy Notice -->
+    <div class="mt-8 pt-6 border-t border-gray-200">
+      <p class="text-xs text-gray-500 text-center">
+        <i class="fas fa-lock mr-1"></i>
+        Your data is encrypted and private. We never share your information.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

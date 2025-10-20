@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#667eea">
+  <title>Loading - Medication Manager</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+      background-size: 400% 400%;
+      animation: gradientShift 15s ease infinite;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      position: relative;
+    }
+    
+    @keyframes gradientShift {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    
+    /* Floating pills background */
+    .floating-pill {
+      position: absolute;
+      border-radius: 50px;
+      opacity: 0.1;
+      animation: float 20s infinite ease-in-out;
+    }
+    
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotate(0deg);
+      }
+      25% {
+        transform: translateY(-30px) rotate(90deg);
+      }
+      50% {
+        transform: translateY(-60px) rotate(180deg);
+      }
+      75% {
+        transform: translateY(-30px) rotate(270deg);
+      }
+    }
+    
+    .loading-container {
+      text-align: center;
+      z-index: 10;
+      max-width: 500px;
+      padding: 40px;
+      position: relative;
+    }
+    
+    /* Main pill animation */
+    .pill-loader {
+      position: relative;
+      width: 160px;
+      height: 160px;
+      margin: 0 auto 40px;
+    }
+    
+    .pill-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    
+    .pill-ring:nth-child(2) {
+      animation-delay: 0.3s;
+    }
+    
+    .pill-ring:nth-child(3) {
+      animation-delay: 0.6s;
+    }
+    
+    @keyframes pulse {
+      0% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+      50% {
+        transform: scale(1.2);
+        opacity: 0.3;
+      }
+      100% {
+        transform: scale(0.8);
+        opacity: 1;
+      }
+    }
+    
+    .pill-icon {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 80px;
+      height: 80px;
+      background: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      animation: bounce 2s ease-in-out infinite;
+    }
+    
+    @keyframes bounce {
+      0%, 100% {
+        transform: translate(-50%, -50%) scale(1);
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+    }
+    
+    .pill-icon svg {
+      width: 50px;
+      height: 50px;
+      fill: #667eea;
+      animation: rotate 3s linear infinite;
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    .title {
+      font-size: 36px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 16px;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      letter-spacing: -0.5px;
+    }
+    
+    .subtitle {
+      color: rgba(255, 255, 255, 0.95);
+      font-size: 18px;
+      margin-bottom: 40px;
+      font-weight: 300;
+    }
+    
+    /* Message carousel */
+    .message-container {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 20px;
+      padding: 24px 32px;
+      min-height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+    }
+    
+    .message {
+      color: white;
+      font-size: 16px;
+      font-weight: 500;
+      opacity: 0;
+      animation: fadeInOut 3s ease-in-out;
+      position: absolute;
+      text-align: center;
+      padding: 0 20px;
+    }
+    
+    @keyframes fadeInOut {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      10%, 90% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+    }
+    
+    /* Dots indicator */
+    .dots-container {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 30px;
+    }
+    
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.4);
+      animation: dotPulse 1.5s ease-in-out infinite;
+    }
+    
+    .dot:nth-child(1) {
+      animation-delay: 0s;
+    }
+    
+    .dot:nth-child(2) {
+      animation-delay: 0.2s;
+    }
+    
+    .dot:nth-child(3) {
+      animation-delay: 0.4s;
+    }
+    
+    @keyframes dotPulse {
+      0%, 100% {
+        transform: scale(1);
+        background: rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.5);
+        background: rgba(255, 255, 255, 1);
+      }
+    }
+    
+    /* Health icon */
+    .health-icon {
+      position: absolute;
+      font-size: 60px;
+      opacity: 0.05;
+      animation: floatIcon 15s ease-in-out infinite;
+    }
+    
+    @keyframes floatIcon {
+      0%, 100% {
+        transform: translate(0, 0) rotate(0deg);
+      }
+      25% {
+        transform: translate(20px, -20px) rotate(5deg);
+      }
+      50% {
+        transform: translate(0, -40px) rotate(-5deg);
+      }
+      75% {
+        transform: translate(-20px, -20px) rotate(5deg);
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Floating background pills -->
+  <script>
+    for (let i = 0; i < 10; i++) {
+      const pill = document.createElement('div');
+      pill.className = 'floating-pill';
+      pill.style.left = Math.random() * 100 + '%';
+      pill.style.top = Math.random() * 100 + '%';
+      pill.style.width = (Math.random() * 60 + 40) + 'px';
+      pill.style.height = (Math.random() * 30 + 20) + 'px';
+      pill.style.background = `linear-gradient(135deg, rgba(255,255,255,${Math.random() * 0.3}) 0%, rgba(255,255,255,0) 100%)`;
+      pill.style.animationDelay = Math.random() * 5 + 's';
+      pill.style.animationDuration = (Math.random() * 10 + 15) + 's';
+      document.body.appendChild(pill);
+    }
+  </script>
+
+  <!-- Health icons background -->
+  <div class="health-icon" style="top: 10%; left: 10%;">❤️</div>
+  <div class="health-icon" style="top: 20%; right: 15%; animation-delay: 2s;">🏥</div>
+  <div class="health-icon" style="bottom: 15%; left: 12%; animation-delay: 4s;">⚕️</div>
+  <div class="health-icon" style="bottom: 25%; right: 10%; animation-delay: 6s;">💊</div>
+
+  <div class="loading-container">
+    <!-- Main pill loader -->
+    <div class="pill-loader">
+      <div class="pill-ring"></div>
+      <div class="pill-ring"></div>
+      <div class="pill-ring"></div>
+      <div class="pill-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M4.22 11.29l7.07-7.07c.78-.78 2.05-.78 2.83 0l7.07 7.07c.78.78.78 2.05 0 2.83l-7.07 7.07c-.78.78-2.05.78-2.83 0l-7.07-7.07c-.78-.78-.78-2.05 0-2.83z"/>
+          <path d="M14 10l-4 4m0-4l4 4" stroke="white" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
+    </div>
+    
+    <!-- Title -->
+    <h1 class="title">Welcome Back!</h1>
+    <p class="subtitle">Taking care of your health journey ✨</p>
+    
+    <!-- Message carousel -->
+    <div class="message-container">
+      <div class="message" id="message-1" style="animation-delay: 0s;">
+        Setting up your personalized dashboard...
+      </div>
+      <div class="message" id="message-2" style="animation-delay: 3s;">
+        Your health data is secure with us 🔒
+      </div>
+      <div class="message" id="message-3" style="animation-delay: 6s;">
+        Almost there! Get ready to stay healthy 💪
+      </div>
+    </div>
+    
+    <!-- Loading dots -->
+    <div class="dots-container">
+      <div class="dot"></div>
+      <div class="dot"></div>
+      <div class="dot"></div>
+    </div>
+  </div>
+
+  <script>
+    // Smooth redirect after animation
+    setTimeout(() => {
+      // Check authentication status
+      fetch('/api/auth/status')
+        .then(res => res.json())
+        .then(data => {
+          if (data.authenticated) {
+            // Add fade out effect before redirect
+            document.body.style.transition = 'opacity 0.5s ease-out';
+            document.body.style.opacity = '0';
+            setTimeout(() => {
+              window.location.href = '/';
+            }, 500);
+          } else {
+            window.location.href = '/login';
+          }
+        })
+        .catch(() => {
+          window.location.href = '/login';
+        });
+    }, 3500);
+  </script>
+</body>
+</html>
