@@ -113,6 +113,10 @@ app.get('/login.html', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'login.html'));
 });
 
+app.get('/loading', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'loading.html'));
+});
+
 app.get('/loading.html', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'loading.html'));
 });
