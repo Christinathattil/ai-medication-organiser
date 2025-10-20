@@ -64,7 +64,13 @@ const upload = multer({
   }
 });
 
-app.use(cors());
+// Configure CORS to allow credentials (needed for session cookies)
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://ai-medication-organiser.onrender.com'
+    : 'http://localhost:8080',
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
@@ -73,13 +79,17 @@ app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 console.log('📝 Using memory sessions (simple, works immediately)');
 console.log('⚠️  Note: Sessions will reset on server restart');
 
+const isProduction = process.env.NODE_ENV === 'production';
+
 app.use(session({
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
   saveUninitialized: false,
+  proxy: isProduction, // Trust proxy in production
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProduction, // HTTPS only in production
     httpOnly: true,
+    sameSite: isProduction ? 'none' : 'lax', // Important for OAuth redirects
     maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
   }
 }));
