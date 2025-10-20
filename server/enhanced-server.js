@@ -227,13 +227,31 @@ app.get('/auth/google',
   passport.authenticate('google', { scope: ['profile', 'email'] })
 );
 
-// Google OAuth callback
+// Google OAuth callback with error handling
 app.get('/auth/google/callback',
   authLimiter,
-  passport.authenticate('google', { failureRedirect: '/login' }),
-  (req, res) => {
-    // Successful authentication, redirect to loading page then dashboard
-    res.redirect('/loading');
+  (req, res, next) => {
+    passport.authenticate('google', (err, user, info) => {
+      if (err) {
+        console.error('❌ OAuth error:', err);
+        return res.redirect('/login?error=auth_failed');
+      }
+      
+      if (!user) {
+        console.error('❌ No user returned from OAuth');
+        return res.redirect('/login?error=no_user');
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          console.error('❌ Login error:', loginErr);
+          return res.redirect('/login?error=login_failed');
+        }
+        
+        console.log('✅ User authenticated:', user.email);
+        return res.redirect('/loading');
+      });
+    })(req, res, next);
   }
 );
 
