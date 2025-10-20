@@ -34,6 +34,10 @@ const __dirname = dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// Trust proxy - Required for Render, Railway, Heroku, etc.
+// Enables Express to correctly read X-Forwarded-* headers
+app.set('trust proxy', 1);
+
 // Configure multer for photo uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
