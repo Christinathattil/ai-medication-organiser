@@ -104,9 +104,32 @@ app.use(stripSensitiveData); // Strip sensitive data from responses
 app.use('/api/', apiLimiter); // Rate limiting for API routes
 
 // Public routes (before auth)
-app.use('/login', express.static(join(__dirname, '..', 'public/login.html')));
-app.use('/loading', express.static(join(__dirname, '..', 'public/loading.html')));
-app.use(express.static(join(__dirname, '..', 'public')));
+// Serve specific public files that don't require authentication
+app.get('/login', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'login.html'));
+});
+
+app.get('/login.html', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'login.html'));
+});
+
+app.get('/loading.html', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'loading.html'));
+});
+
+// Serve static assets (CSS, JS, images, manifest) but NOT index.html
+app.use(express.static(join(__dirname, '..', 'public'), {
+  index: false, // Don't serve index.html automatically
+  setHeaders: (res, path) => {
+    // Only allow certain file types
+    if (!path.endsWith('index.html')) {
+      return;
+    }
+    // Block direct access to index.html
+    res.status(404).send('Not found');
+  }
+}));
+
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
 
 // Import database (will use Supabase if configured, otherwise JSON)
