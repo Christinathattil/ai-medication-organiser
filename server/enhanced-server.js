@@ -1323,7 +1323,9 @@ function extractMedicationFromText(text) {
   // IMPROVED: Extract medication name with better logic
   // Strategy: Find the first meaningful word after "add" or similar triggers
   const addTriggers = ['add', 'new', 'start', 'begin', 'taking', 'take', 'need', 'have'];
-  const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or'];
+  const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or', 
+                     'tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'syrup', 'syrups',
+                     'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu'];
   
   // Try pattern 1: "add [medication]" or similar
   for (const trigger of addTriggers) {
