@@ -351,18 +351,51 @@ medication-manager/
 
 ---
 
+## 🚀 Deployment (Render)
+
+### Prerequisites
+1. Push code to GitHub
+2. Have all environment variables ready
+
+### Steps
+1. Visit [render.com](https://render.com) and sign up
+2. Click "New +" → "Web Service"
+3. Connect your GitHub repository
+4. Configure:
+   - **Name**: medication-manager
+   - **Environment**: Node
+   - **Build Command**: `npm install`
+   - **Start Command**: `npm start`
+5. Add Environment Variables:
+   ```
+   GROQ_API_KEY=your_groq_key
+   SUPABASE_URL=your_supabase_url
+   SUPABASE_KEY=your_supabase_key
+   DATABASE_URL=postgresql://postgres.[project]:[password]@...pooler.supabase.com:5432/postgres
+   GOOGLE_CLIENT_ID=your_google_client_id
+   GOOGLE_CLIENT_SECRET=your_google_secret
+   GOOGLE_CALLBACK_URL=https://your-app.onrender.com/auth/google/callback
+   SESSION_SECRET=your_random_secret
+   TWILIO_ACCOUNT_SID=your_twilio_sid (optional)
+   TWILIO_AUTH_TOKEN=your_twilio_token (optional)
+   TWILIO_PHONE_NUMBER=your_twilio_number (optional)
+   USER_PHONE_NUMBER=your_phone (optional)
+   NODE_ENV=production
+   ```
+6. Click "Create Web Service"
+7. Wait 2-3 minutes for deployment
+
+### Verify Deployment
+Check logs for:
+```
+✅ PostgreSQL session store connected
+✅ Using Supabase (persistent storage)
+🌐 Public URL: https://your-app.onrender.com
+```
+
 ## 📱 Mobile App Installation
 
-### Deploy First
-The app must be deployed online (can't install from localhost).
-
-**Recommended: Render (Free)**
-1. Push code to GitHub
-2. Visit [render.com](https://render.com)
-3. Create new Web Service
-4. Connect GitHub repo
-5. Add environment variables
-6. Deploy!
+### After Deployment
 
 ### Install on Phone
 
@@ -447,6 +480,20 @@ The app must be deployed online (can't install from localhost).
 - Restart server after adding key
 - Check browser console for errors
 
+### Database Connection Failed (Render)
+**Symptom:** `❌ Database connection failed` in logs
+**Cause:** Missing `DATABASE_URL` environment variable
+**Fix:**
+1. Go to Render Dashboard → Environment
+2. Add `DATABASE_URL` with your Supabase connection string
+3. Get it from: Supabase → Settings → Database → Connection String (Session pooler)
+4. Save and redeploy
+
+### AI Extracting Wrong Quantity
+**Symptom:** User says "20 units" but AI uses default 30
+**Fix:** Already fixed in latest version (prioritizes current message)
+**Workaround:** Be explicit: "Add aspirin 500mg tablet 20 units"
+
 ### Database Errors
 - Verify Supabase credentials
 - Run migrations in correct order
@@ -472,6 +519,39 @@ Run these SQL files in Supabase in order:
 2. `row-level-security.sql` - Enables RLS policies
 3. `add-food-timing-migration.sql` - Adds food_timing column
 4. `sms-tracking-migration.sql` - Adds SMS tracking
+
+---
+
+## 🔒 Data Persistence & Safety
+
+### Your Data is Protected
+- ✅ **All data stored permanently** in Supabase PostgreSQL
+- ✅ **Sessions persist across restarts** (30-day expiry)
+- ✅ **No automatic data deletion** - ever
+- ✅ **Row-level security** isolates user data
+- ✅ **Automatic backups** via Supabase
+
+### What Gets Stored
+**Permanently Stored:**
+- User accounts and profiles
+- Medications, schedules, logs
+- SMS reminders and history
+- Uploaded prescription photos
+
+**Session Storage (30 days):**
+- Login sessions (PostgreSQL-backed)
+- Only expired sessions auto-deleted after 30 days
+
+### Data Deletion
+**Manual Only:**
+- Users can delete their own data via UI
+- No scheduled jobs delete user data
+- Database admin can run SQL scripts if needed
+
+**Session Expiry ≠ Data Loss:**
+- Sessions expire after 30 days of inactivity
+- User just needs to log in again
+- All medication data remains intact
 
 ---
 
