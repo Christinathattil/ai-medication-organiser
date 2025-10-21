@@ -9,6 +9,8 @@ import dotenv from 'dotenv';
 import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import session from 'express-session';
+import connectPgSimple from 'connect-pg-simple';
+import pg from 'pg';
 import passport, { ensureAuthenticated, ensureAuthenticatedHTML } from './auth.js';
 import {
   securityHeaders,
@@ -74,14 +76,44 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
-// Session configuration - Using memory store for now (simpler, works immediately)
-// For production with persistence, add DATABASE_URL later
-console.log('📝 Using memory sessions (simple, works immediately)');
-console.log('⚠️  Note: Sessions will reset on server restart');
-
+// PostgreSQL session store setup
+const PgSession = connectPgSimple(session);
 const isProduction = process.env.NODE_ENV === 'production';
 
+// Create PostgreSQL pool for sessions
+let sessionStore;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+  // Extract PostgreSQL connection from Supabase URL
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1];
+  
+  if (projectRef) {
+    const pgPool = new pg.Pool({
+      host: `db.${projectRef}.supabase.co`,
+      port: 5432,
+      database: 'postgres',
+      user: 'postgres',
+      password: process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_KEY,
+      ssl: { rejectUnauthorized: false }
+    });
+    
+    sessionStore = new PgSession({
+      pool: pgPool,
+      tableName: 'session',
+      createTableIfMissing: true
+    });
+    
+    console.log('✅ Using PostgreSQL sessions (production-ready, persistent)');
+  } else {
+    console.log('⚠️  Could not parse Supabase URL, falling back to memory sessions');
+  }
+} else {
+  console.log('📝 Using memory sessions (simple, works immediately)');
+  console.log('⚠️  Note: Sessions will reset on server restart');
+}
+
 app.use(session({
+  store: sessionStore,
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
   saveUninitialized: false,
