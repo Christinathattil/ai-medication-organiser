@@ -361,6 +361,20 @@ app.post('/api/medications', ensureAuthenticated, upload.single('photo'), valida
     const userId = req.user?.id;
     const medicationData = { ...req.body };
     
+    // Check for duplicates (same name and dosage)
+    const existingMeds = await db.getMedications({}, userId);
+    const duplicate = existingMeds.medications?.find(m => 
+      m.name?.toLowerCase() === medicationData.name?.toLowerCase() &&
+      m.dosage?.toLowerCase() === medicationData.dosage?.toLowerCase()
+    );
+    
+    if (duplicate) {
+      return res.status(409).json({ 
+        error: `${medicationData.name} ${medicationData.dosage} already exists in your medication list`,
+        duplicate: true 
+      });
+    }
+    
     // Add photo URL if uploaded
     if (req.file) {
       medicationData.photo_url = `/uploads/${req.file.filename}`;
@@ -1314,7 +1328,18 @@ function extractMedicationFromText(text) {
       const afterKeyword = text.substring(index + keyword.length).trim();
       const words = afterKeyword.split(/\s+/).slice(0, 5);
       if (words.length >= minWords) {
-        data.purpose = words.join(' ').replace(/[.,!?;]$/, '').trim();
+        let purpose = words.join(' ').replace(/[.,!?;]$/, '').trim();
+        
+        // Filter out AI response artifacts and invalid text
+        // Skip if contains parentheses (e.g., "m (e.g., tablet...)") or "e.g."
+        if (purpose.includes('(') || purpose.includes(')') || 
+            purpose.toLowerCase().includes('e.g.') || 
+            purpose.toLowerCase().includes('default') ||
+            purpose.length < 3) {
+          continue;
+        }
+        
+        data.purpose = purpose;
         if (data.purpose.length > 0) break;
       }
     }

@@ -1077,11 +1077,22 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
     async function addMedication(data) {
       console.log('💊 Adding medication:', data);
       
+      // Clean up data before sending
+      const cleanData = {
+        name: data.name,
+        dosage: data.dosage,
+        form: data.form || 'tablet',
+        purpose: data.purpose && data.purpose.length >= 3 ? data.purpose : '',
+        total_quantity: data.total_quantity || 30
+      };
+      
+      console.log('🧹 Cleaned data:', cleanData);
+      
       try {
         const response = await fetch(`${API_BASE}/medications`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
+          body: JSON.stringify(cleanData)
         });
         
         if (response.ok) {
@@ -1136,11 +1147,37 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
             }
           }, 2000);
         } else {
-          throw new Error('Failed to add medication');
+          // Get error details from backend
+          let errorMsg = 'Failed to add medication';
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.error || errorData.message || errorMsg;
+            
+            // Check for duplicate error
+            if (errorMsg.toLowerCase().includes('already exists') || 
+                errorMsg.toLowerCase().includes('duplicate') ||
+                response.status === 409) {
+              addMessage(`⚠️ ${data.name} is already in your medication list. Would you like to update it instead?`, 'bot', true);
+              return;
+            }
+          } catch (e) {
+            console.error('Error parsing error response:', e);
+          }
+          
+          throw new Error(errorMsg);
         }
       } catch (error) {
         console.error('Error adding medication:', error);
-        addMessage('❌ Failed to add medication. Please try again or add it manually using the Add Medication button.', 'bot', true);
+        
+        // Show specific error message
+        const errorMsg = error.message || 'Unknown error occurred';
+        if (errorMsg.includes('network') || errorMsg.includes('fetch')) {
+          addMessage('🌐 Network error. Please check your connection and try again.', 'bot', true);
+        } else if (errorMsg.includes('timeout')) {
+          addMessage('⏱️ Request timed out. Please try again.', 'bot', true);
+        } else {
+          addMessage(`❌ ${errorMsg}. Please try again or add it manually using the Add Medication button.`, 'bot', true);
+        }
       }
     }
     
