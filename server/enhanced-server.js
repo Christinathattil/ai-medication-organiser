@@ -76,44 +76,35 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
 
-// PostgreSQL session store setup
-const PgSession = connectPgSimple(session);
+// Session configuration - Using PostgreSQL for persistent storage
 const isProduction = process.env.NODE_ENV === 'production';
+const PgSession = connectPgSimple(session);
 
-// Create PostgreSQL pool for sessions
-let sessionStore;
-if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-  // Extract PostgreSQL connection from Supabase URL
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const projectRef = supabaseUrl.match(/https:\/\/([^.]+)/)?.[1];
-  
-  if (projectRef) {
-    const pgPool = new pg.Pool({
-      host: `db.${projectRef}.supabase.co`,
-      port: 5432,
-      database: 'postgres',
-      user: 'postgres',
-      password: process.env.SUPABASE_DB_PASSWORD || process.env.SUPABASE_KEY,
-      ssl: { rejectUnauthorized: false }
-    });
-    
-    sessionStore = new PgSession({
-      pool: pgPool,
-      tableName: 'session',
-      createTableIfMissing: true
-    });
-    
-    console.log('✅ Using PostgreSQL sessions (production-ready, persistent)');
+// PostgreSQL connection pool for sessions
+const pgPool = new pg.Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: isProduction ? { rejectUnauthorized: false } : false
+});
+
+// Test database connection
+pgPool.query('SELECT NOW()', (err, res) => {
+  if (err) {
+    console.error('❌ Database connection failed:', err.message);
+    console.log('⚠️  Falling back to memory sessions (data will be lost on restart)');
   } else {
-    console.log('⚠️  Could not parse Supabase URL, falling back to memory sessions');
+    console.log('✅ PostgreSQL session store connected - sessions persist across restarts');
+    console.log('✅ User data is safe and will NOT be deleted automatically');
   }
-} else {
-  console.log('📝 Using memory sessions (simple, works immediately)');
-  console.log('⚠️  Note: Sessions will reset on server restart');
-}
+});
 
 app.use(session({
-  store: sessionStore,
+  store: new PgSession({
+    pool: pgPool,
+    tableName: 'session', // Table will be auto-created
+    createTableIfMissing: true, // Automatically create session table
+    pruneSessionInterval: 60 * 15, // Clean up expired sessions every 15 minutes
+    errorLog: console.error.bind(console)
+  }),
   secret: process.env.SESSION_SECRET || 'your-secret-key-change-this-in-production',
   resave: false,
   saveUninitialized: false,
