@@ -817,6 +817,35 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     const lowerResponse = aiResponse.toLowerCase();
     
     console.log('🔍 Analyzing user intent from:', message);
+    console.log('🤖 AI Response:', aiResponse);
+
+    // Check conversation history for context
+    const recentHistory = history.slice(-3); // Last 3 messages
+    const isFollowUp = recentHistory.some(h => 
+      h.role === 'assistant' && (
+        h.content.toLowerCase().includes('is it a tablet') ||
+        h.content.toLowerCase().includes('how many') ||
+        h.content.toLowerCase().includes('what time') ||
+        h.content.toLowerCase().includes('dosage') ||
+        h.content.toLowerCase().includes('before food') ||
+        h.content.toLowerCase().includes('after food')
+      )
+    );
+    
+    console.log('📜 Is follow-up response?', isFollowUp);
+    if (isFollowUp) {
+      console.log('📜 Recent conversation:', recentHistory.map(h => `${h.role}: ${h.content.substring(0, 50)}`));
+    }
+    
+    // Check if AI response indicates action should be taken
+    const aiIndicatesAction = lowerResponse.includes('i\'ll add') || 
+                              lowerResponse.includes('perfect') ||
+                              lowerResponse.includes('great!') ||
+                              lowerResponse.includes('setting up') ||
+                              lowerResponse.includes('correct?') ||
+                              (lowerResponse.includes('add') && lowerResponse.includes('correct'));
+    
+    console.log('🎯 AI indicates action should be taken?', aiIndicatesAction);
 
     // Intent detection with improved pattern matching
     
@@ -837,6 +866,43 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       if (medicationData.name) {
         action = { type: 'add_medication', data: medicationData };
         console.log('✅ Medication action created:', action);
+      }
+    }
+    
+    // 1B. FOLLOW-UP FOR MEDICATION ADDITION
+    if (!action && (isFollowUp || aiIndicatesAction)) {
+      // Combine conversation history to extract complete medication data
+      const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
+      console.log('🔄 Extracting from conversation:', conversationText.substring(0, 200));
+      
+      const medicationData = extractMedicationFromText(conversationText);
+      console.log('💊 Extracted medication data:', medicationData);
+      
+      // Check if we have enough data to create action
+      if (medicationData.name && medicationData.dosage && medicationData.form) {
+        // Set default quantity if not provided
+        if (!medicationData.total_quantity) {
+          medicationData.total_quantity = 30;
+        }
+        
+        action = { type: 'add_medication', data: medicationData };
+        console.log('✅ Follow-up medication action created:', action);
+      }
+      
+      // Check for schedule completion
+      const medications = await supabaseDb.getMedications(userId);
+      const medList = medications?.medications || [];
+      const scheduleData = extractScheduleFromText(conversationText, medList);
+      console.log('📅 Extracted schedule data from conversation:', scheduleData);
+      
+      // More lenient schedule action creation - create if we have medication, time, and frequency
+      if (!action && scheduleData.medication_id && scheduleData.time) {
+        // If food timing not specified, default to 'none'
+        if (!scheduleData.food_timing || scheduleData.food_timing === '') {
+          scheduleData.food_timing = 'none';
+        }
+        action = { type: 'add_schedule', data: scheduleData };
+        console.log('✅ Follow-up schedule action created:', action);
       }
     }
     
@@ -1081,10 +1147,16 @@ function extractMedicationFromText(text) {
     data.dosage = dosageMatch[0];
   }
   
-  // Extract quantity (e.g., "30 tablets", "60 pills", "100 capsules")
-  const quantityMatch = text.match(/(\d+)\s*(tablet|capsule|pill|unit|dose|syrup|ml|bottle)/i);
+  // Extract quantity (e.g., "30 tablets", "60 pills", "100 capsules", or just "12")
+  const quantityMatch = text.match(/(\d+)\s*(tablet|capsule|pill|unit|dose|syrup|ml|bottle|pills?)/i);
   if (quantityMatch) {
     data.total_quantity = parseInt(quantityMatch[1]);
+  } else {
+    // Try to match standalone numbers (e.g., user just says "12" or "12 units")
+    const standaloneNumber = text.match(/\b(\d+)\s*(units?|count)?\b/i);
+    if (standaloneNumber && parseInt(standaloneNumber[1]) < 200) { // Reasonable quantity range
+      data.total_quantity = parseInt(standaloneNumber[1]);
+    }
   }
 
   // Extract form
