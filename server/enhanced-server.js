@@ -944,8 +944,8 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       }
       
       // Check for schedule completion
-      const medications = await supabaseDb.getMedications(userId);
-      const medList = medications?.medications || [];
+      const schedMedications = await db.getMedications({});
+      const medList = schedMedications?.medications || [];
       const scheduleData = extractScheduleFromText(conversationText, medList);
       console.log('📅 Extracted schedule data from conversation:', scheduleData);
       
