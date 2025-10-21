@@ -1,86 +1,77 @@
-# 💊 MediCare Pro - AI-Powered Medication Manager
+# 💊 Medication Manager - AI-Powered Health Assistant
 
-**Professional medication tracking with Groq AI assistant, modern UI, and intelligent semantic understanding**
+**Professional medication tracking with AI assistant, smart scheduling, and comprehensive health management**
 
-![Medication Manager](https://img.shields.io/badge/version-2.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-3.0.0-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![AI Powered](https://img.shields.io/badge/AI-Groq-purple.svg)
 
 ---
 
-## 🎯 What's New in v2.0
+## 🌟 Features
 
-### 🎨 **Professional Modern UI**
-- Beautiful gradient design with glassmorphism effects
-- Smooth animations and transitions
-- Intuitive card-based layout
-- Enhanced visual hierarchy
-- **Fully responsive** - works perfectly on phones, tablets, and desktops
+### 🤖 AI Assistant (Groq-Powered)
+- **Natural language understanding** - Talk naturally to manage medications
+- **Out-of-context handling** - Politely redirects off-topic questions
+- **Smart field validation** - Asks for missing information one at a time
+- **Quantity defaults** - Asks for quantity or defaults to 30 units
+- **Concise responses** - Direct, 2-3 sentence answers
 
-### 📱 **Mobile-First Design**
-- **AI chatbot visible on all devices** - purple button always accessible
-- Full-screen chatbot on mobile for better UX
-- Touch-optimized buttons and interactions
-- Responsive navigation that adapts to screen size
-- Single-column layouts on mobile, grid on desktop
-- Proper spacing and font sizes for mobile readability
-
-### 🧠 **Groq AI Integration**
-- **Semantic understanding** of natural language
-- Conversational AI powered by Llama 3.1 70B
-- Context-aware responses based on your medication data
-- Intelligent intent detection and action execution
-- Lightning-fast responses (thanks to Groq's LPU technology)
-- **Works seamlessly on mobile and desktop**
-
----
-
-## ✨ Features
-
-### 📱 Mobile App (PWA)
-- **Install on your phone** like a native app!
-- Works on iOS and Android
-- Offline support
-- Full-screen experience
-- Home screen icon
-- Fast and responsive
-
-### 🤖 AI Assistant (Powered by Groq)
-- **Natural language understanding**: "I need to add my blood pressure medication"
-- **Smart medication extraction**: Automatically detects name, dosage, form, and purpose
-- **Contextual responses**: AI knows your current medications and schedules
-- **Conversational memory**: Maintains context across the conversation
-- **Action execution**: Automatically performs tasks based on your requests
-- **Quick actions**: One-tap access to common tasks
+**AI Examples:**
+```
+"Add aspirin 500mg tablet 45 pills for headaches"
+"Schedule metformin at 8am daily before food"
+"What should I take today?"
+"Show my adherence stats"
+```
 
 ### 💊 Medication Management
-- Add, edit, and delete medications
-- Track dosage, form, and purpose
+- Add, edit, delete medications with detailed information
+- Track dosage, form, purpose, and prescribing doctor
 - Photo attachments for prescriptions
-- Refill alerts and quantity tracking
+- **Interactive refill with quantity confirmation**
+- Refill alerts when running low (≤7 units)
 
 ### 📅 Smart Scheduling
-- Daily, weekly, or as-needed schedules
+- **Food timing required**: Before food, after food, or no timing
+- Daily, weekly, or as-needed frequencies
 - Multiple times per day
+- **Smart subgrouping**: 3+ medicines at same time grouped by food timing
+- **Sorting options**: By time, medication name, or frequency
 - Flexible start/end dates
-- Special instructions and food requirements
 
-### 🔔 Real-Time Notifications
+### 🔔 Notifications & Reminders
 - Desktop notifications at scheduled times
-- Sound alerts
-- Automatic reminders every minute
+- SMS reminders via Twilio (optional)
+- Two-way SMS: Reply YES/NO to log medication
+- Real-time alerts
 - Never miss a dose!
 
-### 📊 Adherence Tracking
+### 📊 Health Tracking
 - Log medications as taken, missed, or skipped
-- View complete history
-- Adherence statistics and charts
-- Track your progress over time
+- Complete medication history
+- Adherence statistics with percentages
+- Track progress over time
+
+### 🔐 Security & Authentication
+- Google OAuth 2.0 login
+- Row-level security (RLS) for data isolation
+- Input validation and sanitization
+- Rate limiting protection
+- Secure session management
+- HTTPS enforced
+
+### 📱 Mobile & PWA
+- **Fully responsive** - works on all devices
+- **Install as app** on iOS and Android
+- Offline support
+- Home screen icon
+- Full-screen experience
 
 ### ☁️ Cloud Storage
 - Supabase integration for persistent data
-- Never lose your medication data
 - Access from anywhere
+- Automatic backups
 - Secure and reliable
 
 ---
@@ -88,9 +79,9 @@
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Node.js (v14 or higher)
+- Node.js v14 or higher
 - npm or yarn
-- **Groq API Key** (free, get it from [console.groq.com](https://console.groq.com))
+- **Groq API Key** (free from [console.groq.com](https://console.groq.com))
 
 ### Installation
 
@@ -103,84 +94,31 @@ cd medication-manager
 npm install
 
 # Copy environment template
-cp .env.template .env
+cp .env.example .env
 
-# Edit .env and add your Groq API key
+# Edit .env and add your credentials
 nano .env
-# Add: GROQ_API_KEY=your_groq_api_key_here
-
-# Start the server
-npm start
 ```
-
-### Get Your Free Groq API Key
-
-1. Visit [console.groq.com](https://console.groq.com)
-2. Sign up (no credit card required)
-3. Create an API key
-4. Copy it to your `.env` file
-
-**See [GROQ-SETUP.md](GROQ-SETUP.md) for detailed instructions**
-
-### Access the App
-Open your browser and go to:
-```
-http://localhost:8080
-```
-
----
-
-## 🤖 Using the AI Assistant
-
-### Find the AI Button
-Look for the **purple 💬 button** in the bottom-right corner of the screen.
-
-### Add Medications
-```
-"Add aspirin 500mg tablet for headache"
-"Add metformin 850mg tablet for diabetes"
-"Add vitamin D 1000 IU capsule"
-```
-
-**What happens:**
-1. AI switches to Medications tab
-2. Opens and fills the form automatically
-3. You review and click "Add Medication"
-
-### Create Schedules
-```
-"Schedule aspirin at 10:00 daily"
-"Schedule metformin at 08:00 daily"
-"Schedule vitamin D at 20:00 daily"
-```
-
-**What happens:**
-1. AI switches to Schedules tab
-2. Opens and fills the form automatically
-3. You review and click "Add Schedule"
-
-### Other Commands
-```
-"Show today's schedule"
-"What needs refilling?"
-"My adherence statistics"
-```
-
----
-
-## ⚙️ Configuration
 
 ### Environment Variables
 
-Create a `.env` file with the following:
+Create a `.env` file with:
 
 ```env
-# Groq AI (ESSENTIAL - Required for AI chatbot)
+# Groq AI (REQUIRED for AI chatbot)
 GROQ_API_KEY=your_groq_api_key_here
 
-# Supabase (Recommended for persistent storage)
+# Supabase (Required for persistent storage and auth)
 SUPABASE_URL=your_supabase_url
 SUPABASE_KEY=your_supabase_anon_key
+
+# Google OAuth (Required for authentication)
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:8080/auth/google/callback
+
+# Session Secret (Required)
+SESSION_SECRET=your_random_secret_key
 
 # Twilio (Optional for SMS notifications)
 TWILIO_ACCOUNT_SID=your_twilio_sid
@@ -188,204 +126,467 @@ TWILIO_AUTH_TOKEN=your_twilio_token
 TWILIO_PHONE_NUMBER=your_twilio_number
 ```
 
-### Setup Priority
+### Start the Server
 
-1. **GROQ_API_KEY** - Essential for AI features (chatbot will work in basic mode without it)
-2. **SUPABASE** - Important for data persistence (uses JSON storage without it)
-3. **TWILIO** - Optional for SMS reminders (desktop notifications still work)
+```bash
+npm start
+```
 
-### Setup Guides
+### Access the App
 
-- **START-HERE.md** - Quick start guide for beginners 🚀
-- **GROQ-SETUP.md** - Get your free Groq API key for AI features ⭐
-- **MOBILE-RESPONSIVE.md** - Mobile optimization details 📱
-- **STEP-BY-STEP-SETUP.md** - Detailed setup instructions
-- **FREE-SERVICES-SETUP.md** - How to get free Supabase account
-- **DEPLOYMENT.md** - Deploy to production
-- **MOBILE-APP-GUIDE.md** - Install as mobile app
+Open your browser to:
+```
+http://localhost:8080
+```
 
 ---
 
-## 📱 Mobile App Installation
+## 🔑 Setup Guides
 
-### Your app is now a PWA (Progressive Web App)!
+### 1. Get Groq API Key (Required)
 
-**On Android:**
-1. Deploy your app (see DEPLOYMENT.md)
-2. Open the URL in Chrome
-3. Tap "Install" when prompted
-4. App appears on home screen!
+1. Visit [console.groq.com](https://console.groq.com)
+2. Sign up (free, no credit card)
+3. Navigate to "API Keys"
+4. Create new API key
+5. Copy to `.env` file
 
-**On iPhone:**
-1. Deploy your app
-2. Open the URL in Safari
-3. Tap Share → "Add to Home Screen"
-4. App appears on home screen!
+**Features enabled:**
+- Natural language understanding
+- Smart intent detection
+- Conversational memory
+- Context-aware responses
 
-**See MOBILE-APP-GUIDE.md for complete instructions!**
+### 2. Setup Supabase (Required)
 
----
+1. Visit [supabase.com](https://supabase.com)
+2. Create free account
+3. Create new project
+4. Get URL and API key from Settings
+5. Run migrations from `database/` folder
 
-## 📱 How to Use
+**Required tables:**
+- users
+- medications
+- schedules
+- medication_logs
+- sms_reminders
 
-### 1. Add Your First Medication
+### 3. Setup Google OAuth (Required)
 
-**Using AI:**
-- Click 💬 button
-- Type: "Add aspirin 500mg tablet"
-- Click "Add Medication"
+1. Go to [Google Cloud Console](https://console.cloud.google.com)
+2. Create new project
+3. Enable Google+ API
+4. Create OAuth 2.0 credentials
+5. Add authorized redirect URI: `http://localhost:8080/auth/google/callback`
+6. Copy Client ID and Secret to `.env`
 
-**Manually:**
-- Go to Medications tab
-- Click "Add Medication" button
-- Fill in the form
-- Click "Add Medication"
+### 4. Setup Twilio SMS (Optional)
 
-### 2. Create a Schedule
-
-**Using AI:**
-- Click 💬 button
-- Type: "Schedule aspirin at 10:00 daily"
-- Click "Add Schedule"
-
-**Manually:**
-- Go to Schedules tab
-- Click "Add Schedule" button
-- Select medication and set time
-- Click "Add Schedule"
-
-### 3. Get Notifications
-
-- Desktop notifications appear at scheduled times
-- Sound alerts to grab your attention
-- Check terminal to see notification logs
-
-### 4. Log Your Medications
-
-- When notification appears, mark as taken
-- Or go to History tab to log manually
-- Track your adherence over time
+1. Visit [twilio.com](https://www.twilio.com)
+2. Create free account (trial credits provided)
+3. Get phone number
+4. Copy credentials to `.env`
+5. Configure webhook: `https://your-domain.com/api/sms/webhook`
 
 ---
 
-## 🎯 Tips & Tricks
+## 📖 How to Use
 
-### AI Commands
-- Be specific with dosage and form
-- Include purpose for better tracking
-- Use 24-hour time format (22:30 not 10:30 PM)
+### Using the AI Assistant
 
-### Scheduling
-- Test with a schedule 2 minutes from now
-- Use daily for regular medications
-- Use weekly for supplements
-- Use as-needed for occasional medications
+**Find the 💬 button** in the bottom-right corner.
 
-### Notifications
-- Allow browser notifications when prompted
-- Keep the app open for desktop notifications
-- Check terminal logs for debugging
+**Add Medication:**
+```
+"Add aspirin 500mg tablet"
+→ AI asks: "How many units do you have? (Default: 30)"
+→ You: "60"
+→ AI opens form with all details filled
+```
+
+**Create Schedule:**
+```
+"Schedule aspirin at 8am daily before food"
+→ AI opens schedule form
+→ Review and click "Add Schedule"
+```
+
+**View Information:**
+```
+"What should I take today?"
+"Show my stats"
+"What needs refilling?"
+```
+
+### Manual Usage
+
+**Add Medication:**
+1. Go to Medications tab
+2. Click "Add Medication"
+3. Fill required fields (name*, dosage*)
+4. Quantity defaults to 30 if not specified
+5. Click "Add Medication"
+
+**Create Schedule:**
+1. Go to Schedules tab
+2. Click "Add Schedule"
+3. Select medication
+4. Set time (required)
+5. **Select food timing** (required): Before/After/None
+6. Click "Add Schedule"
+
+**Refill Medication:**
+1. Dashboard shows "Refill Alerts" for medications ≤7 units
+2. Click "Refill" button
+3. **System asks for quantity** (suggests default)
+4. Enter amount or accept default
+5. Quantity updated!
+
+**View Organized Schedules:**
+1. Go to Schedules tab
+2. Select "Sort by Time"
+3. Check "Group by Time"
+4. **3+ medicines at same time?** → Auto-subgrouped by food timing!
+
+**Log Medications:**
+1. When notification appears, mark as taken
+2. Or go to History tab
+3. Log manually as taken/missed/skipped
 
 ---
 
-## 🛠️ Tech Stack
+## ✨ Latest Enhancements
 
-- **Frontend:** Vanilla JavaScript, TailwindCSS
-- **Backend:** Node.js, Express
-- **Database:** Supabase (PostgreSQL)
-- **Notifications:** node-notifier
-- **SMS:** Twilio (optional)
-- **Scheduling:** node-cron
-- **File Upload:** Multer
+### 1. Refill Quantity Confirmation
+- **Before**: Auto-filled with 30 units
+- **After**: Prompts for confirmation, allows custom amount
+
+### 2. Food Timing Updates
+- **Removed**: "With food" option
+- **Options now**: Before food, After food, No timing
+- **Status**: Required field with validation
+
+### 3. Smart Schedule Organization
+- **Sorting**: By time, medication, or frequency
+- **Grouping**: By time slots
+- **Subgrouping**: 3+ meds at same time grouped by food timing
+
+### 4. Enhanced AI Assistant
+- Out-of-context detection and redirection
+- Mandatory field validation
+- One-at-a-time field prompts
+- Quantity handling with defaults
+- Concise, helpful responses
+
+### 5. Security Implementation
+- Google OAuth 2.0 authentication
+- Row-level security (RLS)
+- Input validation on all forms
+- Rate limiting (100 req/15min)
+- Session management
+- CSRF protection
 
 ---
 
-## 📂 Project Structure
+## 🏗️ Project Structure
 
 ```
 medication-manager/
-├── public/              # Frontend files
-│   ├── index.html      # Main HTML
-│   ├── app.js          # Core functionality
-│   └── chatbot-simple.js # AI assistant
-├── server/             # Backend files
-│   ├── enhanced-server.js # Main server
-│   ├── database.js     # Database operations
-│   └── supabase.js     # Supabase integration
-├── uploads/            # Uploaded photos
-├── .env               # Environment variables
-├── package.json       # Dependencies
+├── public/                 # Frontend files
+│   ├── index.html         # Main application
+│   ├── login.html         # Login page
+│   ├── loading.html       # Loading screen
+│   ├── app.js            # Core application logic
+│   └── service-worker.js  # PWA support
+│
+├── server/                # Backend files
+│   ├── enhanced-server.js # Main Express server
+│   ├── auth.js           # Google OAuth
+│   ├── security.js       # Security middleware
+│   ├── database.js       # Fallback JSON storage
+│   └── supabase-db.js    # Supabase integration
+│
+├── database/             # SQL migrations
+│   ├── users-auth-migration.sql
+│   ├── row-level-security.sql
+│   ├── add-food-timing-migration.sql
+│   └── sms-tracking-migration.sql
+│
+├── uploads/             # Uploaded photos
+├── .env                # Environment variables
+├── .env.example        # Environment template
+├── package.json        # Dependencies
 └── README.md          # This file
 ```
 
 ---
 
-## 🚀 Deployment
+## 🛠️ Tech Stack
 
-See **DEPLOYMENT.md** for detailed instructions on deploying to:
-- Netlify
-- Vercel
-- Heroku
-- Your own server
+**Frontend:**
+- Vanilla JavaScript (ES6+)
+- TailwindCSS for styling
+- Font Awesome icons
+- Service Worker for PWA
+
+**Backend:**
+- Node.js & Express
+- Passport.js (Google OAuth)
+- Express Validator (input validation)
+- Helmet.js (security headers)
+- Express Rate Limit
+- Node Cron (scheduling)
+- Multer (file uploads)
+
+**Database:**
+- Supabase (PostgreSQL)
+- Row-Level Security (RLS)
+- JSON fallback for development
+
+**AI & External Services:**
+- Groq API (Llama 3.3 70B)
+- Twilio (SMS)
+- Google OAuth
+
+---
+
+## 📱 Mobile App Installation
+
+### Deploy First
+The app must be deployed online (can't install from localhost).
+
+**Recommended: Render (Free)**
+1. Push code to GitHub
+2. Visit [render.com](https://render.com)
+3. Create new Web Service
+4. Connect GitHub repo
+5. Add environment variables
+6. Deploy!
+
+### Install on Phone
+
+**Android (Chrome):**
+1. Open deployed URL in Chrome
+2. Tap "Install" when prompted
+3. App appears on home screen
+
+**iPhone (Safari):**
+1. Open deployed URL in Safari
+2. Tap Share icon
+3. Select "Add to Home Screen"
+4. App appears on home screen
+
+---
+
+## 🔒 Security Features
+
+### Authentication
+- Google OAuth 2.0
+- Secure session management (30-day expiry)
+- HttpOnly + Secure cookies
+- Token security (server-side only)
+
+### Data Protection
+- Row-level security (RLS) - users only see their data
+- Input validation on all forms
+- SQL injection prevention
+- XSS protection
+- CSRF protection
+
+### Rate Limiting
+- API: 100 requests per 15 minutes
+- Auth: 5 requests per 15 minutes
+- SMS: 10 messages per hour
+
+### Headers
+- Content Security Policy (CSP)
+- HSTS (Strict Transport Security)
+- X-Frame-Options
+- X-Content-Type-Options
+
+---
+
+## 🧪 Testing
+
+### Test Refill Confirmation
+1. Add medication with quantity 30
+2. Take doses until ≤7 remaining
+3. Click "Refill" → Prompt appears
+4. Enter custom amount or accept default
+
+### Test Food Timing Validation
+1. Try creating schedule without selecting food timing
+2. Should show error: "Food timing is required"
+3. Select option → Submit succeeds
+
+### Test Schedule Subgrouping
+1. Create 3+ medications for same time (e.g., 8:00 AM)
+2. Give different food timings
+3. Go to Schedules → Sort by Time → Group by Time
+4. Should see subgroups: Before Food, No Timing, After Food
+
+### Test AI Assistant
+```
+"What's the weather?" → Should redirect to medication topics
+"Add aspirin" → Should ask "What is the dosage?"
+"Schedule it at 8am" → Should ask "Before/after food?"
+```
 
 ---
 
 ## 🐛 Troubleshooting
 
-### AI Button Not Visible
-1. Hard refresh: `Ctrl + Shift + R` (or `Cmd + Shift + R` on Mac)
-2. Check browser console (F12) for errors
-3. Clear browser cache
+### Login Issues
+- Check Google OAuth credentials in `.env`
+- Verify callback URL matches Google Console
+- Clear browser cookies
 
-### Notifications Not Working
-1. Allow browser notifications when prompted
-2. Check that server is running
-3. Verify schedule time is in 24-hour format
-4. Look at terminal logs for debugging
+### AI Not Responding
+- Verify `GROQ_API_KEY` in `.env`
+- Restart server after adding key
+- Check browser console for errors
 
 ### Database Errors
-1. Verify Supabase credentials in `.env`
-2. Check Supabase dashboard for connection
-3. Ensure tables are created (see STEP-BY-STEP-SETUP.md)
+- Verify Supabase credentials
+- Run migrations in correct order
+- Check RLS policies are enabled
+
+### SMS Not Working
+- Verify Twilio credentials
+- Check webhook URL is publicly accessible
+- Use ngrok for local testing
+
+### Notifications Not Appearing
+- Allow browser notifications
+- Keep app open in a tab
+- Check schedule time format (24-hour)
 
 ---
 
-## 📄 License
+## 📊 Database Migrations
 
-MIT License - feel free to use this project for personal or commercial purposes.
+Run these SQL files in Supabase in order:
+
+1. `users-auth-migration.sql` - Creates users table
+2. `row-level-security.sql` - Enables RLS policies
+3. `add-food-timing-migration.sql` - Adds food_timing column
+4. `sms-tracking-migration.sql` - Adds SMS tracking
+
+---
+
+## 🎯 Best Practices
+
+### For Patients
+- Log medications consistently
+- Set realistic schedules
+- Use food timing accurately
+- Review adherence stats weekly
+- Keep refill alerts enabled
+
+### For Developers
+- Never commit `.env` file
+- Test RLS policies thoroughly
+- Validate all user inputs
+- Use prepared statements
+- Keep dependencies updated
+- Follow security best practices
+
+---
+
+## 📝 API Endpoints
+
+### Authentication
+- `GET /auth/google` - Initiate OAuth
+- `GET /auth/google/callback` - OAuth callback
+- `GET /auth/logout` - Logout
+- `GET /auth/user` - Get current user
+
+### Medications
+- `GET /api/medications` - List medications
+- `POST /api/medications` - Add medication
+- `PUT /api/medications/:id` - Update medication
+- `DELETE /api/medications/:id` - Delete medication
+- `POST /api/medications/:id/quantity` - Update quantity (refill)
+
+### Schedules
+- `GET /api/schedules` - List schedules
+- `POST /api/schedules` - Add schedule
+- `PUT /api/schedules/:id` - Update schedule
+- `DELETE /api/schedules/:id` - Delete schedule
+- `GET /api/schedule/today` - Get today's schedule
+
+### Logs & Stats
+- `GET /api/logs` - Medication history
+- `POST /api/logs` - Log medication
+- `GET /api/stats/adherence` - Adherence statistics
+- `GET /api/refill-alerts` - Refill alerts
+
+### AI
+- `POST /api/chat` - Chat with AI assistant
+
+### SMS
+- `POST /api/sms/webhook` - Twilio webhook
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Feel free to:
-- Report bugs
-- Suggest features
-- Submit pull requests
+Contributions welcome! Please:
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
 
 ---
 
-## 📞 Support
+## 📄 License
 
-For issues or questions:
-1. Check the documentation files
-2. Look at browser console for errors
-3. Check server terminal logs
+MIT License - Free to use for personal or commercial purposes.
 
 ---
 
-## 🎉 Enjoy!
+## 🆘 Support
 
-Your smart medication manager is ready to use!
+**Need Help?**
+1. Check this README
+2. Review browser console (F12)
+3. Check server logs
+4. Verify environment variables
 
-**Start by clicking the 💬 button and typing:**
-```
-"Add aspirin 500mg tablet"
+**Common Issues:**
+- AI not working? Check `GROQ_API_KEY`
+- Can't login? Check Google OAuth setup
+- Database errors? Run migrations
+- SMS not working? Check Twilio webhook
+
+---
+
+## 🎉 Get Started Now!
+
+```bash
+# Install
+npm install
+
+# Configure
+cp .env.example .env
+# Add your Groq API key and other credentials
+
+# Start
+npm start
+
+# Open
+http://localhost:8080
 ```
 
-**Then create a schedule:**
-```
-"Schedule aspirin at 10:00 daily"
-```
+**First steps:**
+1. Login with Google
+2. Click 💬 AI button
+3. Say: "Add aspirin 500mg tablet"
+4. Say: "Schedule it at 8am daily before food"
+5. Enjoy never missing a medication again! 💊✨
 
-**Never miss a medication again!** 💊✨
+---
+
+**Built with ❤️ for better health management**

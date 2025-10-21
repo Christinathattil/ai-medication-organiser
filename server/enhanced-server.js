@@ -686,28 +686,81 @@ app.post('/api/chat', async (req, res) => {
     
     console.log(`📈 Context: ${medCount} meds, ${schedCount} schedules, ${todayCount} today`);
     
+    // Enhanced medications list for context
+    const medsList = medications?.medications || [];
+    const medsContext = medsList.length > 0 
+      ? `\nYour medications: ${medsList.map(m => `${m.name} (${m.dosage})`).join(', ')}`
+      : '';
+    
     // Build context for AI
-    const systemPrompt = `You are a medication management assistant. Be concise, accurate, and direct.
+    const systemPrompt = `You are a precise medication management assistant. Be accurate, crisp, and direct.
 
-Context: ${medCount} medications, ${schedCount} schedules, ${todayCount} doses today.
+CURRENT CONTEXT:
+- Total medications: ${medCount}
+- Active schedules: ${schedCount}
+- Today's doses: ${todayCount}${medsContext}
 
-Capabilities:
-1. Add medications: Extract name, dosage, form, purpose
-2. Create schedules: Extract time, frequency, instructions
-3. Show schedule, stats, or refills
+YOUR CAPABILITIES:
+1. **Add Medication**: Extract name, dosage, form (tablet/capsule/syrup), purpose, quantity
+2. **Create Schedule**: Extract medication, time (HH:MM format), frequency, food timing (before/after food)
+3. **View Information**: Show today's schedule, statistics, or refill alerts
 
-IMPORTANT RULES:
-- NEVER provide health advice, medical recommendations, or suggest medications
-- For any health-related questions, always direct the user to consult their doctor
-- Only help with managing existing medications that the user already has
+CRITICAL RULES:
+⚠️ NEVER provide health advice or medical recommendations
+⚠️ NEVER suggest what medications to take
+⚠️ For health questions, always say: "Please consult your doctor"
+⚠️ Only help manage medications the user already has
+⚠️ If user asks something unrelated to medication management, politely redirect: "I can only help with managing your medications. Can I help you add, schedule, or view your medications?"
 
-Response format:
-- Keep responses under 2-3 sentences
-- Confirm extracted details clearly
-- Ask for missing info directly
-- No verbose explanations
+MANDATORY FIELDS:
+**For Adding Medication:**
+- Medication name (REQUIRED) - If missing, ask: "What is the medication name?"
+- Dosage (REQUIRED) - If missing, ask: "What is the dosage (e.g., 500mg)?"
+- Form - tablet/capsule/syrup (Ask if not mentioned: "Is it a tablet, capsule, or syrup?")
+- Total Quantity - If NOT mentioned, ask: "How many units do you have? (Default: 30)"
 
-When detecting intent, state what you understood and the action to be taken.`;
+**For Creating Schedule:**
+- Medication name (REQUIRED) - Must match existing medication. If missing, ask: "Which medication should I schedule?"
+- Time (REQUIRED) - If missing, ask: "What time should you take it?"
+- Food timing (REQUIRED) - If missing, ask: "Should you take it before food, after food, or no specific timing?"
+- Frequency - Default to "daily" if not mentioned
+
+FOOD TIMING OPTIONS (Required for schedules):
+- "before food" - Take 30-60 min before eating
+- "after food" - Take 30-60 min after eating  
+- "no specific timing" - Can take anytime
+
+RESPONSE GUIDELINES:
+✓ 2-3 sentences maximum
+✓ Confirm extracted details: "I'll add Aspirin 500mg (30 tablets). Is that correct?"
+✓ Ask directly for ONE missing field at a time: "What time should you take it?"
+✓ Use natural language, avoid technical jargon
+✓ If user provides unrelated input, politely redirect to medication topics
+✓ For quantity: If not mentioned, ask "How many units? (I can default to 30 if you'd like)"
+
+INTENT DETECTION:
+- Listen carefully for: medication names, dosages (mg/ml), times (8am, 14:00), frequencies (daily/weekly), quantities (30 tablets)
+- Recognize variations: "schedule aspirin" = "set reminder for aspirin" = "when should i take aspirin"
+- Extract food timing if mentioned: "with meal", "before eating", "after dinner"
+- Detect out-of-context: weather, news, recipes, general questions → Redirect
+
+Example interactions:
+User: "Add aspirin 500mg for headaches"
+You: "I'll add Aspirin 500mg for headaches. Is it a tablet or capsule? How many do you have? (Default: 30)"
+
+User: "30 tablets"
+You: "Perfect! I'll add Aspirin 500mg, 30 tablets for headaches."
+
+User: "Schedule it for 8am before food"
+You: "Setting up Aspirin 500mg daily at 8:00 AM, before food. Should I create this schedule?"
+
+User: "What's the weather today?"
+You: "I can only help with managing your medications. Can I help you add, schedule, or view your medications?"
+
+User: "Add metformin"
+You: "I'll add Metformin. What is the dosage (e.g., 500mg, 850mg)?"
+
+Always validate mandatory fields and guide users to provide complete information!`;
 
 
     // Build conversation messages
@@ -727,16 +780,50 @@ When detecting intent, state what you understood and the action to be taken.`;
 
     const aiResponse = completion.choices[0].message.content;
 
-    // Detect intent and extract action
+    // Enhanced intent detection and action extraction
     let action = null;
-    const lowerMessage = message.toLowerCase();
+    const lowerMessage = message.toLowerCase().trim();
     const lowerResponse = aiResponse.toLowerCase();
-
-    // Intent detection with priority order
     
-    // 1. Check for schedule creation intent (e.g., "schedule X at Y" or "schedule X for Y")
-    if ((lowerMessage.includes('schedule') && (lowerMessage.includes(' at ') || lowerMessage.includes(' for ') || lowerMessage.includes('daily') || lowerMessage.includes('time') || lowerMessage.match(/\d+\s*(am|pm)/i))) ||
-        (lowerMessage.includes('take') && (lowerMessage.includes(' at ') || lowerMessage.includes(' for ')))) {
+    console.log('🔍 Analyzing user intent from:', message);
+
+    // Intent detection with improved pattern matching
+    
+    // 1. MEDICATION ADDITION - Check first as it's most specific
+    const addPatterns = [
+      /add (a |an |the )?(\w+)/i,
+      /new (medication|medicine|drug)/i,
+      /start taking (\w+)/i,
+      /\b(\w+)\s+\d+\s*(mg|ml|g|mcg|iu|units?)\b/i
+    ];
+    const hasMedicationPattern = addPatterns.some(pattern => pattern.test(message));
+    const hasAddIntent = lowerMessage.includes('add') || lowerMessage.includes('new') || 
+                         lowerMessage.includes('start taking') || lowerMessage.includes('i need');
+    
+    if (hasAddIntent && hasMedicationPattern) {
+      console.log('💊 Detected: Add Medication Intent');
+      const medicationData = extractMedicationFromText(message);
+      if (medicationData.name) {
+        action = { type: 'add_medication', data: medicationData };
+        console.log('✅ Medication action created:', action);
+      }
+    }
+    
+    // 2. SCHEDULE CREATION - More flexible pattern matching
+    const schedulePatterns = [
+      /schedule|reminder|set (a )?(time|reminder)/i,
+      /take .+ (at|@|around) \d+/i,
+      /\d+\s*(am|pm|:\d+)/i,
+      /(every|each) (day|morning|evening|night)/i,
+      /(daily|weekly|twice)/i
+    ];
+    const hasSchedulePattern = schedulePatterns.some(pattern => pattern.test(message));
+    const hasScheduleIntent = lowerMessage.includes('schedule') || lowerMessage.includes('reminder') ||
+                              lowerMessage.includes('set time') || lowerMessage.includes('when should') ||
+                              (lowerMessage.includes('take') && (lowerMessage.includes(' at ') || lowerMessage.includes('daily')));
+    
+    if (!action && (hasScheduleIntent || hasSchedulePattern)) {
+      console.log('📅 Detected: Schedule Creation Intent');
       const medList = medications?.medications || [];
       console.log('📋 Available medications for scheduling:', medList.map(m => ({ id: m.id, name: m.name })));
       
@@ -746,34 +833,63 @@ When detecting intent, state what you understood and the action to be taken.`;
       if (scheduleData.medication_id && scheduleData.time) {
         action = { type: 'add_schedule', data: scheduleData };
         console.log('✅ Schedule action created:', action);
-      } else {
-        console.log('⚠️ Missing required fields - medication_id:', scheduleData.medication_id, 'time:', scheduleData.time);
+      } else if (scheduleData.medication_id || scheduleData.time) {
+        // Partial data - AI will ask for missing info
+        console.log('⚠️ Partial schedule data - AI will prompt for missing info');
       }
     }
-    // 2. Check for medication addition intent
-    else if ((lowerMessage.includes('add') || lowerMessage.includes('need to add') || lowerMessage.includes('start taking')) && 
-             (lowerMessage.includes('medication') || lowerMessage.includes('medicine') || lowerMessage.includes('drug') || 
-              lowerMessage.match(/\d+\s*(mg|ml|g|mcg|iu|units?)/i))) {
-      const medicationData = extractMedicationFromText(message);
-      if (medicationData.name) {
-        action = { type: 'add_medication', data: medicationData };
-      }
-    }
-    // 3. Check for viewing today's schedule
-    else if ((lowerMessage.includes('today') && lowerMessage.includes('schedule')) || 
-             lowerMessage.includes('what do i need to take') ||
-             lowerMessage.includes('what should i take')) {
+    
+    // 3. VIEW TODAY'S SCHEDULE - Multiple variations
+    const todayPatterns = [
+      /what.*(do|should|need).*(i|we).*(take|have)/i,
+      /today('s)? (schedule|medication|dose)/i,
+      /show.*(today|schedule)/i,
+      /list.*(today|medication)/i
+    ];
+    const hasTodayIntent = todayPatterns.some(pattern => pattern.test(message)) ||
+                           (lowerMessage.includes('today') && (lowerMessage.includes('take') || lowerMessage.includes('schedule')));
+    
+    if (!action && hasTodayIntent) {
+      console.log('📅 Detected: View Today\'s Schedule');
       action = { type: 'show_schedule' };
     }
-    // 4. Check for stats
-    else if (lowerMessage.includes('stat') || lowerMessage.includes('adherence') || 
-             lowerMessage.includes('how am i doing') || lowerResponse.includes('statistic')) {
+    
+    // 4. VIEW STATISTICS
+    const statsPatterns = [
+      /stat(istic)?s?/i,
+      /adherence/i,
+      /how (am i|are we) doing/i,
+      /progress/i,
+      /compliance/i
+    ];
+    const hasStatsIntent = statsPatterns.some(pattern => pattern.test(message)) || 
+                           lowerResponse.includes('statistic');
+    
+    if (!action && hasStatsIntent) {
+      console.log('📊 Detected: View Statistics');
       action = { type: 'show_stats' };
     }
-    // 5. Check for refills
-    else if (lowerMessage.includes('refill') || lowerMessage.includes('low') || 
-             lowerMessage.includes('running out') || lowerMessage.includes('need more')) {
+    
+    // 5. REFILL ALERTS
+    const refillPatterns = [
+      /refill/i,
+      /running (low|out)/i,
+      /need more/i,
+      /low (on )?stock/i,
+      /(almost|nearly) (out|finished)/i
+    ];
+    const hasRefillIntent = refillPatterns.some(pattern => pattern.test(message));
+    
+    if (!action && hasRefillIntent) {
+      console.log('🔔 Detected: Refill Alerts');
       action = { type: 'show_refills' };
+    }
+    
+    // Log final decision
+    if (action) {
+      console.log('✅ Final action:', action.type);
+    } else {
+      console.log('ℹ️ No specific action detected - conversational response');
     }
 
     res.json({
@@ -797,7 +913,8 @@ function extractScheduleFromText(text, medications) {
     medication_id: null,
     time: '',
     frequency: 'daily',
-    with_food: false,
+    with_food: false, // Keep for backward compatibility
+    food_timing: 'none',
     special_instructions: '',
     start_date: new Date().toISOString().split('T')[0] // Add today's date
   };
@@ -868,9 +985,26 @@ function extractScheduleFromText(text, medications) {
     data.frequency = 'as_needed';
   }
 
-  // Check for food requirement
-  if (lowerText.includes('with food') || lowerText.includes('after eating') || lowerText.includes('with meal')) {
-    data.with_food = true;
+  // Extract food timing (required field)
+  if (lowerText.includes('before food') || lowerText.includes('before eating') || 
+      lowerText.includes('before meal') || lowerText.includes('empty stomach') ||
+      lowerText.includes('before breakfast') || lowerText.includes('before lunch') || 
+      lowerText.includes('before dinner')) {
+    data.food_timing = 'before_food';
+    data.with_food = false;
+  } else if (lowerText.includes('after food') || lowerText.includes('after eating') || 
+             lowerText.includes('after meal') || lowerText.includes('with meal') ||
+             lowerText.includes('after breakfast') || lowerText.includes('after lunch') || 
+             lowerText.includes('after dinner')) {
+    data.food_timing = 'after_food';
+    data.with_food = false;
+  } else if (lowerText.includes('with food') || lowerText.includes('during meal')) {
+    // Convert old "with food" to "before food" for backward compatibility
+    data.food_timing = 'before_food';
+    data.with_food = false;
+  } else {
+    data.food_timing = 'none';
+    data.with_food = false;
   }
 
   // Extract special instructions
@@ -891,13 +1025,20 @@ function extractMedicationFromText(text) {
     name: '',
     dosage: '',
     form: 'tablet',
-    purpose: ''
+    purpose: '',
+    total_quantity: null // Will be set to 30 as default if not specified
   };
 
   // Extract dosage (e.g., 500mg, 10ml, 2.5mg)
   const dosageMatch = text.match(/(\d+\.?\d*)\s*(mg|ml|g|mcg|iu|units?)/i);
   if (dosageMatch) {
     data.dosage = dosageMatch[0];
+  }
+  
+  // Extract quantity (e.g., "30 tablets", "60 pills", "100 capsules")
+  const quantityMatch = text.match(/(\d+)\s*(tablet|capsule|pill|unit|dose|syrup|ml|bottle)/i);
+  if (quantityMatch) {
+    data.total_quantity = parseInt(quantityMatch[1]);
   }
 
   // Extract form

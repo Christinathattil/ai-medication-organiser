@@ -33,6 +33,17 @@ window.showTab = function(tabName) {
 
 // Modal Management
 window.showAddMedicationModal = function() {
+  // Reset form and modal state
+  const form = document.getElementById('medication-form');
+  form.reset();
+  form.removeAttribute('data-edit-id');
+  
+  // Reset modal title and button text
+  document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
+  const submitBtn = document.querySelector('#medication-form button[type="submit"]');
+  submitBtn.textContent = 'Add Medication';
+  
+  // Show modal
   document.getElementById('add-medication-modal').classList.add('active');
 }
 
@@ -133,7 +144,7 @@ async function loadTodaySchedule() {
             </span>
           </div>
           <p class="text-gray-900 font-medium mt-1">${schedule.name} - ${schedule.dosage}</p>
-          ${schedule.with_food ? '<p class="text-sm text-gray-600"><i class="fas fa-utensils mr-1"></i>Take with food</p>' : ''}
+          ${schedule.food_timing && schedule.food_timing !== 'none' ? `<p class="text-sm text-gray-600"><i class="fas fa-utensils mr-1"></i>${getFoodTimingText(schedule.food_timing)}</p>` : ''}
           ${schedule.special_instructions ? `<p class="text-sm text-gray-600">${schedule.special_instructions}</p>` : ''}
         </div>
         <div class="flex space-x-2">
@@ -206,6 +217,17 @@ async function loadMedications() {
 
 function searchMedications() {
   loadMedications();
+}
+
+// Helper function to convert food timing to display text
+function getFoodTimingText(timing) {
+  const timingMap = {
+    'before_food': 'Take before food',
+    'with_food': 'Take before food', // Backward compatibility: treat with_food as before_food
+    'after_food': 'Take after food',
+    'none': ''
+  };
+  return timingMap[timing] || '';
 }
 
 async function addMedication(event) {
@@ -316,6 +338,10 @@ async function editMedication(id) {
       const modal = document.getElementById('add-medication-modal');
       modal.querySelector('h2').textContent = 'Edit Medication';
       
+      // Change submit button text
+      const submitBtn = document.querySelector('#medication-form button[type="submit"]');
+      submitBtn.textContent = 'Update Medication';
+      
       // Store the ID in a data attribute for the submit handler
       document.getElementById('medication-form').dataset.editId = id;
       
@@ -342,8 +368,23 @@ async function deleteMedication(id) {
   }
 }
 
-async function refillMedication(id, quantity) {
+async function refillMedication(id, defaultQuantity) {
   try {
+    // Ask user to confirm the refill quantity
+    const userQuantity = prompt(`How many units are you adding?\n\nSuggested: ${defaultQuantity || '(please enter amount)'}\n\nEnter the quantity:`, defaultQuantity || '');
+    
+    // Cancel if user clicks cancel or doesn't enter anything
+    if (userQuantity === null || userQuantity === '') {
+      return;
+    }
+    
+    // Validate the input
+    const quantity = parseInt(userQuantity);
+    if (isNaN(quantity) || quantity <= 0) {
+      showNotification('Please enter a valid positive number', 'error');
+      return;
+    }
+    
     const res = await fetch(`${API_BASE}/medications/${id}/quantity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -352,10 +393,11 @@ async function refillMedication(id, quantity) {
     
     if (res.ok) {
       loadDashboard();
-      showNotification('Medication refilled!', 'success');
+      showNotification(`Medication refilled! Added ${quantity} units.`, 'success');
     }
   } catch (error) {
     console.error('Error refilling medication:', error);
+    showNotification('Error refilling medication', 'error');
   }
 }
 
@@ -372,43 +414,136 @@ async function loadSchedules() {
       return;
     }
     
-    container.innerHTML = data.schedules.map(schedule => `
-      <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
-        <div class="flex justify-between items-start">
-          <div>
-            <h3 class="text-lg font-bold text-gray-900">${schedule.medication_name}</h3>
-            <p class="text-gray-600 mt-1">
-              <i class="fas fa-clock mr-2"></i>${schedule.time} - ${schedule.frequency}
-            </p>
-            ${schedule.days_of_week ? `<p class="text-sm text-gray-600 mt-1">${schedule.days_of_week}</p>` : ''}
-            ${schedule.with_food ? '<p class="text-sm text-gray-600 mt-1"><i class="fas fa-utensils mr-1"></i>Take with food</p>' : ''}
-            ${schedule.special_instructions ? `<p class="text-sm text-gray-600 mt-1">${schedule.special_instructions}</p>` : ''}
-            <p class="text-sm text-gray-500 mt-2">
-              ${schedule.start_date} ${schedule.end_date ? `to ${schedule.end_date}` : '(ongoing)'}
-            </p>
-          </div>
-          <div class="flex items-center space-x-2">
-            <span class="px-3 py-1 rounded-full text-sm ${schedule.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-              ${schedule.active ? 'Active' : 'Inactive'}
-            </span>
-            <button onclick="editSchedule(${schedule.id})" 
-              class="text-blue-600 hover:text-blue-700" title="Edit">
-              <i class="fas fa-edit"></i>
-            </button>
-            <button onclick="toggleSchedule(${schedule.id}, ${!schedule.active})" 
-              class="text-gray-600 hover:text-gray-700" title="Toggle Active">
-              <i class="fas fa-toggle-${schedule.active ? 'on' : 'off'}"></i>
-            </button>
-            <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-700" title="Delete">
-              <i class="fas fa-trash"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-    `).join('');
+    // Get sorting and grouping preferences
+    const sortBy = document.getElementById('schedule-sort')?.value || 'time';
+    const groupByTime = document.getElementById('schedule-group')?.checked || false;
+    
+    // Sort schedules
+    let schedules = [...data.schedules];
+    schedules.sort((a, b) => {
+      if (sortBy === 'time') {
+        return a.time.localeCompare(b.time);
+      } else if (sortBy === 'medication') {
+        return a.medication_name.localeCompare(b.medication_name);
+      } else if (sortBy === 'frequency') {
+        return a.frequency.localeCompare(b.frequency);
+      }
+      return 0;
+    });
+    
+    // Group by time if enabled
+    if (groupByTime && sortBy === 'time') {
+      const grouped = {};
+      schedules.forEach(schedule => {
+        if (!grouped[schedule.time]) {
+          grouped[schedule.time] = [];
+        }
+        grouped[schedule.time].push(schedule);
+      });
+      
+      container.innerHTML = Object.keys(grouped).sort().map(time => {
+        const timeSchedules = grouped[time];
+        
+        // If more than 2 medicines at the same time, subgroup by food timing
+        if (timeSchedules.length > 2) {
+          const beforeFood = timeSchedules.filter(s => s.food_timing === 'before_food');
+          const afterFood = timeSchedules.filter(s => s.food_timing === 'after_food');
+          const noTiming = timeSchedules.filter(s => !s.food_timing || s.food_timing === 'none' || s.food_timing === 'with_food');
+          
+          let html = `
+            <div class="mb-6">
+              <h3 class="text-lg font-bold text-purple-700 mb-3 flex items-center">
+                <i class="fas fa-clock mr-2"></i>${time}
+              </h3>`;
+          
+          if (beforeFood.length > 0) {
+            html += `
+              <div class="ml-4 mb-3">
+                <h4 class="text-sm font-semibold text-blue-600 mb-2 flex items-center">
+                  <i class="fas fa-utensils mr-2"></i>Before Food
+                </h4>
+                ${beforeFood.map(schedule => renderScheduleCard(schedule)).join('')}
+              </div>`;
+          }
+          
+          if (noTiming.length > 0) {
+            html += `
+              <div class="ml-4 mb-3">
+                <h4 class="text-sm font-semibold text-gray-600 mb-2 flex items-center">
+                  <i class="fas fa-clock mr-2"></i>No Specific Timing
+                </h4>
+                ${noTiming.map(schedule => renderScheduleCard(schedule)).join('')}
+              </div>`;
+          }
+          
+          if (afterFood.length > 0) {
+            html += `
+              <div class="ml-4 mb-3">
+                <h4 class="text-sm font-semibold text-green-600 mb-2 flex items-center">
+                  <i class="fas fa-utensils mr-2"></i>After Food
+                </h4>
+                ${afterFood.map(schedule => renderScheduleCard(schedule)).join('')}
+              </div>`;
+          }
+          
+          html += `</div>`;
+          return html;
+        } else {
+          // 2 or fewer medicines, no subgrouping
+          return `
+            <div class="mb-6">
+              <h3 class="text-lg font-bold text-purple-700 mb-3 flex items-center">
+                <i class="fas fa-clock mr-2"></i>${time}
+              </h3>
+              ${timeSchedules.map(schedule => renderScheduleCard(schedule)).join('')}
+            </div>
+          `;
+        }
+      }).join('');
+    } else {
+      container.innerHTML = schedules.map(schedule => renderScheduleCard(schedule)).join('');
+    }
   } catch (error) {
     console.error('Error loading schedules:', error);
   }
+}
+
+// Helper function to render a schedule card
+function renderScheduleCard(schedule) {
+  return `
+    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+      <div class="flex justify-between items-start">
+        <div>
+          <h3 class="text-lg font-bold text-gray-900">${schedule.medication_name}</h3>
+          <p class="text-gray-600 mt-1">
+            <i class="fas fa-clock mr-2"></i>${schedule.time} - ${schedule.frequency}
+          </p>
+          ${schedule.days_of_week ? `<p class="text-sm text-gray-600 mt-1">${schedule.days_of_week}</p>` : ''}
+          ${schedule.food_timing && schedule.food_timing !== 'none' ? `<p class="text-sm text-gray-600 mt-1"><i class="fas fa-utensils mr-1"></i>${getFoodTimingText(schedule.food_timing)}</p>` : ''}
+          ${schedule.special_instructions ? `<p class="text-sm text-gray-600 mt-1">${schedule.special_instructions}</p>` : ''}
+          <p class="text-sm text-gray-500 mt-2">
+            ${schedule.start_date} ${schedule.end_date ? `to ${schedule.end_date}` : '(ongoing)'}
+          </p>
+        </div>
+        <div class="flex items-center space-x-2">
+          <span class="px-3 py-1 rounded-full text-sm ${schedule.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
+            ${schedule.active ? 'Active' : 'Inactive'}
+          </span>
+          <button onclick="editSchedule(${schedule.id})" 
+            class="text-blue-600 hover:text-blue-700" title="Edit">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="toggleSchedule(${schedule.id}, ${!schedule.active})" 
+            class="text-gray-600 hover:text-gray-700" title="Toggle Active">
+            <i class="fas fa-toggle-${schedule.active ? 'on' : 'off'}"></i>
+          </button>
+          <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-700" title="Delete">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 async function loadMedicationsForSchedule() {
@@ -447,7 +582,23 @@ window.editSchedule = async function(scheduleId) {
     document.getElementById('edit-schedule-frequency').value = schedule.frequency;
     document.getElementById('edit-schedule-start').value = schedule.start_date || '';
     document.getElementById('edit-schedule-end').value = schedule.end_date || '';
-    document.getElementById('edit-schedule-food').checked = schedule.with_food || false;
+    
+    // Set food timing radio button
+    // Handle backward compatibility: convert old with_food to before_food
+    let foodTiming = schedule.food_timing;
+    if (!foodTiming && schedule.with_food) {
+      foodTiming = 'before_food'; // Convert old with_food to before_food
+    }
+    foodTiming = foodTiming || 'none';
+    
+    // If old data has 'with_food', convert to 'before_food'
+    if (foodTiming === 'with_food') {
+      foodTiming = 'before_food';
+    }
+    
+    const foodRadio = document.querySelector(`input[name="food_timing"][value="${foodTiming}"]`);
+    if (foodRadio) foodRadio.checked = true;
+    
     document.getElementById('edit-schedule-instructions').value = schedule.special_instructions || '';
     
     // Open modal
@@ -474,8 +625,14 @@ window.updateSchedule = async function(event) {
     }
   }
   
-  // Handle checkbox separately
-  data.with_food = formData.get('with_food') === 'on';
+  // Handle food timing - convert to backend format
+  const foodTiming = formData.get('food_timing');
+  if (!foodTiming) {
+    showNotification('Please select a food timing option', 'error');
+    return;
+  }
+  data.with_food = false; // No longer using with_food
+  data.food_timing = foodTiming;
   
   console.log('Update data:', data);
   
@@ -534,8 +691,14 @@ async function addSchedule(event) {
     }
   }
   
-  // Handle checkbox separately
-  data.with_food = formData.get('with_food') === 'on';
+  // Handle food timing - convert to backend format
+  const foodTiming = formData.get('food_timing');
+  if (!foodTiming) {
+    showNotification('Please select a food timing option', 'error');
+    return;
+  }
+  data.with_food = false; // No longer using with_food
+  data.food_timing = foodTiming;
   
   console.log('Schedule data:', data);
   

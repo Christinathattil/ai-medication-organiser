@@ -369,9 +369,20 @@
     <div id="schedules-tab" class="tab-content hidden">
       <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 sm:mb-6 gap-3">
         <h2 class="text-xl sm:text-2xl font-bold text-gray-900">Medication Schedules</h2>
-        <button onclick="showAddScheduleModal()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold shadow-lg w-full sm:w-auto">
-          <i class="fas fa-plus mr-2"></i>Add Schedule
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <select id="schedule-sort" onchange="loadSchedules()" class="px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
+            <option value="time">Sort by Time</option>
+            <option value="medication">Sort by Medication</option>
+            <option value="frequency">Sort by Frequency</option>
+          </select>
+          <label class="flex items-center px-4 py-2 bg-gray-100 rounded-lg cursor-pointer">
+            <input type="checkbox" id="schedule-group" onchange="loadSchedules()" class="mr-2">
+            <span class="text-sm font-medium text-gray-700">Group by Time</span>
+          </label>
+          <button onclick="showAddScheduleModal()" class="btn-primary text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
+            <i class="fas fa-plus mr-2"></i>Add Schedule
+          </button>
+        </div>
       </div>
       <div id="schedules-list"></div>
     </div>
@@ -519,10 +530,21 @@
           </div>
           
           <div class="col-span-2">
-            <label class="flex items-center">
-              <input type="checkbox" name="with_food" class="mr-2">
-              <span class="text-sm font-medium text-gray-700">Take with food</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Food Timing *</label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="none" required class="mr-2">
+                <span class="text-sm text-gray-700">No specific timing</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="before_food" required class="mr-2">
+                <span class="text-sm text-gray-700">Before food</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="after_food" required class="mr-2">
+                <span class="text-sm text-gray-700">After food</span>
+              </label>
+            </div>
           </div>
           
           <div class="col-span-2">
@@ -579,10 +601,21 @@
           </div>
           
           <div class="col-span-1 md:col-span-2">
-            <label class="flex items-center space-x-2">
-              <input type="checkbox" name="with_food" id="edit-schedule-food" class="rounded">
-              <span class="text-sm text-gray-700">Take with food</span>
-            </label>
+            <label class="block text-sm font-medium text-gray-700 mb-2">Food Timing *</label>
+            <div class="space-y-2">
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="none" id="edit-schedule-food-none" required class="mr-2">
+                <span class="text-sm text-gray-700">No specific timing</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="before_food" id="edit-schedule-food-before" required class="mr-2">
+                <span class="text-sm text-gray-700">Before food</span>
+              </label>
+              <label class="flex items-center">
+                <input type="radio" name="food_timing" value="after_food" id="edit-schedule-food-after" required class="mr-2">
+                <span class="text-sm text-gray-700">After food</span>
+              </label>
+            </div>
           </div>
           
           <div class="col-span-1 md:col-span-2">
@@ -910,14 +943,20 @@
     }
     
     function showMedicationPreview(data) {
+      // Set default quantity to 30 if not provided
+      if (!data.total_quantity) {
+        data.total_quantity = 30;
+      }
+      
       const preview = `📋 I've extracted the following medication details:
 
-• Name: ${data.name}
-• Dosage: ${data.dosage}
-• Form: ${data.form}
+• Name: ${data.name || '(Not specified)'}
+• Dosage: ${data.dosage || '(Not specified)'}
+• Form: ${data.form || 'tablet'}
+• Quantity: ${data.total_quantity} units
 ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
-Would you like to add this medication?`;
+${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please provide them before adding.' : 'Would you like to add this medication?'}`;
       
       addMessage(preview, 'bot');
       
@@ -951,14 +990,19 @@ Would you like to add this medication?`;
     }
     
     function showSchedulePreview(data) {
+      // Get food timing text
+      const foodTimingText = data.food_timing === 'before_food' ? 'Before food' : 
+                             data.food_timing === 'after_food' ? 'After food' : 
+                             'No specific timing';
+      
       const preview = `📅 I've extracted the following schedule details:
 
-• Medication: ${lastAddedMedication?.name || 'Selected medication'}
-• Time: ${data.time}
-• Frequency: ${data.frequency}
-${data.with_food ? '• Take with food' : ''}
+• Medication: ${lastAddedMedication?.name || data.medication_id ? 'Selected medication' : '(Not specified)'}
+• Time: ${data.time || '(Not specified)'}
+• Frequency: ${data.frequency || 'daily'}
+• Food timing: ${foodTimingText}
 
-Would you like to create this schedule?`;
+${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required fields are missing. Please provide them.' : 'Would you like to create this schedule?'}`;
       
       addMessage(preview, 'bot');
       
@@ -998,10 +1042,10 @@ Would you like to create this schedule?`;
       document.getElementById('med-form').value = data.form || 'tablet';
       document.getElementById('med-purpose').value = data.purpose || '';
       
-      // Set default quantity if not provided
+      // Set quantity (default to 30 if not provided)
       const qtyField = document.getElementById('med-quantity');
-      if (data.quantity) {
-        qtyField.value = data.quantity;
+      if (data.total_quantity) {
+        qtyField.value = data.total_quantity;
       } else {
         qtyField.value = '30'; // Default to 30 if not specified
       }
@@ -1085,6 +1129,13 @@ Would you like to create this schedule?`;
       if (!data.time) {
         console.error('❌ Validation failed: No time');
         addMessage('❌ I couldn\'t identify the time. Please include a time like: "at 8am" or "at 10:30"', 'bot', true);
+        return;
+      }
+      
+      // Validate food timing (required field)
+      if (!data.food_timing || data.food_timing === '') {
+        console.error('❌ Validation failed: No food timing');
+        addMessage('❌ Food timing is required. Please specify: before food, after food, or no specific timing. Example: "Schedule at 8am before food"', 'bot', true);
         return;
       }
       
