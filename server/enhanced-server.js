@@ -895,14 +895,14 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       const scheduleData = extractScheduleFromText(conversationText, medList);
       console.log('📅 Extracted schedule data from conversation:', scheduleData);
       
-      // More lenient schedule action creation - create if we have medication, time, and frequency
-      if (!action && scheduleData.medication_id && scheduleData.time) {
-        // If food timing not specified, default to 'none'
-        if (!scheduleData.food_timing || scheduleData.food_timing === '') {
-          scheduleData.food_timing = 'none';
-        }
+      // Schedule action creation - food_timing is MANDATORY
+      if (!action && scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
+        // Food timing must be specified - no defaults
         action = { type: 'add_schedule', data: scheduleData };
         console.log('✅ Follow-up schedule action created:', action);
+      } else if (!action && scheduleData.medication_id && scheduleData.time && !scheduleData.food_timing) {
+        // Log that food timing is missing
+        console.log('⚠️ Food timing missing - AI will ask for it');
       }
     }
     
@@ -927,12 +927,16 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       const scheduleData = extractScheduleFromText(message, medList);
       console.log('📅 Extracted schedule data:', scheduleData);
       
-      if (scheduleData.medication_id && scheduleData.time) {
+      // REQUIRE food_timing - it's mandatory!
+      if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
         action = { type: 'add_schedule', data: scheduleData };
         console.log('✅ Schedule action created:', action);
       } else if (scheduleData.medication_id || scheduleData.time) {
-        // Partial data - AI will ask for missing info
+        // Partial data - AI will ask for missing info (including food timing)
         console.log('⚠️ Partial schedule data - AI will prompt for missing info');
+        if (!scheduleData.food_timing) {
+          console.log('⚠️ Missing REQUIRED field: food_timing');
+        }
       }
     }
     
@@ -1012,7 +1016,7 @@ function extractScheduleFromText(text, medications) {
     time: '',
     frequency: 'daily',
     with_food: false, // Keep for backward compatibility
-    food_timing: 'none',
+    food_timing: null, // MUST be specified - no default value
     special_instructions: '',
     start_date: new Date().toISOString().split('T')[0] // Add today's date
   };
@@ -1097,7 +1101,7 @@ function extractScheduleFromText(text, medications) {
     data.frequency = 'as_needed';
   }
 
-  // Extract food timing (required field)
+  // Extract food timing (MANDATORY field - no defaults!)
   if (lowerText.includes('before food') || lowerText.includes('before eating') || 
       lowerText.includes('before meal') || lowerText.includes('empty stomach') ||
       lowerText.includes('before breakfast') || lowerText.includes('before lunch') || 
@@ -1114,10 +1118,12 @@ function extractScheduleFromText(text, medications) {
     // Convert old "with food" to "before food" for backward compatibility
     data.food_timing = 'before_food';
     data.with_food = false;
-  } else {
+  } else if (lowerText.includes('no timing') || lowerText.includes('no specific') || 
+             lowerText.includes('anytime') || lowerText.includes('any time')) {
     data.food_timing = 'none';
     data.with_food = false;
   }
+  // If not matched, leave as null - AI MUST ask for it!
 
   // Extract special instructions
   const instructionKeywords = ['before bed', 'before sleep', 'in the morning', 'with water', 'on empty stomach'];
