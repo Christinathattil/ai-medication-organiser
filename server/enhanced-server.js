@@ -740,10 +740,13 @@ CRITICAL RULES:
 
 HANDLING COMPLEX SCENARIOS:
 **Multiple Medications:**
-If user mentions multiple medications (e.g., "Add aspirin and metformin"):
-- Extract all medications separately
-- Process one at a time
-- Ask for missing details for each
+If user mentions multiple medications (e.g., "Add aspirin paracetamol and vicks"):
+- Acknowledge ALL medications mentioned: "I'll add three medications: Aspirin, Paracetamol, and Vicks."
+- Process ONE at a time: "First, let's add Aspirin..."
+- Ask for missing details for current one only
+- After completing one, move to next: "Great! Now for Paracetamol..."
+- NEVER try to add all at once
+- NEVER skip any medication mentioned
 
 **Combined Add + Schedule:**
 If user wants to add AND schedule (e.g., "Add aspirin 500mg and schedule it for 8am"):
@@ -781,6 +784,9 @@ RESPONSE GUIDELINES:
 ✓ Use natural language, avoid technical jargon
 ✓ If user provides unrelated input, politely redirect to medication topics
 ✓ For quantity: If not mentioned, ask "How many units? (I can default to 30 if you'd like)"
+✓ If extraction fails, ask user to clarify: "I need the dosage. For example: 500mg"
+✓ NEVER say you're having trouble - instead ask specific questions
+✓ Keep responses helpful and actionable
 
 INTENT DETECTION:
 - Listen carefully for: medication names, dosages (mg/ml), times (8am, 14:00), frequencies (daily/weekly), quantities (30 tablets)
@@ -824,13 +830,38 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       { role: 'user', content: message }
     ];
 
-    // Call Groq API
-    const completion = await groqClient.chat.completions.create({
-      model: 'llama-3.3-70b-versatile', // Updated to supported model
-      messages: messages,
-      temperature: 0.7,
-      max_tokens: 200, // Reduced for concise responses
-    });
+    // Call Groq API with retry logic
+    let completion;
+    let retries = 3;
+    let lastError;
+    
+    while (retries > 0) {
+      try {
+        completion = await Promise.race([
+          groqClient.chat.completions.create({
+            model: 'llama-3.3-70b-versatile',
+            messages: messages,
+            temperature: 0.7,
+            max_tokens: 200, // Reduced for concise responses
+          }),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
+          )
+        ]);
+        break; // Success, exit retry loop
+      } catch (err) {
+        lastError = err;
+        retries--;
+        console.warn(`⚠️ Groq API attempt failed, ${retries} retries left:`, err.message);
+        if (retries > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
+        }
+      }
+    }
+    
+    if (!completion) {
+      throw lastError || new Error('Failed to get AI response after retries');
+    }
 
     const aiResponse = completion.choices[0].message.content;
 
@@ -1022,10 +1053,29 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     });
 
   } catch (error) {
-    console.error('Chat error:', error);
+    console.error('❌ Chat error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      stack: error.stack?.substring(0, 500),
+      name: error.name
+    });
+    
+    // Determine error type for better user feedback
+    let userMessage = "I'm having trouble processing your request. Please try again or rephrase your question.";
+    
+    if (error.message?.includes('API key')) {
+      userMessage = "⚠️ AI service configuration error. Please contact support.";
+    } else if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
+      userMessage = "⏱️ Request timeout. Please try again in a moment.";
+    } else if (error.message?.includes('network') || error.message?.includes('ECONNREFUSED')) {
+      userMessage = "🌐 Network error. Please check your connection and try again.";
+    } else if (error.message?.includes('rate limit')) {
+      userMessage = "⏳ Too many requests. Please wait a moment and try again.";
+    }
+    
     res.status(500).json({ 
       error: 'Failed to process chat request',
-      response: "I'm having trouble processing your request. Please try again or rephrase your question.",
+      response: userMessage,
       action: null
     });
   }
@@ -1170,60 +1220,136 @@ function extractMedicationFromText(text) {
     total_quantity: null // Will be set to 30 as default if not specified
   };
 
-  // Extract dosage (e.g., 500mg, 10ml, 2.5mg)
-  const dosageMatch = text.match(/(\d+\.?\d*)\s*(mg|ml|g|mcg|iu|units?)/i);
-  if (dosageMatch) {
-    data.dosage = dosageMatch[0];
+  const lowerText = text.toLowerCase();
+
+  // IMPROVED: Extract dosage with better patterns
+  // Matches: 500mg, 500 mg, 2.5mg, 1000IU, 10ml, etc.
+  const dosagePatterns = [
+    /(\d+\.?\d*)\s*(mg|ml|g|mcg|iu|units?)\b/gi,
+    /(\d+\.?\d*)\s*milligram/gi,
+    /(\d+\.?\d*)\s*milliliter/gi
+  ];
+  
+  for (const pattern of dosagePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      data.dosage = match[0].trim();
+      break;
+    }
   }
   
-  // Extract quantity (e.g., "30 tablets", "60 pills", "100 capsules", or just "12")
-  const quantityMatch = text.match(/(\d+)\s*(tablet|capsule|pill|unit|dose|syrup|ml|bottle|pills?)/i);
-  if (quantityMatch) {
-    data.total_quantity = parseInt(quantityMatch[1]);
+  // IMPROVED: Extract quantity with multiple patterns
+  // Priority 1: "X tablets/pills/capsules"
+  const quantityPattern1 = text.match(/(\d+)\s*(tablet|capsule|pill|dose|drop|spray|patch|ml|bottle)s?\b/i);
+  if (quantityPattern1) {
+    data.total_quantity = parseInt(quantityPattern1[1]);
   } else {
-    // Try to match standalone numbers (e.g., user just says "12" or "12 units")
-    const standaloneNumber = text.match(/\b(\d+)\s*(units?|count)?\b/i);
-    if (standaloneNumber && parseInt(standaloneNumber[1]) < 200) { // Reasonable quantity range
-      data.total_quantity = parseInt(standaloneNumber[1]);
+    // Priority 2: Just a number followed by optional "units"
+    // But only if it's reasonable (2-200 range) and not a dosage
+    const standaloneMatch = text.match(/\b(\d+)\s*(?:units?|count|pieces?)?\b/gi);
+    if (standaloneMatch) {
+      // Filter out dosage numbers by checking if they have mg/ml/etc nearby
+      for (const match of standaloneMatch) {
+        const num = parseInt(match);
+        if (num >= 1 && num <= 200) {
+          // Make sure it's not part of dosage (e.g., not "500" from "500mg")
+          const matchIndex = text.toLowerCase().indexOf(match.toLowerCase());
+          const surroundingText = text.substring(Math.max(0, matchIndex - 5), matchIndex + match.length + 5);
+          if (!surroundingText.match(/\d+\.?\d*\s*(mg|ml|g|mcg|iu)/i)) {
+            data.total_quantity = num;
+            break;
+          }
+        }
+      }
     }
   }
 
-  // Extract form
-  const forms = ['tablet', 'capsule', 'syrup', 'injection', 'drops', 'cream', 'inhaler', 'patch', 'spray'];
-  for (const form of forms) {
-    if (text.toLowerCase().includes(form)) {
-      data.form = form;
+  // IMPROVED: Extract form with more variants
+  const formMappings = {
+    'tablet': ['tablet', 'tab', 'pill'],
+    'capsule': ['capsule', 'cap'],
+    'syrup': ['syrup', 'liquid', 'solution'],
+    'injection': ['injection', 'shot'],
+    'drops': ['drops', 'drop'],
+    'cream': ['cream', 'ointment', 'gel'],
+    'inhaler': ['inhaler', 'puff'],
+    'patch': ['patch'],
+    'spray': ['spray']
+  };
+  
+  for (const [formName, variants] of Object.entries(formMappings)) {
+    if (variants.some(v => lowerText.includes(v))) {
+      data.form = formName;
       break;
     }
   }
 
-  // Extract purpose
-  const purposeKeywords = ['for', 'treats', 'treating', 'to treat', 'because'];
-  for (const keyword of purposeKeywords) {
-    const index = text.toLowerCase().indexOf(keyword);
+  // IMPROVED: Extract purpose
+  const purposeKeywords = [
+    { keyword: 'for', minWords: 1 },
+    { keyword: 'treats', minWords: 1 },
+    { keyword: 'treating', minWords: 1 },
+    { keyword: 'to treat', minWords: 1 },
+    { keyword: 'because', minWords: 2 },
+    { keyword: 'to help with', minWords: 1 }
+  ];
+  
+  for (const { keyword, minWords } of purposeKeywords) {
+    const index = lowerText.indexOf(keyword);
     if (index !== -1) {
       const afterKeyword = text.substring(index + keyword.length).trim();
-      const words = afterKeyword.split(' ').slice(0, 5);
-      data.purpose = words.join(' ').replace(/[.,!?]$/, '');
-      break;
+      const words = afterKeyword.split(/\s+/).slice(0, 5);
+      if (words.length >= minWords) {
+        data.purpose = words.join(' ').replace(/[.,!?;]$/, '').trim();
+        if (data.purpose.length > 0) break;
+      }
     }
   }
 
-  // Extract medication name (look for capitalized words or common patterns)
-  const words = text.split(' ');
-  for (let i = 0; i < words.length; i++) {
-    const word = words[i];
-    // Skip common words
-    if (['add', 'my', 'the', 'a', 'an', 'medication', 'medicine', 'drug', 'take', 'taking'].includes(word.toLowerCase())) {
-      continue;
-    }
-    // Look for medication name (usually comes after "add" or before dosage)
-    if (word.match(/^[A-Za-z]+$/) && word.length > 3) {
-      data.name = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+  // IMPROVED: Extract medication name with better logic
+  // Strategy: Find the first meaningful word after "add" or similar triggers
+  const addTriggers = ['add', 'new', 'start', 'begin', 'taking', 'take', 'need', 'have'];
+  const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or'];
+  
+  // Try pattern 1: "add [medication]" or similar
+  for (const trigger of addTriggers) {
+    const pattern = new RegExp(`\\b${trigger}\\s+([a-z]+)`, 'i');
+    const match = text.match(pattern);
+    if (match && !skipWords.includes(match[1].toLowerCase())) {
+      data.name = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
       break;
     }
   }
+  
+  // Try pattern 2: Look for capitalized word or common medication names
+  if (!data.name) {
+    const words = text.split(/\s+/);
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i].replace(/[^a-zA-Z]/g, '');
+      if (word.length < 2) continue;
+      if (skipWords.includes(word.toLowerCase())) continue;
+      if (addTriggers.includes(word.toLowerCase())) continue;
+      
+      // Check if it's a potential medication name
+      // - At least 3 characters
+      // - Not a common word
+      // - Either capitalized or lowercase (handle both)
+      if (word.length >= 3 && word.match(/^[a-zA-Z]+$/)) {
+        data.name = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+        break;
+      }
+    }
+  }
+  
+  // Try pattern 3: Extract from compound statements like "aspirin 500mg" or "aspirin paracetamol"
+  if (!data.name) {
+    const medicationPattern = text.match(/\b([a-z]{3,})\s+(?:\d+|and|or)/i);
+    if (medicationPattern && !skipWords.includes(medicationPattern[1].toLowerCase())) {
+      data.name = medicationPattern[1].charAt(0).toUpperCase() + medicationPattern[1].slice(1).toLowerCase();
+    }
+  }
 
+  console.log('🔍 Extracted medication data:', data);
   return data;
 }
 
