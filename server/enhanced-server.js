@@ -925,12 +925,26 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     
     // 1B. FOLLOW-UP FOR MEDICATION ADDITION
     if (!action && (isFollowUp || aiIndicatesAction)) {
-      // Combine conversation history to extract complete medication data
+      // First, try extracting from the current message (prioritize latest user input)
+      const currentMessageData = extractMedicationFromText(message);
+      console.log('🔍 Current message extraction:', currentMessageData);
+      
+      // Then extract from full conversation for missing fields
       const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
       console.log('🔄 Extracting from conversation:', conversationText.substring(0, 200));
       
-      const medicationData = extractMedicationFromText(conversationText);
-      console.log('💊 Extracted medication data:', medicationData);
+      const conversationData = extractMedicationFromText(conversationText);
+      console.log('💊 Conversation extraction:', conversationData);
+      
+      // Merge data: prioritize current message over conversation context
+      const medicationData = {
+        name: currentMessageData.name || conversationData.name,
+        dosage: currentMessageData.dosage || conversationData.dosage,
+        form: currentMessageData.form || conversationData.form,
+        purpose: currentMessageData.purpose || conversationData.purpose,
+        total_quantity: currentMessageData.total_quantity || conversationData.total_quantity
+      };
+      console.log('✅ Merged medication data:', medicationData);
       
       // Check if we have enough data to create action
       if (medicationData.name && medicationData.dosage && medicationData.form) {
@@ -1451,7 +1465,8 @@ process.on('SIGINT', () => {
 
 app.listen(PORT, () => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const baseUrl = isProduction ? `https://${process.env.RENDER_EXTERNAL_URL || 'your-app.render.com'}` : `http://localhost:${PORT}`;
+  // RENDER_EXTERNAL_URL already includes protocol (https://), so don't add it again
+  const baseUrl = isProduction ? (process.env.RENDER_EXTERNAL_URL || 'https://your-app.render.com') : `http://localhost:${PORT}`;
 
   console.log(`\n🏥 Medication Manager Server running`);
   console.log(`🌐 Public URL: ${baseUrl}`);
