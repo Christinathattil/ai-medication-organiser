@@ -702,8 +702,11 @@ CURRENT CONTEXT:
 
 YOUR CAPABILITIES:
 1. **Add Medication**: Extract name, dosage, form (tablet/capsule/syrup), purpose, quantity
-2. **Create Schedule**: Extract medication, time (HH:MM format), frequency, food timing (before/after food)
-3. **View Information**: Show today's schedule, statistics, or refill alerts
+2. **Add Multiple Medications**: Handle multiple medications in one request (e.g., "Add aspirin 500mg and metformin 850mg")
+3. **Create Schedule**: Extract medication, time (HH:MM format), frequency, food timing (before/after food)
+4. **Combined Add + Schedule**: Handle adding medication and scheduling together (e.g., "Add aspirin 500mg and schedule at 8am")
+5. **Schedule Non-Existent Medication**: If user tries to schedule medication not in system, offer to add it first
+6. **View Information**: Show today's schedule, statistics, or refill alerts
 
 CRITICAL RULES:
 ⚠️ NEVER provide health advice or medical recommendations
@@ -711,6 +714,24 @@ CRITICAL RULES:
 ⚠️ For health questions, always say: "Please consult your doctor"
 ⚠️ Only help manage medications the user already has
 ⚠️ If user asks something unrelated to medication management, politely redirect: "I can only help with managing your medications. Can I help you add, schedule, or view your medications?"
+
+HANDLING COMPLEX SCENARIOS:
+**Multiple Medications:**
+If user mentions multiple medications (e.g., "Add aspirin and metformin"):
+- Extract all medications separately
+- Process one at a time
+- Ask for missing details for each
+
+**Combined Add + Schedule:**
+If user wants to add AND schedule (e.g., "Add aspirin 500mg and schedule it for 8am"):
+- First add the medication
+- Then ask for schedule details: "I'll add Aspirin 500mg. For the schedule, should you take it before food, after food, or no specific timing?"
+- Create schedule after medication is added
+
+**Schedule Non-Existent Medication:**
+If user tries to schedule medication not in system:
+- Say: "I don't see [medication name] in your list. Would you like to add it first? Please provide the dosage and form."
+- Guide them to add it before scheduling
 
 MANDATORY FIELDS:
 **For Adding Medication:**
@@ -745,22 +766,32 @@ INTENT DETECTION:
 - Detect out-of-context: weather, news, recipes, general questions → Redirect
 
 Example interactions:
+
+**Simple Add:**
 User: "Add aspirin 500mg for headaches"
 You: "I'll add Aspirin 500mg for headaches. Is it a tablet or capsule? How many do you have? (Default: 30)"
 
-User: "30 tablets"
-You: "Perfect! I'll add Aspirin 500mg, 30 tablets for headaches."
+**Multiple Medications:**
+User: "Add aspirin 500mg and metformin 850mg"
+You: "I'll add two medications. First, Aspirin 500mg - is it a tablet or capsule? How many do you have?"
 
-User: "Schedule it for 8am before food"
-You: "Setting up Aspirin 500mg daily at 8:00 AM, before food. Should I create this schedule?"
+**Combined Add + Schedule:**
+User: "Add aspirin 500mg tablet 30 pills and schedule it for 8am daily before food"
+You: "I'll add Aspirin 500mg, 30 tablets and schedule it for 8:00 AM daily before food. Correct?"
 
+**Schedule Non-Existent Medication:**
+User: "Schedule vitamin D at 9am"
+You: "I don't see Vitamin D in your medications. Would you like to add it first? Please provide the dosage and form (e.g., 1000IU capsule)."
+
+**Out of Context:**
 User: "What's the weather today?"
 You: "I can only help with managing your medications. Can I help you add, schedule, or view your medications?"
 
+**Missing Dosage:**
 User: "Add metformin"
 You: "I'll add Metformin. What is the dosage (e.g., 500mg, 850mg)?"
 
-Always validate mandatory fields and guide users to provide complete information!`;
+Always validate mandatory fields, handle multiple requests, and guide users step by step!`;
 
 
     // Build conversation messages
@@ -911,6 +942,7 @@ Always validate mandatory fields and guide users to provide complete information
 function extractScheduleFromText(text, medications) {
   const data = {
     medication_id: null,
+    medication_name: null, // Store the mentioned medication name even if not found
     time: '',
     frequency: 'daily',
     with_food: false, // Keep for backward compatibility
@@ -923,6 +955,7 @@ function extractScheduleFromText(text, medications) {
 
   // Extract medication name by matching against existing medications
   // Use flexible matching: exact match, partial match, or first word match
+  let foundMatch = false;
   if (Array.isArray(medications) && medications.length > 0) {
     for (const med of medications) {
       if (med && med.name) {
@@ -932,14 +965,27 @@ function extractScheduleFromText(text, medications) {
         // Try exact match first
         if (lowerText.includes(medNameLower)) {
           data.medication_id = med.id;
+          data.medication_name = med.name;
+          foundMatch = true;
           break;
         }
         // Try matching first word (handles "aspirin" matching "Aspirin 500mg")
         if (medFirstWord.length > 3 && lowerText.includes(medFirstWord)) {
           data.medication_id = med.id;
+          data.medication_name = med.name;
+          foundMatch = true;
           break;
         }
       }
+    }
+  }
+  
+  // If no match found, try to extract medication name from text
+  if (!foundMatch) {
+    // Look for "schedule [medication]" pattern
+    const scheduleMatch = text.match(/schedule\s+(\w+)/i);
+    if (scheduleMatch) {
+      data.medication_name = scheduleMatch[1].charAt(0).toUpperCase() + scheduleMatch[1].slice(1).toLowerCase();
     }
   }
 

@@ -970,9 +970,9 @@ ${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please 
       const addBtn = document.createElement('button');
       addBtn.textContent = '➕ Add This Medication';
       addBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      addBtn.onclick = () => {
-        openAddMedicationModal(data);
+      addBtn.onclick = async () => {
         buttonDiv.remove();
+        await addMedication(data);
       };
       
       const cancelBtn = document.createElement('button');
@@ -1089,7 +1089,42 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
           lastAddedMedication = result.medication; // Store for scheduling context
           console.log('📝 Stored last added medication:', lastAddedMedication);
           
-          addMessage(`✅ Successfully added ${data.name}! The medication has been saved to your list.\n\n💡 You can now schedule it by saying: "Schedule it at 8am daily"`, 'bot');
+          addMessage(`✅ Successfully added ${data.name}! The medication has been saved to your list.`, 'bot');
+          
+          // Ask if they want to schedule it
+          const schedulePrompt = document.createElement('div');
+          schedulePrompt.style.cssText = 'margin-top: 12px; margin-bottom: 16px;';
+          
+          const promptText = document.createElement('p');
+          promptText.textContent = '💡 Would you like to create a schedule for this medication?';
+          promptText.style.cssText = 'margin-bottom: 8px; color: #374151;';
+          schedulePrompt.appendChild(promptText);
+          
+          const buttonContainer = document.createElement('div');
+          buttonContainer.style.cssText = 'display: flex; gap: 8px;';
+          
+          const yesBtn = document.createElement('button');
+          yesBtn.textContent = '📅 Yes, Schedule It';
+          yesBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;';
+          yesBtn.onclick = () => {
+            schedulePrompt.remove();
+            addMessage('Great! What time should you take it? (e.g., "8am daily before food")', 'bot');
+          };
+          
+          const noBtn = document.createElement('button');
+          noBtn.textContent = 'Not Now';
+          noBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;';
+          noBtn.onclick = () => {
+            schedulePrompt.remove();
+            addMessage('No problem! You can schedule it anytime by saying: "Schedule ' + data.name + ' at [time]"', 'bot');
+          };
+          
+          buttonContainer.appendChild(yesBtn);
+          buttonContainer.appendChild(noBtn);
+          schedulePrompt.appendChild(buttonContainer);
+          
+          messagesDiv.appendChild(schedulePrompt);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
           
           // Don't close immediately - let them schedule it
           // Close chat and refresh the page to show new medication
@@ -1122,7 +1157,10 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
       // Validate we have required fields
       if (!data.medication_id) {
         console.error('❌ Validation failed: No medication_id');
-        addMessage('❌ I couldn\'t identify which medication to schedule. Please specify the medication name, like: "Schedule aspirin at 8am daily"', 'bot', true);
+        
+        // Check if medication name was mentioned but not found in list
+        const mentionedMed = data.medication_name || 'that medication';
+        addMessage(`❌ I couldn't find ${mentionedMed} in your medication list. Would you like to add it first? Just say: "Add ${mentionedMed} [dosage] [form]"`, 'bot', true);
         return;
       }
       
