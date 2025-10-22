@@ -1404,18 +1404,25 @@ function extractMedicationFromText(text) {
   
   // Try pattern 2: Look for capitalized word or common medication names
   if (!data.name) {
+    // Additional words to skip (numbers as words, common phrases)
+    const additionalSkipWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
+                                  'default', 'like', 'you', 'your', 'have', 'many', 'how', 'what', 'when', 'where',
+                                  'would', 'should', 'could', 'can', 'will', 'it', 'is', 'be', 'to', 'for', 'that',
+                                  'this', 'these', 'those', 'if', 'also', 'previously', 'noted', 'mentioned'];
+    
     const words = text.split(/\s+/);
     for (let i = 0; i < words.length; i++) {
       const word = words[i].replace(/[^a-zA-Z]/g, '');
-      if (word.length < 2) continue;
+      if (word.length < 3) continue;  // Increased from 2 to 3
       if (skipWords.includes(word.toLowerCase())) continue;
+      if (additionalSkipWords.includes(word.toLowerCase())) continue;
       if (addTriggers.includes(word.toLowerCase())) continue;
       
       // Check if it's a potential medication name
-      // - At least 3 characters
+      // - At least 4 characters for safety (filters out "Two", "One", etc.)
       // - Not a common word
       // - Either capitalized or lowercase (handle both)
-      if (word.length >= 3 && word.match(/^[a-zA-Z]+$/)) {
+      if (word.length >= 4 && word.match(/^[a-zA-Z]+$/)) {
         data.name = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
         break;
       }
