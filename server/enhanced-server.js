@@ -942,6 +942,9 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     
     // 1B. FOLLOW-UP FOR MEDICATION ADDITION
     if (!action && (isFollowUp || aiIndicatesAction)) {
+      // Build conversation text ONCE for both medication and schedule extraction
+      const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
+      
       // Skip if this is clearly a scheduling response
       if (isSchedulingMessage(message)) {
         console.log('⏭️ Skipping medication extraction - detected scheduling message:', message);
@@ -952,7 +955,6 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         console.log('🔍 Current message extraction:', currentMessageData);
       
       // Then extract from full conversation for missing fields
-      const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
       console.log('🔄 Extracting from conversation:', conversationText.substring(0, 200));
       
       const conversationData = extractMedicationFromText(conversationText);
