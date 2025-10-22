@@ -966,8 +966,12 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       console.log('💊 Conversation extraction:', conversationData);
       
       // Merge data: prioritize current message over conversation context
+      // BUT: Never override name if current message extracted a common word
+      const commonWords = ['inhaler', 'tablet', 'capsule', 'dosage', 'form', 'quantity', 'unit', 'units', 'mg', 'ml'];
+      const isCommonWord = currentMessageData.name && commonWords.includes(currentMessageData.name.toLowerCase());
+      
       const medicationData = {
-        name: currentMessageData.name || conversationData.name,
+        name: (currentMessageData.name && !isCommonWord) ? currentMessageData.name : conversationData.name,
         dosage: currentMessageData.dosage || conversationData.dosage,
         form: currentMessageData.form || conversationData.form,
         purpose: currentMessageData.purpose || conversationData.purpose,
@@ -1226,15 +1230,15 @@ function extractScheduleFromText(text, medications) {
     data.food_timing = 'before_food';
     data.with_food = false;
   } else if (lowerText.includes('after food') || lowerText.includes('after eating') || 
-             lowerText.includes('after meal') || lowerText.includes('with meal') ||
+             lowerText.includes('after meal') ||
              lowerText.includes('after breakfast') || lowerText.includes('after lunch') || 
              lowerText.includes('after dinner')) {
     data.food_timing = 'after_food';
-    data.with_food = false;
-  } else if (lowerText.includes('with food') || lowerText.includes('during meal')) {
-    // Convert old "with food" to "before food" for backward compatibility
-    data.food_timing = 'before_food';
-    data.with_food = false;
+    data.with_food = true;
+  } else if (lowerText.includes('with food') || lowerText.includes('with meal') || lowerText.includes('during meal')) {
+    // "with food" means take during/after eating
+    data.food_timing = 'with_food';
+    data.with_food = true;
   } else if (lowerText.includes('no timing') || lowerText.includes('no specific') || 
              lowerText.includes('anytime') || lowerText.includes('any time')) {
     data.food_timing = 'none';
@@ -1390,7 +1394,10 @@ function extractMedicationFromText(text) {
   const addTriggers = ['add', 'new', 'start', 'begin', 'taking', 'take', 'need', 'have'];
   const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or', 
                      'tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'syrup', 'syrups',
-                     'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu'];
+                     'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu',
+                     'inhaler', 'inhalers', 'cream', 'creams', 'drops', 'drop', 'patch', 'patches',
+                     'injection', 'injections', 'liquid', 'liquids', 'spray', 'sprays',
+                     'dosage', 'form', 'quantity', 'amount', 'total'];
   
   // Try pattern 1: "add [medication]" or similar
   for (const trigger of addTriggers) {
