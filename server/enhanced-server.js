@@ -972,11 +972,13 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       
       const medicationData = {
         name: (currentMessageData.name && !isCommonWord) ? currentMessageData.name : conversationData.name,
-        dosage: currentMessageData.dosage || conversationData.dosage,
+        // CRITICAL: Only use dosage/quantity from CURRENT message, not conversation
+        // Conversation includes AI responses with OTHER medication's details (e.g., "Vicks 500mg, 1 inhaler")
+        dosage: currentMessageData.dosage || '',
         form: currentMessageData.form || conversationData.form,
         // NEVER use purpose from conversation - it includes AI responses with medication descriptions
         purpose: currentMessageData.purpose || '',
-        total_quantity: currentMessageData.total_quantity || conversationData.total_quantity
+        total_quantity: currentMessageData.total_quantity || null
       };
         console.log('✅ Merged medication data:', medicationData);
         

@@ -1030,9 +1030,9 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
       const scheduleBtn = document.createElement('button');
       scheduleBtn.textContent = '📅 Create This Schedule';
       scheduleBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      scheduleBtn.onclick = () => {
-        openScheduleModal(data);
+      scheduleBtn.onclick = async () => {
         buttonDiv.remove();
+        await addSchedule(data);
       };
       
       const cancelBtn = document.createElement('button');
