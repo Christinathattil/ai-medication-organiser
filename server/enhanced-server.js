@@ -974,7 +974,8 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         name: (currentMessageData.name && !isCommonWord) ? currentMessageData.name : conversationData.name,
         dosage: currentMessageData.dosage || conversationData.dosage,
         form: currentMessageData.form || conversationData.form,
-        purpose: currentMessageData.purpose || conversationData.purpose,
+        // NEVER use purpose from conversation - it includes AI responses with medication descriptions
+        purpose: currentMessageData.purpose || '',
         total_quantity: currentMessageData.total_quantity || conversationData.total_quantity
       };
         console.log('✅ Merged medication data:', medicationData);
@@ -1377,10 +1378,22 @@ function extractMedicationFromText(text) {
         
         // Filter out AI response artifacts and invalid text
         // Skip if contains parentheses (e.g., "m (e.g., tablet...)") or "e.g."
-        if (purpose.includes('(') || purpose.includes(')') || 
-            purpose.toLowerCase().includes('e.g.') || 
-            purpose.toLowerCase().includes('default') ||
-            purpose.length < 3) {
+        // Skip if contains medication names or dosages (AI response artifacts)
+        const invalidPatterns = [
+          /\(/,  // parentheses
+          /\)/,
+          /e\.g\./i,
+          /default/i,
+          /\d+\s*(mg|ml|g|mcg|iu)/i,  // dosage patterns like "500mg"
+          /include/i,  // "Your medications now include..."
+          /correct/i,  // "Is that correct?"
+          /inhaler|tablet|capsule/i,  // medication forms
+          /unit/i  // "1 unit", "14 units"
+        ];
+        
+        const isInvalid = invalidPatterns.some(pattern => pattern.test(purpose)) || purpose.length < 3;
+        
+        if (isInvalid) {
           continue;
         }
         
