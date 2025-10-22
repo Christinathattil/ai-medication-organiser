@@ -1296,13 +1296,13 @@ function extractMedicationFromText(text) {
   const formMappings = {
     'tablet': ['tablet', 'tab', 'pill'],
     'capsule': ['capsule', 'cap'],
-    'syrup': ['syrup', 'liquid', 'solution'],
+    'liquid': ['syrup', 'liquid', 'solution'],  // Changed from 'syrup' to match validator
     'injection': ['injection', 'shot'],
     'drops': ['drops', 'drop'],
     'cream': ['cream', 'ointment', 'gel'],
     'inhaler': ['inhaler', 'puff'],
     'patch': ['patch'],
-    'spray': ['spray']
+    'other': ['spray', 'powder', 'suppository']  // Map uncommon forms to 'other'
   };
   
   for (const [formName, variants] of Object.entries(formMappings)) {

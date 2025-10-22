@@ -46,6 +46,8 @@ export const validateMedication = [
     .escape(),
   
   body('form')
+    .optional()
+    .default('tablet')
     .trim()
     .isIn(['tablet', 'capsule', 'liquid', 'injection', 'cream', 'inhaler', 'drops', 'patch', 'other'])
     .withMessage('Invalid medication form'),
@@ -57,10 +59,12 @@ export const validateMedication = [
     .escape(),
   
   body('total_quantity')
+    .optional()
     .isInt({ min: 0, max: 10000 }).withMessage('Invalid quantity')
     .toInt(),
   
   body('remaining_quantity')
+    .optional()
     .isInt({ min: 0, max: 10000 }).withMessage('Invalid quantity')
     .toInt(),
   
