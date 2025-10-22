@@ -947,6 +947,18 @@
           case 'show_refills':
             await showRefills();
             break;
+          case 'delete_medication':
+            showDeleteMedicationConfirmation(action.data);
+            break;
+          case 'delete_schedule':
+            showDeleteScheduleConfirmation(action.data);
+            break;
+          case 'update_medication':
+            showUpdateMedicationPreview(action.data);
+            break;
+          case 'update_schedule':
+            showUpdateSchedulePreview(action.data);
+            break;
           default:
             console.log('Unknown action type:', action.type);
         }
@@ -974,39 +986,55 @@ ${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please 
       
       addMessage(preview, 'bot');
       
-      // Add action button
-      const buttonDiv = document.createElement('div');
-      buttonDiv.style.display = 'flex';
-      buttonDiv.style.gap = '8px';
-      buttonDiv.style.marginTop = '8px';
-      buttonDiv.style.marginBottom = '16px';
-      
-      const addBtn = document.createElement('button');
-      addBtn.textContent = '➕ Add This Medication';
-      addBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      addBtn.onclick = async () => {
-        buttonDiv.remove();
-        await addMedication(data);
-      };
-      
-      const cancelBtn = document.createElement('button');
-      cancelBtn.textContent = 'Cancel';
-      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      cancelBtn.onclick = () => {
-        buttonDiv.remove();
-        addMessage('Cancelled. Let me know if you need anything else!', 'bot');
-      };
-      
-      buttonDiv.appendChild(addBtn);
-      buttonDiv.appendChild(cancelBtn);
-      messagesDiv.appendChild(buttonDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      // If all required fields are present, auto-execute after a short delay
+      // This prevents the AI from falsely claiming success while waiting for manual confirmation
+      if (data.name && data.dosage) {
+        const buttonDiv = document.createElement('div');
+        buttonDiv.style.display = 'flex';
+        buttonDiv.style.gap = '8px';
+        buttonDiv.style.marginTop = '8px';
+        buttonDiv.style.marginBottom = '16px';
+        
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '➕ Add This Medication';
+        addBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        addBtn.onclick = async () => {
+          buttonDiv.remove();
+          await addMedication(data);
+        };
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        cancelBtn.onclick = () => {
+          buttonDiv.remove();
+          addMessage('Cancelled. Let me know if you need anything else!', 'bot');
+        };
+        
+        buttonDiv.appendChild(addBtn);
+        buttonDiv.appendChild(cancelBtn);
+        messagesDiv.appendChild(buttonDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // Auto-click after 1.5 seconds if user doesn't interact
+        const autoAddTimeout = setTimeout(() => {
+          if (buttonDiv.parentElement) { // Button still exists
+            console.log('🤖 Auto-adding medication (no user interaction)');
+            addBtn.click();
+          }
+        }, 1500);
+        
+        // Cancel auto-add if user clicks cancel
+        cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+        addBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+      }
     }
     
     function showSchedulePreview(data) {
       // Get food timing text
       const foodTimingText = data.food_timing === 'before_food' ? 'Before food' : 
                              data.food_timing === 'after_food' ? 'After food' : 
+                             data.food_timing === 'with_food' ? 'With food' :
                              'No specific timing';
       
       const preview = `📅 I've extracted the following schedule details:
@@ -1020,33 +1048,47 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
       
       addMessage(preview, 'bot');
       
-      // Add action button
-      const buttonDiv = document.createElement('div');
-      buttonDiv.style.display = 'flex';
-      buttonDiv.style.gap = '8px';
-      buttonDiv.style.marginTop = '8px';
-      buttonDiv.style.marginBottom = '16px';
-      
-      const scheduleBtn = document.createElement('button');
-      scheduleBtn.textContent = '📅 Create This Schedule';
-      scheduleBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      scheduleBtn.onclick = async () => {
-        buttonDiv.remove();
-        await addSchedule(data);
-      };
-      
-      const cancelBtn = document.createElement('button');
-      cancelBtn.textContent = 'Cancel';
-      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
-      cancelBtn.onclick = () => {
-        buttonDiv.remove();
-        addMessage('Cancelled. Let me know if you need anything else!', 'bot');
-      };
-      
-      buttonDiv.appendChild(scheduleBtn);
-      buttonDiv.appendChild(cancelBtn);
-      messagesDiv.appendChild(buttonDiv);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      // If all required fields are present, show button and auto-execute
+      if (data.medication_id && data.time && data.food_timing) {
+        const buttonDiv = document.createElement('div');
+        buttonDiv.style.display = 'flex';
+        buttonDiv.style.gap = '8px';
+        buttonDiv.style.marginTop = '8px';
+        buttonDiv.style.marginBottom = '16px';
+        
+        const scheduleBtn = document.createElement('button');
+        scheduleBtn.textContent = '📅 Create This Schedule';
+        scheduleBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        scheduleBtn.onclick = async () => {
+          buttonDiv.remove();
+          await addSchedule(data);
+        };
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        cancelBtn.onclick = () => {
+          buttonDiv.remove();
+          addMessage('Cancelled. Let me know if you need anything else!', 'bot');
+        };
+        
+        buttonDiv.appendChild(scheduleBtn);
+        buttonDiv.appendChild(cancelBtn);
+        messagesDiv.appendChild(buttonDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // Auto-click after 1.5 seconds if user doesn't interact
+        const autoScheduleTimeout = setTimeout(() => {
+          if (buttonDiv.parentElement) { // Button still exists
+            console.log('🤖 Auto-scheduling medication (no user interaction)');
+            scheduleBtn.click();
+          }
+        }, 1500);
+        
+        // Cancel auto-schedule if user clicks cancel
+        cancelBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
+        scheduleBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
+      }
     }
     
     function openAddMedicationModal(data) {
@@ -1363,6 +1405,297 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
       }
       
       return data.time ? data : null;
+    }
+    
+    // DELETE MEDICATION CONFIRMATION
+    function showDeleteMedicationConfirmation(data) {
+      if (data.multiple) {
+        // Multiple matches found
+        let msg = '⚠️ I found multiple medications matching your request:\n\n';
+        data.medications.forEach((med, idx) => {
+          msg += `${idx + 1}. ${med.name} (${med.dosage}, ${med.form})\n`;
+        });
+        msg += '\nWhich one would you like to delete? Please be more specific.';
+        addMessage(msg, 'bot');
+        return;
+      }
+      
+      const medName = data.medication_name || 'this medication';
+      const confirmMsg = `🗑️ Are you sure you want to delete ${medName}? This action cannot be undone.`;
+      addMessage(confirmMsg, 'bot');
+      
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑️ Yes, Delete';
+      deleteBtn.style.cssText = 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      deleteBtn.onclick = async () => {
+        buttonDiv.remove();
+        await deleteMedication(data.medication_id, medName);
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Deletion cancelled. Your medication is safe!', 'bot');
+      };
+      
+      buttonDiv.appendChild(deleteBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    async function deleteMedication(medicationId, medicationName) {
+      try {
+        const response = await fetch(`${API_BASE}/medications/${medicationId}`, {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        if (response.ok) {
+          addMessage(`✅ ${medicationName} has been deleted from your medications.`, 'bot');
+          setTimeout(() => {
+            if (typeof loadMedications === 'function') {
+              loadMedications();
+            } else {
+              window.location.reload();
+            }
+          }, 1500);
+        } else {
+          throw new Error('Failed to delete medication');
+        }
+      } catch (error) {
+        console.error('Error deleting medication:', error);
+        addMessage('❌ Failed to delete medication. Please try again.', 'bot', true);
+      }
+    }
+    
+    // DELETE SCHEDULE CONFIRMATION
+    function showDeleteScheduleConfirmation(data) {
+      const medName = data.medication_name || 'this medication';
+      const confirmMsg = `🗑️ Are you sure you want to delete the schedule for ${medName}?`;
+      addMessage(confirmMsg, 'bot');
+      
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑️ Yes, Delete Schedule';
+      deleteBtn.style.cssText = 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      deleteBtn.onclick = async () => {
+        buttonDiv.remove();
+        await deleteSchedule(data.medication_id, medName);
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Deletion cancelled.', 'bot');
+      };
+      
+      buttonDiv.appendChild(deleteBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    async function deleteSchedule(medicationId, medicationName) {
+      try {
+        // Get schedules for this medication
+        const response = await fetch(`${API_BASE}/schedules?medication_id=${medicationId}`);
+        const data = await response.json();
+        
+        if (data.schedules && data.schedules.length > 0) {
+          // Delete all schedules for this medication
+          for (const schedule of data.schedules) {
+            await fetch(`${API_BASE}/schedules/${schedule.id}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' }
+            });
+          }
+          
+          addMessage(`✅ Schedule for ${medicationName} has been deleted.`, 'bot');
+          setTimeout(() => {
+            if (typeof loadSchedules === 'function') {
+              loadSchedules();
+            } else {
+              window.location.reload();
+            }
+          }, 1500);
+        } else {
+          addMessage(`⚠️ No schedule found for ${medicationName}.`, 'bot');
+        }
+      } catch (error) {
+        console.error('Error deleting schedule:', error);
+        addMessage('❌ Failed to delete schedule. Please try again.', 'bot', true);
+      }
+    }
+    
+    // UPDATE MEDICATION PREVIEW
+    function showUpdateMedicationPreview(data) {
+      const medName = data.medication_name || 'medication';
+      const updates = data.updates || {};
+      
+      let updateMsg = `✏️ I'll update ${medName} with the following changes:\n\n`;
+      
+      if (updates.dosage) updateMsg += `• Dosage: ${updates.dosage}\n`;
+      if (updates.total_quantity) updateMsg += `• Quantity: ${updates.total_quantity} units\n`;
+      if (updates.form) updateMsg += `• Form: ${updates.form}\n`;
+      if (updates.purpose) updateMsg += `• Purpose: ${updates.purpose}\n`;
+      
+      updateMsg += '\nIs this correct?';
+      
+      addMessage(updateMsg, 'bot');
+      
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const updateBtn = document.createElement('button');
+      updateBtn.textContent = '✅ Update';
+      updateBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      updateBtn.onclick = async () => {
+        buttonDiv.remove();
+        await updateMedication(data.medication_id, updates, medName);
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Update cancelled.', 'bot');
+      };
+      
+      buttonDiv.appendChild(updateBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    async function updateMedication(medicationId, updates, medicationName) {
+      try {
+        const response = await fetch(`${API_BASE}/medications/${medicationId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(updates)
+        });
+        
+        if (response.ok) {
+          addMessage(`✅ ${medicationName} has been updated successfully!`, 'bot');
+          setTimeout(() => {
+            if (typeof loadMedications === 'function') {
+              loadMedications();
+            } else {
+              window.location.reload();
+            }
+          }, 1500);
+        } else {
+          throw new Error('Failed to update medication');
+        }
+      } catch (error) {
+        console.error('Error updating medication:', error);
+        addMessage('❌ Failed to update medication. Please try again.', 'bot', true);
+      }
+    }
+    
+    // UPDATE SCHEDULE PREVIEW
+    function showUpdateSchedulePreview(data) {
+      const medName = data.medication_name || 'medication';
+      const updates = data.updates || {};
+      
+      let updateMsg = `✏️ I'll update the schedule for ${medName}:\n\n`;
+      
+      if (updates.time) updateMsg += `• Time: ${updates.time}\n`;
+      if (updates.frequency) updateMsg += `• Frequency: ${updates.frequency}\n`;
+      if (updates.food_timing) {
+        const foodText = updates.food_timing === 'before_food' ? 'Before food' : 
+                        updates.food_timing === 'after_food' ? 'After food' : 
+                        'No specific timing';
+        updateMsg += `• Food timing: ${foodText}\n`;
+      }
+      
+      updateMsg += '\nIs this correct?';
+      
+      addMessage(updateMsg, 'bot');
+      
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const updateBtn = document.createElement('button');
+      updateBtn.textContent = '✅ Update Schedule';
+      updateBtn.style.cssText = 'background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      updateBtn.onclick = async () => {
+        buttonDiv.remove();
+        await updateSchedule(data.medication_id, updates, medName);
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Update cancelled.', 'bot');
+      };
+      
+      buttonDiv.appendChild(updateBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    async function updateSchedule(medicationId, updates, medicationName) {
+      try {
+        // Get schedules for this medication
+        const response = await fetch(`${API_BASE}/schedules?medication_id=${medicationId}`);
+        const data = await response.json();
+        
+        if (data.schedules && data.schedules.length > 0) {
+          // Update the first schedule (or all if needed)
+          const schedule = data.schedules[0];
+          
+          const updateResponse = await fetch(`${API_BASE}/schedules/${schedule.id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates)
+          });
+          
+          if (updateResponse.ok) {
+            addMessage(`✅ Schedule for ${medicationName} has been updated!`, 'bot');
+            setTimeout(() => {
+              if (typeof loadSchedules === 'function') {
+                loadSchedules();
+              } else {
+                window.location.reload();
+              }
+            }, 1500);
+          } else {
+            throw new Error('Failed to update schedule');
+          }
+        } else {
+          addMessage(`⚠️ No schedule found for ${medicationName}. Would you like to create one?`, 'bot');
+        }
+      } catch (error) {
+        console.error('Error updating schedule:', error);
+        addMessage('❌ Failed to update schedule. Please try again.', 'bot', true);
+      }
     }
     
     console.log('✅ AI Chatbot ready! Button visible at bottom-right.');

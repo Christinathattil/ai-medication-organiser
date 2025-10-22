@@ -404,9 +404,10 @@ app.put('/api/medications/:id', ensureAuthenticated, validateId, upload.single('
   }
 });
 
-app.delete('/api/medications/:id', async (req, res) => {
+app.delete('/api/medications/:id', ensureAuthenticated, validateId, async (req, res) => {
   try {
-    await db.deleteMedication(req.params.id);
+    const userId = req.user?.id;
+    await db.deleteMedication(req.params.id, userId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -740,10 +741,14 @@ CURRENT CONTEXT:
 YOUR CAPABILITIES:
 1. **Add Medication**: Extract name, dosage, form (tablet/capsule/syrup), purpose, quantity
 2. **Add Multiple Medications**: Handle multiple medications in one request (e.g., "Add aspirin 500mg and metformin 850mg")
-3. **Create Schedule**: Extract medication, time (HH:MM format), frequency, food timing (before/after food)
-4. **Combined Add + Schedule**: Handle adding medication and scheduling together (e.g., "Add aspirin 500mg and schedule at 8am")
-5. **Schedule Non-Existent Medication**: If user tries to schedule medication not in system, offer to add it first
-6. **View Information**: Show today's schedule, statistics, or refill alerts
+3. **Delete Medication**: Remove medications by name (e.g., "delete aspirin", "remove vicks")
+4. **Edit/Update Medication**: Modify medication details (e.g., "update aspirin dosage to 500mg", "change paracetamol quantity to 50")
+5. **Create Schedule**: Extract medication, time (HH:MM format), frequency, food timing (before/after food)
+6. **Delete Schedule**: Remove schedules for specific medications (e.g., "delete schedule for aspirin", "remove reminder for vicks")
+7. **Edit/Update Schedule**: Modify schedule timing or settings (e.g., "change aspirin time to 9am", "update vicks to after food")
+8. **Combined Add + Schedule**: Handle adding medication and scheduling together (e.g., "Add aspirin 500mg and schedule at 8am")
+9. **Schedule Non-Existent Medication**: If user tries to schedule medication not in system, offer to add it first
+10. **View Information**: Show today's schedule, statistics, or refill alerts
 
 CRITICAL RULES:
 ⚠️ NEVER provide health advice or medical recommendations
@@ -764,6 +769,20 @@ If user mentions multiple medications (e.g., "Add aspirin paracetamol and vicks"
 - NEVER try to add all at once
 - NEVER skip any medication mentioned
 - NEVER confuse scheduling responses (like "8am daily") with medication details
+
+**Delete/Remove Operations:**
+If user wants to delete medications or schedules:
+- For deleting medications: "delete vicks" → Confirm: "I'll delete Vicks (5 ml, tablet). Are you sure?"
+- For multiple deletions: "delete all vicks" → List all matches and confirm
+- Always confirm before deleting to prevent accidents
+- After deletion, confirm: "✅ Vicks has been deleted from your medications."
+
+**Edit/Update Operations:**
+If user wants to edit/update medications:
+- Identify what field to update: dosage, quantity, form, etc.
+- For dosage: "update aspirin dosage to 500mg" → "I'll update Aspirin dosage to 500mg. Correct?"
+- For quantity: "change paracetamol to 50 tablets" → "I'll update Paracetamol quantity to 50. Correct?"
+- Always confirm the change before applying
 
 **Combined Add + Schedule:**
 If user wants to add AND schedule (e.g., "Add aspirin 500mg and schedule it for 8am"):
@@ -1107,6 +1126,95 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       action = { type: 'show_refills' };
     }
     
+    // 6. DELETE MEDICATION
+    const deletePatterns = [
+      /delete|remove|get rid of|erase/i
+    ];
+    const hasDeleteIntent = deletePatterns.some(pattern => pattern.test(lowerMessage));
+    
+    if (!action && hasDeleteIntent && !lowerMessage.includes('schedule')) {
+      console.log('🗑️ Detected: Delete Medication Intent');
+      const deleteData = findMedicationByName(message, medsList);
+      console.log('🔍 Found medication to delete:', deleteData);
+      
+      if (deleteData.matches.length > 0) {
+        // If multiple matches, return all for confirmation
+        action = { 
+          type: 'delete_medication', 
+          data: deleteData.matches.length === 1 
+            ? { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
+            : { multiple: true, medications: deleteData.matches }
+        };
+        console.log('✅ Delete medication action created:', action);
+      } else {
+        console.log('⚠️ No medication found to delete');
+      }
+    }
+    
+    // 7. DELETE SCHEDULE
+    if (!action && hasDeleteIntent && lowerMessage.includes('schedule')) {
+      console.log('🗑️ Detected: Delete Schedule Intent');
+      const deleteData = findMedicationByName(message, medsList);
+      console.log('🔍 Found medication schedule to delete:', deleteData);
+      
+      if (deleteData.matches.length > 0) {
+        action = { 
+          type: 'delete_schedule', 
+          data: { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
+        };
+        console.log('✅ Delete schedule action created:', action);
+      }
+    }
+    
+    // 8. UPDATE/EDIT MEDICATION
+    const updatePatterns = [
+      /update|edit|change|modify|set/i
+    ];
+    const hasUpdateIntent = updatePatterns.some(pattern => pattern.test(lowerMessage));
+    
+    if (!action && hasUpdateIntent && !lowerMessage.includes('schedule')) {
+      console.log('✏️ Detected: Update Medication Intent');
+      const medicationData = findMedicationByName(message, medsList);
+      
+      if (medicationData.matches.length > 0) {
+        const medication = medicationData.matches[0];
+        const updates = extractUpdateDetails(message);
+        
+        if (Object.keys(updates).length > 0) {
+          action = { 
+            type: 'update_medication', 
+            data: { 
+              medication_id: medication.id, 
+              medication_name: medication.name,
+              updates 
+            }
+          };
+          console.log('✅ Update medication action created:', action);
+        }
+      }
+    }
+    
+    // 9. UPDATE/EDIT SCHEDULE
+    if (!action && hasUpdateIntent && lowerMessage.includes('schedule')) {
+      console.log('✏️ Detected: Update Schedule Intent');
+      const medicationData = findMedicationByName(message, medsList);
+      
+      if (medicationData.matches.length > 0) {
+        const medication = medicationData.matches[0];
+        const scheduleUpdates = extractScheduleFromText(message, medsList);
+        
+        action = { 
+          type: 'update_schedule', 
+          data: { 
+            medication_id: medication.id, 
+            medication_name: medication.name,
+            updates: scheduleUpdates 
+          }
+        };
+        console.log('✅ Update schedule action created:', action);
+      }
+    }
+    
     // Log final decision
     if (action) {
       console.log('✅ Final action:', action.type);
@@ -1309,6 +1417,93 @@ function isSchedulingMessage(text) {
   return isShortMessage && (hasTimePattern || hasFoodTiming) && !(/\b(add|new|medication|medicine|aspirin|paracetamol|drug)\b/i.test(text));
 }
 
+// Helper function to find medication by name in user's medication list
+function findMedicationByName(text, medications) {
+  const matches = [];
+  const lowerText = text.toLowerCase();
+  
+  if (!Array.isArray(medications) || medications.length === 0) {
+    return { matches: [], searchTerm: text };
+  }
+  
+  // Try to find medication name in text
+  for (const med of medications) {
+    if (med && med.name) {
+      const medNameLower = med.name.toLowerCase();
+      const medFirstWord = medNameLower.split(' ')[0];
+      
+      // Exact match
+      if (lowerText.includes(medNameLower)) {
+        matches.push(med);
+        continue;
+      }
+      
+      // First word match (e.g., "aspirin" matches "Aspirin 500mg")
+      if (medFirstWord.length > 3 && lowerText.includes(medFirstWord)) {
+        matches.push(med);
+      }
+    }
+  }
+  
+  console.log(`🔍 Found ${matches.length} medication matches:`, matches.map(m => m.name));
+  return { matches, searchTerm: text };
+}
+
+// Helper function to extract update details from text
+function extractUpdateDetails(text) {
+  const updates = {};
+  const lowerText = text.toLowerCase();
+  
+  // Extract dosage update
+  const dosageMatch = text.match(/(dosage|dose)\s+(to|is)?\s*([\d.]+\s*(?:mg|ml|g|mcg|iu))/i);
+  if (dosageMatch) {
+    updates.dosage = dosageMatch[3].trim();
+  }
+  
+  // Extract quantity update
+  const quantityMatch = text.match(/(quantity|amount|count)\s+(to|is)?\s*(\d+)/i);
+  if (quantityMatch) {
+    updates.total_quantity = parseInt(quantityMatch[3]);
+    updates.remaining_quantity = parseInt(quantityMatch[3]);
+  } else {
+    // Try standalone number (e.g., "change to 50")
+    const numberMatch = text.match(/(?:to|is)\s+(\d+)\s+(tablet|capsule|pill|unit)s?/i);
+    if (numberMatch) {
+      updates.total_quantity = parseInt(numberMatch[1]);
+      updates.remaining_quantity = parseInt(numberMatch[1]);
+    }
+  }
+  
+  // Extract form update
+  const formMappings = {
+    'tablet': ['tablet', 'tab', 'pill'],
+    'capsule': ['capsule', 'cap'],
+    'liquid': ['syrup', 'liquid', 'solution'],
+    'injection': ['injection', 'shot'],
+    'drops': ['drops', 'drop'],
+    'cream': ['cream', 'ointment', 'gel'],
+    'inhaler': ['inhaler', 'puff'],
+    'patch': ['patch'],
+    'other': ['spray', 'powder', 'suppository']
+  };
+  
+  for (const [formName, variants] of Object.entries(formMappings)) {
+    if (variants.some(v => lowerText.includes(v))) {
+      updates.form = formName;
+      break;
+    }
+  }
+  
+  // Extract purpose update
+  const purposeMatch = text.match(/(?:purpose|for|treats?)\s+(?:to|is)?\s+(.+?)(?:\.|$)/i);
+  if (purposeMatch) {
+    updates.purpose = purposeMatch[1].trim();
+  }
+  
+  console.log('🔍 Extracted update details:', updates);
+  return updates;
+}
+
 // Helper function to extract medication details from text
 function extractMedicationFromText(text) {
   const data = {
@@ -1334,30 +1529,38 @@ function extractMedicationFromText(text) {
     const match = text.match(pattern);
     if (match) {
       data.dosage = match[0].trim();
+      
+      // If dosage contains 'ml', set form to liquid (unless explicitly stated otherwise)
+      if (match[0].toLowerCase().includes('ml') && !lowerText.match(/\b(tablet|capsule|pill|injection|cream|inhaler|drops|patch)\b/)) {
+        data.form = 'liquid';
+      }
       break;
     }
   }
   
   // IMPROVED: Extract quantity with multiple patterns
-  // Priority 1: "X tablets/pills/capsules"
-  const quantityPattern1 = text.match(/(\d+)\s*(tablet|capsule|pill|dose|drop|spray|patch|ml|bottle)s?\b/i);
-  if (quantityPattern1) {
-    data.total_quantity = parseInt(quantityPattern1[1]);
+  // Priority 1: Standalone "X units" or just "X" when it's clearly quantity
+  const standaloneUnitsMatch = text.match(/\b(\d+)\s*units?\b/i);
+  if (standaloneUnitsMatch) {
+    data.total_quantity = parseInt(standaloneUnitsMatch[1]);
   } else {
-    // Priority 2: Just a number followed by optional "units"
-    // But only if it's reasonable (2-200 range) and not a dosage
-    const standaloneMatch = text.match(/\b(\d+)\s*(?:units?|count|pieces?)?\b/gi);
-    if (standaloneMatch) {
-      // Filter out dosage numbers by checking if they have mg/ml/etc nearby
-      for (const match of standaloneMatch) {
-        const num = parseInt(match);
-        if (num >= 1 && num <= 200) {
-          // Make sure it's not part of dosage (e.g., not "500" from "500mg")
-          const matchIndex = text.toLowerCase().indexOf(match.toLowerCase());
-          const surroundingText = text.substring(Math.max(0, matchIndex - 5), matchIndex + match.length + 5);
-          if (!surroundingText.match(/\d+\.?\d*\s*(mg|ml|g|mcg|iu)/i)) {
-            data.total_quantity = num;
-            break;
+    // Priority 2: "X tablets/pills/capsules"
+    const quantityPattern1 = text.match(/(\d+)\s*(tablet|capsule|pill|dose|drop|spray|patch|bottle)s?\b/i);
+    if (quantityPattern1) {
+      data.total_quantity = parseInt(quantityPattern1[1]);
+    } else {
+      // Priority 3: Just a standalone number (if short message and reasonable range)
+      // This handles cases like user just saying "20" or "30"
+      const wordCount = text.trim().split(/\s+/).length;
+      if (wordCount <= 3) {
+        const simpleNumberMatch = text.match(/\b(\d+)\b/);
+        if (simpleNumberMatch) {
+          const num = parseInt(simpleNumberMatch[1]);
+          if (num >= 1 && num <= 1000) {
+            // Make sure it's not part of dosage (e.g., not "500" from "500mg")
+            if (!text.match(/\d+\.?\d*\s*(mg|ml|g|mcg|iu)/i)) {
+              data.total_quantity = num;
+            }
           }
         }
       }
@@ -1365,22 +1568,39 @@ function extractMedicationFromText(text) {
   }
 
   // IMPROVED: Extract form with more variants
-  const formMappings = {
-    'tablet': ['tablet', 'tab', 'pill'],
-    'capsule': ['capsule', 'cap'],
-    'liquid': ['syrup', 'liquid', 'solution'],  // Changed from 'syrup' to match validator
-    'injection': ['injection', 'shot'],
-    'drops': ['drops', 'drop'],
-    'cream': ['cream', 'ointment', 'gel'],
-    'inhaler': ['inhaler', 'puff'],
-    'patch': ['patch'],
-    'other': ['spray', 'powder', 'suppository']  // Map uncommon forms to 'other'
-  };
-  
-  for (const [formName, variants] of Object.entries(formMappings)) {
-    if (variants.some(v => lowerText.includes(v))) {
-      data.form = formName;
-      break;
+  // Check for explicit form statements first ("it is a syrup", "form is tablet")
+  const explicitFormMatch = text.match(/(?:it (?:is|'s) a?|form (?:is|:)?|type (?:is|:)?)\s*(tablet|capsule|pill|syrup|liquid|injection|shot|drops?|cream|ointment|gel|inhaler|puff|patch|spray|powder|suppository)/i);
+  if (explicitFormMatch) {
+    const formWord = explicitFormMatch[1].toLowerCase();
+    // Map to standard form names
+    if (['tablet', 'tab', 'pill'].includes(formWord)) data.form = 'tablet';
+    else if (['capsule', 'cap'].includes(formWord)) data.form = 'capsule';
+    else if (['syrup', 'liquid', 'solution'].includes(formWord)) data.form = 'liquid';
+    else if (['injection', 'shot'].includes(formWord)) data.form = 'injection';
+    else if (['drops', 'drop'].includes(formWord)) data.form = 'drops';
+    else if (['cream', 'ointment', 'gel'].includes(formWord)) data.form = 'cream';
+    else if (['inhaler', 'puff'].includes(formWord)) data.form = 'inhaler';
+    else if (['patch'].includes(formWord)) data.form = 'patch';
+    else if (['spray', 'powder', 'suppository'].includes(formWord)) data.form = 'other';
+  } else {
+    // Otherwise use standard keyword matching
+    const formMappings = {
+      'tablet': ['tablet', 'tab', 'pill'],
+      'capsule': ['capsule', 'cap'],
+      'liquid': ['syrup', 'liquid', 'solution'],
+      'injection': ['injection', 'shot'],
+      'drops': ['drops', 'drop'],
+      'cream': ['cream', 'ointment', 'gel'],
+      'inhaler': ['inhaler', 'puff'],
+      'patch': ['patch'],
+      'other': ['spray', 'powder', 'suppository']
+    };
+    
+    for (const [formName, variants] of Object.entries(formMappings)) {
+      if (variants.some(v => lowerText.includes(v))) {
+        data.form = formName;
+        break;
+      }
     }
   }
 
