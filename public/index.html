@@ -807,7 +807,21 @@
           }
         } else {
           const error = await response.json().catch(() => ({}));
-          addMessage(error.response || 'Sorry, I encountered an error. Please check that Groq API is configured.', 'bot', true);
+          
+          // Provide specific error messages based on status code
+          let errorMsg = 'Sorry, I encountered an error.';
+          if (response.status === 500) {
+            errorMsg = error.response || error.error || 'Server error occurred. Please try again.';
+          } else if (response.status === 401 || response.status === 403) {
+            errorMsg = 'Authentication error. Please refresh and log in again.';
+          } else if (response.status === 400) {
+            errorMsg = error.response || error.error || 'Invalid request. Please try rephrasing your message.';
+          } else {
+            errorMsg = error.response || error.error || 'An error occurred. Please try again.';
+          }
+          
+          addMessage(errorMsg, 'bot', true);
+          console.error('Chat API error:', { status: response.status, error });
         }
       } catch (error) {
         removeTypingIndicator(typingId);

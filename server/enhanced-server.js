@@ -934,9 +934,14 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     if (hasAddIntent && hasMedicationPattern) {
       console.log('💊 Detected: Add Medication Intent');
       const medicationData = extractMedicationFromText(message);
-      if (medicationData.name) {
+      console.log('🔍 Extracted medication data:', medicationData);
+      
+      // Only create action if we have REQUIRED fields (name + dosage)
+      if (medicationData.name && medicationData.dosage) {
         action = { type: 'add_medication', data: medicationData };
         console.log('✅ Medication action created:', action);
+      } else if (medicationData.name) {
+        console.log('⚠️ Incomplete data - name found but missing dosage. AI will ask for it.');
       }
     }
     
