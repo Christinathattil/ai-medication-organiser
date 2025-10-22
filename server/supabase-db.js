@@ -91,9 +91,13 @@ class SupabaseDatabase {
 
   // Schedules
   async addSchedule(data) {
+    // Remove medication_name as it's not a column in the schedules table
+    // It's only used for display and is joined from medications table
+    const { medication_name, ...scheduleData } = data;
+    
     const { data: schedule, error } = await supabase
       .from('schedules')
-      .insert([{ ...data, active: true }])
+      .insert([{ ...scheduleData, active: true }])
       .select()
       .single();
     
