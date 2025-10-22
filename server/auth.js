@@ -85,31 +85,45 @@ passport.use(new GoogleStrategy({
 
 // Serialize user for session
 passport.serializeUser((user, done) => {
-  done(null, user.id || user.google_id);
+  // Always serialize the numeric ID (primary key)
+  console.log('🔐 Serializing user:', user.id);
+  done(null, user.id);
 });
 
 // Deserialize user from session
 passport.deserializeUser(async (id, done) => {
   try {
     if (supabase) {
+      // Use service role to bypass RLS during deserialization
+      // This is safe because the user ID comes from a signed session
       const { data: user, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
       if (error) {
         console.error('Error deserializing user:', error);
-        return done(error, null);
+        // Don't fail completely - log out the user instead
+        return done(null, false);
       }
 
+      if (!user) {
+        console.warn('⚠️ User not found in database during deserialization, ID:', id);
+        // User was deleted or doesn't exist - force re-login
+        return done(null, false);
+      }
+
+      console.log('✅ User deserialized:', user.email);
       done(null, user);
     } else {
       // Session-only mode
       done(null, { google_id: id });
     }
   } catch (error) {
-    done(error, null);
+    console.error('❌ Deserialization error:', error);
+    // Don't crash - return false to force re-login
+    done(null, false);
   }
 });
 
