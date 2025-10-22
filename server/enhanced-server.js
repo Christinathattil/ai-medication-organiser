@@ -757,10 +757,13 @@ HANDLING COMPLEX SCENARIOS:
 If user mentions multiple medications (e.g., "Add aspirin paracetamol and vicks"):
 - Acknowledge ALL medications mentioned: "I'll add three medications: Aspirin, Paracetamol, and Vicks."
 - Process ONE at a time: "First, let's add Aspirin..."
-- Ask for missing details for current one only
-- After completing one, move to next: "Great! Now for Paracetamol..."
+- Ask for missing details for CURRENT medication only (be specific: "What is the dosage of Aspirin?")
+- After completing one, move to next: "✅ Aspirin added! Now, what is the dosage of Paracetamol?"
+- DO NOT ask about scheduling until ALL medications are added
+- Keep track of which medication you're asking about - always name it explicitly
 - NEVER try to add all at once
 - NEVER skip any medication mentioned
+- NEVER confuse scheduling responses (like "8am daily") with medication details
 
 **Combined Add + Schedule:**
 If user wants to add AND schedule (e.g., "Add aspirin 500mg and schedule it for 8am"):
@@ -939,9 +942,14 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     
     // 1B. FOLLOW-UP FOR MEDICATION ADDITION
     if (!action && (isFollowUp || aiIndicatesAction)) {
-      // First, try extracting from the current message (prioritize latest user input)
-      const currentMessageData = extractMedicationFromText(message);
-      console.log('🔍 Current message extraction:', currentMessageData);
+      // Skip if this is clearly a scheduling response
+      if (isSchedulingMessage(message)) {
+        console.log('⏭️ Skipping medication extraction - detected scheduling message:', message);
+        // Don't set action, let it flow to schedule extraction
+      } else {
+        // First, try extracting from the current message (prioritize latest user input)
+        const currentMessageData = extractMedicationFromText(message);
+        console.log('🔍 Current message extraction:', currentMessageData);
       
       // Then extract from full conversation for missing fields
       const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
@@ -958,18 +966,19 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         purpose: currentMessageData.purpose || conversationData.purpose,
         total_quantity: currentMessageData.total_quantity || conversationData.total_quantity
       };
-      console.log('✅ Merged medication data:', medicationData);
-      
-      // Check if we have enough data to create action
-      if (medicationData.name && medicationData.dosage && medicationData.form) {
-        // Set default quantity if not provided
-        if (!medicationData.total_quantity) {
-          medicationData.total_quantity = 30;
-        }
+        console.log('✅ Merged medication data:', medicationData);
         
-        action = { type: 'add_medication', data: medicationData };
-        console.log('✅ Follow-up medication action created:', action);
-      }
+        // Check if we have enough data to create action
+        if (medicationData.name && medicationData.dosage && medicationData.form) {
+          // Set default quantity if not provided
+          if (!medicationData.total_quantity) {
+            medicationData.total_quantity = 30;
+          }
+          
+          action = { type: 'add_medication', data: medicationData };
+          console.log('✅ Follow-up medication action created:', action);
+        }
+      }  // End of else block for non-scheduling messages
       
       // Check for schedule completion
       const schedMedications = await db.getMedications({});
@@ -1236,6 +1245,30 @@ function extractScheduleFromText(text, medications) {
   }
 
   return data;
+}
+
+// Helper function to detect if message is about scheduling (not medication details)
+function isSchedulingMessage(text) {
+  const lowerText = text.toLowerCase();
+  
+  // Time patterns: 8am, 10:30pm, 8 am, etc.
+  const hasTimePattern = /\b\d{1,2}(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.)\b/i.test(text) ||
+                         /\b(morning|afternoon|evening|night|daily|twice|thrice|weekly)\b/i.test(text);
+  
+  // Food timing patterns
+  const hasFoodTiming = /\b(before|after)\s+(food|meal|eating|breakfast|lunch|dinner)\b/i.test(text);
+  
+  // Frequency patterns
+  const hasFrequency = /\b(daily|twice|thrice|once|every|day|week|hour)\b/i.test(text);
+  
+  // Schedule keywords
+  const hasScheduleKeywords = /\b(schedule|reminder|time|when|alarm)\b/i.test(text);
+  
+  // If message is SHORT (< 15 words) AND has time/scheduling patterns, it's likely a schedule response
+  const wordCount = text.split(/\s+/).length;
+  const isShortMessage = wordCount < 15;
+  
+  return isShortMessage && (hasTimePattern || hasFoodTiming) && !(/\b(add|new|medication|medicine|aspirin|paracetamol|drug)\b/i.test(text));
 }
 
 // Helper function to extract medication details from text
