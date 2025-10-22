@@ -997,8 +997,10 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       // Check for schedule completion
       const schedMedications = await db.getMedications({});
       const medList = schedMedications?.medications || [];
-      const scheduleData = extractScheduleFromText(conversationText, medList);
-      console.log('📅 Extracted schedule data from conversation:', scheduleData);
+      // CRITICAL: Extract from CURRENT message only, not conversation
+      // Conversation includes AI responses like "8am daily before food" which contaminates extraction
+      const scheduleData = extractScheduleFromText(message, medList);
+      console.log('📅 Extracted schedule data from current message:', scheduleData);
       
       // Schedule action creation - food_timing is MANDATORY
       if (!action && scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
@@ -1189,19 +1191,27 @@ function extractScheduleFromText(text, medications) {
   let minute = 0;
   let period = null;
   
-  // Try HH:MM am/pm format first
+  // Try HH:MM am/pm format first (e.g., "4:30 pm")
   timeMatch = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
   if (timeMatch) {
     hour = parseInt(timeMatch[1]);
     minute = parseInt(timeMatch[2]);
     period = timeMatch[3];
   } else {
-    // Try H am/pm format (no minutes)
-    timeMatch = text.match(/(\d{1,2})\s*(am|pm)/i);
+    // Try H MM am/pm format with space (e.g., "4 30 pm")
+    timeMatch = text.match(/(\d{1,2})\s+(\d{2})\s*(am|pm)/i);
     if (timeMatch) {
       hour = parseInt(timeMatch[1]);
-      minute = 0;
-      period = timeMatch[2];
+      minute = parseInt(timeMatch[2]);
+      period = timeMatch[3];
+    } else {
+      // Try H am/pm format (no minutes, e.g., "4 pm")
+      timeMatch = text.match(/(\d{1,2})\s*(am|pm)/i);
+      if (timeMatch) {
+        hour = parseInt(timeMatch[1]);
+        minute = 0;
+        period = timeMatch[2];
+      }
     }
   }
   
@@ -1413,7 +1423,9 @@ function extractMedicationFromText(text) {
                      'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu',
                      'inhaler', 'inhalers', 'cream', 'creams', 'drops', 'drop', 'patch', 'patches',
                      'injection', 'injections', 'liquid', 'liquids', 'spray', 'sprays',
-                     'dosage', 'form', 'quantity', 'amount', 'total'];
+                     'dosage', 'form', 'quantity', 'amount', 'total',
+                     'anytime', 'daily', 'weekly', 'morning', 'evening', 'night', 'afternoon',
+                     'before', 'after', 'with', 'food', 'meal', 'schedule', 'time'];
   
   // Try pattern 1: "add [medication]" or similar
   for (const trigger of addTriggers) {
