@@ -1296,8 +1296,9 @@ function extractMedicationFromText(text) {
 
   // IMPROVED: Extract dosage with better patterns
   // Matches: 500mg, 500 mg, 2.5mg, 1000IU, 10ml, etc.
+  // NOTE: Removed 'units?' - units are for QUANTITY, not dosage
   const dosagePatterns = [
-    /(\d+\.?\d*)\s*(mg|ml|g|mcg|iu|units?)\b/gi,
+    /(\d+\.?\d*)\s*(mg|ml|g|mcg|iu)\b/gi,
     /(\d+\.?\d*)\s*milligram/gi,
     /(\d+\.?\d*)\s*milliliter/gi
   ];
