@@ -127,8 +127,9 @@ app.use(session({
   cookie: {
     secure: isProduction, // HTTPS only in production
     httpOnly: true,
-    sameSite: isProduction ? 'none' : 'lax', // Important for OAuth redirects
-    maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    sameSite: 'lax', // Use 'lax' for OAuth redirects (same-site)
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+    domain: isProduction ? undefined : undefined // Let browser set domain automatically
   }
 }));
 
@@ -147,10 +148,20 @@ app.use('/api/', apiLimiter); // Rate limiting for API routes
 // Public routes (before auth)
 // Serve specific public files that don't require authentication
 app.get('/login', (req, res) => {
+  // If already authenticated, redirect to appropriate page
+  if (req.isAuthenticated()) {
+    console.log('🔄 Already authenticated, redirecting from login to loading');
+    return res.redirect('/loading');
+  }
   res.sendFile(join(__dirname, '..', 'public', 'login.html'));
 });
 
 app.get('/login.html', (req, res) => {
+  // If already authenticated, redirect to appropriate page
+  if (req.isAuthenticated()) {
+    console.log('🔄 Already authenticated, redirecting from login.html to loading');
+    return res.redirect('/loading');
+  }
   res.sendFile(join(__dirname, '..', 'public', 'login.html'));
 });
 
@@ -360,12 +371,15 @@ app.get('/auth/google/callback',
         
         console.log('✅ User authenticated:', user.email);
         console.log('📱 Phone verified status:', user.phone_verified || false);
+        console.log('🔐 Session ID:', req.sessionID);
         
         // Save session explicitly before redirect
         req.session.save((saveErr) => {
           if (saveErr) {
             console.error('❌ Session save error:', saveErr);
+            return res.redirect('/login?error=session_failed');
           }
+          console.log('✅ Session saved successfully');
           return res.redirect('/loading');
         });
       });
@@ -385,7 +399,14 @@ app.get('/auth/logout', (req, res) => {
 
 // Check auth status
 app.get('/api/auth/status', (req, res) => {
+  console.log('🔍 Auth status check:');
+  console.log('  - Session ID:', req.sessionID);
+  console.log('  - Session exists:', !!req.session);
+  console.log('  - User in session:', !!req.user);
+  console.log('  - Is authenticated:', req.isAuthenticated());
+  
   if (req.isAuthenticated()) {
+    console.log('  ✅ User authenticated:', req.user.email);
     res.json({
       authenticated: true,
       user: {
@@ -396,6 +417,7 @@ app.get('/api/auth/status', (req, res) => {
       }
     });
   } else {
+    console.log('  ❌ Not authenticated');
     res.json({ authenticated: false });
   }
 });
@@ -754,13 +776,20 @@ app.post('/api/verify/check-otp', async (req, res) => {
 
 // Check if phone is verified
 app.get('/api/verify/status', (req, res) => {
+  console.log('📱 Verify status check:');
+  console.log('  - Is authenticated:', req.isAuthenticated());
+  console.log('  - User exists:', !!req.user);
+  console.log('  - Phone verified:', req.user?.phone_verified || false);
+  
   // Use req.user from Passport, not req.session.user
   if (req.isAuthenticated() && req.user && req.user.phone_verified) {
+    console.log('  ✅ Phone verified:', req.user.phone);
     res.json({ 
       verified: true, 
       phone: req.user.phone 
     });
   } else {
+    console.log('  ❌ Phone not verified');
     res.json({ verified: false });
   }
 });
