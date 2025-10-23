@@ -332,7 +332,11 @@
         fetch('/api/verify/status').then(res => res.json())
       ])
         .then(([authData, verifyData]) => {
+          console.log('Auth status:', authData);
+          console.log('Verify status:', verifyData);
+          
           if (!authData.authenticated) {
+            console.log('Not authenticated, redirecting to login');
             window.location.href = '/login';
             return;
           }
@@ -344,13 +348,16 @@
           setTimeout(() => {
             // Redirect to verification page if phone not verified
             if (!verifyData.verified) {
+              console.log('Phone not verified, redirecting to verification page');
               window.location.href = '/verify-phone.html';
             } else {
+              console.log('Phone verified, redirecting to dashboard');
               window.location.href = '/';
             }
           }, 500);
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('Error during loading:', error);
           window.location.href = '/login';
         });
     }, 3500);

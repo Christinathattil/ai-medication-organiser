@@ -147,6 +147,10 @@ app.get('/loading.html', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'loading.html'));
 });
 
+app.get('/verify-phone.html', (req, res) => {
+  res.sendFile(join(__dirname, '..', 'public', 'verify-phone.html'));
+});
+
 // Serve static assets (CSS, JS, images, manifest) but NOT index.html
 app.use(express.static(join(__dirname, '..', 'public'), {
   index: false, // Don't serve index.html automatically
@@ -307,7 +311,6 @@ function requirePhoneVerification(req, res, next) {
 }
 
 // Apply phone verification middleware to protected routes
-app.use('/dashboard', requirePhoneVerification);
 app.use('/api/medications', requirePhoneVerification);
 app.use('/api/schedules', requirePhoneVerification);
 app.use('/api/logs', requirePhoneVerification);
@@ -341,6 +344,7 @@ app.get('/auth/google/callback',
         }
         
         console.log('✅ User authenticated:', user.email);
+        console.log('📱 Phone verified status:', req.session.user?.phoneVerified || false);
         return res.redirect('/loading');
       });
     })(req, res, next);
@@ -387,6 +391,12 @@ app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
 
 // Protect the main app (redirect to login if not authenticated)
 app.get('/', ensureAuthenticatedHTML, (req, res) => {
+  // Check if phone verification is required
+  if (req.session && req.session.user && !req.session.user.phoneVerified) {
+    console.log(`⚠️ Root route: User ${req.session.user.email} not verified, redirecting to verification`);
+    return res.redirect('/verify-phone.html');
+  }
+  
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
 });
 
