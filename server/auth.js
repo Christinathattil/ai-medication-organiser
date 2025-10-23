@@ -145,11 +145,11 @@ export function ensureAuthenticatedHTML(req, res, next) {
     if (req.isAuthenticated()) {
       return next();
     }
-    res.redirect('/login');
+    return res.redirect('/login'); // Added return to prevent further execution
   } catch (error) {
     console.error('❌ Auth check error:', error);
     // If authentication check fails, redirect to login
-    res.redirect('/login');
+    return res.redirect('/login'); // Added return to prevent further execution
   }
 }
 
