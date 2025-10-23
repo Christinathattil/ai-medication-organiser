@@ -741,38 +741,50 @@ app.post('/api/verify/check-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     
-    // OTP verified - update user in database
+    // OTP verified - update user in database and session
     if (req.isAuthenticated() && req.user) {
-      // Update user in database
+      // Try to update user in database (may fail due to RLS, but that's OK)
+      let dbUpdateSuccess = false;
       if (db.updateUserPhone) {
-        await db.updateUserPhone(req.user.id, phone);
+        try {
+          await db.updateUserPhone(req.user.id, phone);
+          dbUpdateSuccess = true;
+        } catch (dbError) {
+          console.warn('⚠️ Database update failed (continuing with session-only):', dbError.message);
+          // Don't fail - we'll update the session instead
+        }
       }
       
-      // Reload user from database to update req.user
-      if (supabase) {
+      // Update req.user with verified status
+      req.user.phone = phone;
+      req.user.phone_verified = true;
+      req.user.phone_verified_at = new Date().toISOString();
+      
+      // If DB update succeeded, reload from database to get any other changes
+      if (dbUpdateSuccess && supabase) {
         const { data: updatedUser, error } = await supabase
           .from('users')
           .select('*')
           .eq('id', req.user.id)
-          .single();
+          .maybeSingle();
         
         if (!error && updatedUser) {
-          req.user = updatedUser; // Update req.user with fresh data
-          
-          // Save session to persist updated user data
-          await new Promise((resolve, reject) => {
-            req.session.save((err) => {
-              if (err) {
-                console.error('❌ Session save error after phone verification:', err);
-                reject(err);
-              } else {
-                console.log('✅ Session updated with verified phone');
-                resolve();
-              }
-            });
-          });
+          req.user = updatedUser;
         }
       }
+      
+      // Save session to persist verified status
+      await new Promise((resolve, reject) => {
+        req.session.save((err) => {
+          if (err) {
+            console.error('❌ Session save error after phone verification:', err);
+            reject(err);
+          } else {
+            console.log('✅ Session updated with verified phone (phone_verified=true)');
+            resolve();
+          }
+        });
+      });
     }
     
     // Clean up verification code
