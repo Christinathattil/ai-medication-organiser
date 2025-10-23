@@ -375,6 +375,10 @@
         if (data.success) {
           if (countdownInterval) clearInterval(countdownInterval);
           showStep(3);
+          // Auto-redirect to dashboard after 2 seconds
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
         } else {
           showAlert(data.error || 'Invalid verification code');
           btn.disabled = false;

@@ -758,6 +758,19 @@ app.post('/api/verify/check-otp', async (req, res) => {
         
         if (!error && updatedUser) {
           req.user = updatedUser; // Update req.user with fresh data
+          
+          // Save session to persist updated user data
+          await new Promise((resolve, reject) => {
+            req.session.save((err) => {
+              if (err) {
+                console.error('❌ Session save error after phone verification:', err);
+                reject(err);
+              } else {
+                console.log('✅ Session updated with verified phone');
+                resolve();
+              }
+            });
+          });
         }
       }
     }
