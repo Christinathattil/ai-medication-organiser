@@ -718,15 +718,24 @@ app.post('/api/verify/check-otp', async (req, res) => {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
     
-    // OTP verified - store phone in user profile
-    if (req.session && req.session.user) {
-      req.session.user.phone = phone;
-      req.session.user.phoneVerified = true;
-      req.session.user.phoneVerifiedAt = new Date();
-      
-      // Update user in database if using Supabase
+    // OTP verified - update user in database
+    if (req.isAuthenticated() && req.user) {
+      // Update user in database
       if (db.updateUserPhone) {
-        await db.updateUserPhone(req.session.user.id, phone);
+        await db.updateUserPhone(req.user.id, phone);
+      }
+      
+      // Reload user from database to update req.user
+      if (supabase) {
+        const { data: updatedUser, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', req.user.id)
+          .single();
+        
+        if (!error && updatedUser) {
+          req.user = updatedUser; // Update req.user with fresh data
+        }
       }
     }
     
@@ -745,10 +754,11 @@ app.post('/api/verify/check-otp', async (req, res) => {
 
 // Check if phone is verified
 app.get('/api/verify/status', (req, res) => {
-  if (req.session && req.session.user && req.session.user.phoneVerified) {
+  // Use req.user from Passport, not req.session.user
+  if (req.isAuthenticated() && req.user && req.user.phone_verified) {
     res.json({ 
       verified: true, 
-      phone: req.session.user.phone 
+      phone: req.user.phone 
     });
   } else {
     res.json({ verified: false });
@@ -765,7 +775,7 @@ app.get('/api/test-sms', async (req, res) => {
       });
     }
     
-    const testPhone = req.query.phone || req.session?.user?.phone;
+    const testPhone = req.query.phone || req.user?.phone;
     
     if (!testPhone) {
       return res.json({ 
