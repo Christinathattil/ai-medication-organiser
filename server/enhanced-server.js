@@ -1343,7 +1343,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             // Don't create medication action, but check for schedule
             const schedMedications = await db.getMedications({});
             const medList = schedMedications?.medications || [];
-            const scheduleData = extractScheduleFromText(message, medList);
+            const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
             
             if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
               action = { type: 'add_schedule', data: scheduleData };
@@ -1353,7 +1353,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             // Check if schedule info is also present in the message
             const schedMedications = await db.getMedications({});
             const medList = schedMedications?.medications || [];
-            const scheduleData = extractScheduleFromText(message, medList);
+            const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
             console.log('📅 Checking for schedule data alongside medication:', scheduleData);
             
             // If schedule data is present with required fields, create combined action
@@ -1380,7 +1380,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         const medList = schedMedications?.medications || [];
         // CRITICAL: Extract from CURRENT message only, not conversation
         // Conversation includes AI responses like "8am daily before food" which contaminates extraction
-        const scheduleData = extractScheduleFromText(message, medList);
+        const scheduleData = extractScheduleFromText(message, medList, recentlyAddedName);
         console.log('📅 Extracted schedule data from current message:', scheduleData);
         
         // Schedule action creation - food_timing is MANDATORY
@@ -1413,7 +1413,19 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       const medList = medications?.medications || [];
       console.log('📋 Available medications for scheduling:', medList.map(m => ({ id: m.id, name: m.name })));
       
-      const scheduleData = extractScheduleFromText(message, medList);
+      // Check for recently added medication to use as fallback
+      let lastAddedName = null;
+      const recentlyAdded = recentHistory.find(h => 
+        h.role === 'assistant' && h.content.toLowerCase().includes('successfully added')
+      );
+      if (recentlyAdded) {
+        const addedMatch = recentlyAdded.content.match(/successfully added\s+([a-zA-Z]+)/i);
+        if (addedMatch) {
+          lastAddedName = addedMatch[1];
+        }
+      }
+      
+      const scheduleData = extractScheduleFromText(message, medList, lastAddedName);
       console.log('📅 Extracted schedule data:', scheduleData);
       
       // REQUIRE food_timing - it's mandatory!
@@ -1620,7 +1632,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
 });
 
 // Helper function to extract schedule details from text
-function extractScheduleFromText(text, medications) {
+function extractScheduleFromText(text, medications, lastAddedMedicationName = null) {
   const data = {
     medication_id: null,
     medication_name: null, // Store the mentioned medication name even if not found
@@ -1661,7 +1673,24 @@ function extractScheduleFromText(text, medications) {
     }
   }
   
-  // If no match found, try to extract medication name from text
+  // If no match found in text, try lastAddedMedicationName (contextual fallback)
+  if (!foundMatch && lastAddedMedicationName) {
+    console.log(`🔍 No medication mentioned in text, checking lastAddedMedication: ${lastAddedMedicationName}`);
+    // Find the medication by name
+    if (Array.isArray(medications) && medications.length > 0) {
+      const lastAddedMed = medications.find(med => 
+        med && med.name && med.name.toLowerCase() === lastAddedMedicationName.toLowerCase()
+      );
+      if (lastAddedMed) {
+        data.medication_id = lastAddedMed.id;
+        data.medication_name = lastAddedMed.name;
+        foundMatch = true;
+        console.log(`✅ Using lastAddedMedication: ${lastAddedMed.name} (ID: ${lastAddedMed.id})`);
+      }
+    }
+  }
+  
+  // If still no match found, try to extract medication name from text
   if (!foundMatch) {
     // Look for "schedule [medication]" pattern
     const scheduleMatch = text.match(/schedule\s+(\w+)/i);
