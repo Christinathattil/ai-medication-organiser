@@ -436,8 +436,10 @@ app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
 
 // Protect the main app (redirect to login if not authenticated)
 app.get('/', ensureAuthenticatedHTML, (req, res) => {
-  // Check if phone verification is required (Passport stores user in req.user)
-  if (req.user && !req.user.phone_verified) {
+  // Check if phone verification is required (can be disabled for testing)
+  const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
+  
+  if (requirePhoneVerif && req.user && !req.user.phone_verified) {
     console.log(`⚠️ Root route: User ${req.user.email} not verified, redirecting to verification`);
     return res.redirect('/verify-phone.html');
   }
