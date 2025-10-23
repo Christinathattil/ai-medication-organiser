@@ -302,14 +302,14 @@ function requirePhoneVerification(req, res, next) {
     return next();
   }
   
-  // Check if user is logged in
-  if (!req.session || !req.session.user) {
+  // Check if user is logged in (Passport uses req.user)
+  if (!req.user) {
     return next(); // Let auth middleware handle this
   }
   
   // If user is logged in but phone not verified, redirect to verification
-  if (!req.session.user.phoneVerified) {
-    console.log(`⚠️ User ${req.session.user.email} needs phone verification`);
+  if (!req.user.phone_verified) {
+    console.log(`⚠️ User ${req.user.email} needs phone verification`);
     
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
       return res.status(403).json({ 
@@ -321,7 +321,7 @@ function requirePhoneVerification(req, res, next) {
     return res.redirect('/verify-phone.html');
   }
   
-  console.log(`✅ User ${req.session.user.email} phone verified: ${req.session.user.phone}`);
+  console.log(`✅ User ${req.user.email} phone verified: ${req.user.phone}`);
   next();
 }
 
@@ -359,8 +359,15 @@ app.get('/auth/google/callback',
         }
         
         console.log('✅ User authenticated:', user.email);
-        console.log('📱 Phone verified status:', req.session.user?.phoneVerified || false);
-        return res.redirect('/loading');
+        console.log('📱 Phone verified status:', user.phone_verified || false);
+        
+        // Save session explicitly before redirect
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            console.error('❌ Session save error:', saveErr);
+          }
+          return res.redirect('/loading');
+        });
       });
     })(req, res, next);
   }
@@ -406,12 +413,13 @@ app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
 
 // Protect the main app (redirect to login if not authenticated)
 app.get('/', ensureAuthenticatedHTML, (req, res) => {
-  // Check if phone verification is required
-  if (req.session && req.session.user && !req.session.user.phoneVerified) {
-    console.log(`⚠️ Root route: User ${req.session.user.email} not verified, redirecting to verification`);
+  // Check if phone verification is required (Passport stores user in req.user)
+  if (req.user && !req.user.phone_verified) {
+    console.log(`⚠️ Root route: User ${req.user.email} not verified, redirecting to verification`);
     return res.redirect('/verify-phone.html');
   }
   
+  console.log(`✅ Root route: User ${req.user?.email} accessing dashboard`);
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
 });
 
