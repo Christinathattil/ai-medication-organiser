@@ -1089,7 +1089,26 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // User must manually confirm schedule - no auto-execution
+        // Auto-execute after 3 seconds if user doesn't interact
+        let autoExecuted = false;
+        const autoExecuteTimeout = setTimeout(() => {
+          if (!autoExecuted && buttonDiv.parentNode) {
+            autoExecuted = true;
+            console.log('⏰ Auto-executing schedule creation after 3 seconds');
+            scheduleBtn.click();
+          }
+        }, 3000);
+        
+        // Cancel auto-execute if user clicks either button
+        scheduleBtn.addEventListener('click', () => {
+          clearTimeout(autoExecuteTimeout);
+          autoExecuted = true;
+        }, { once: true });
+        
+        cancelBtn.addEventListener('click', () => {
+          clearTimeout(autoExecuteTimeout);
+          autoExecuted = true;
+        }, { once: true });
       }
     }
     
