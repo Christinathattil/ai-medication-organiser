@@ -41,20 +41,22 @@ passport.use(new GoogleStrategy({
         }
 
         if (existingUser) {
-          // Update last login
+          // Update last login (non-critical - don't fail auth if this fails)
           const { data: updatedUser, error: updateError } = await supabase
             .from('users')
             .update({ last_login: googleUser.last_login })
             .eq('id', existingUser.id)
             .select()
-            .single();
+            .maybeSingle();
 
           if (updateError) {
-            console.error('Error updating user:', updateError);
-            return done(updateError, null);
+            console.warn('⚠️  Could not update last_login (non-critical):', updateError.message);
+            // Continue with existing user data - don't fail authentication
+            return done(null, existingUser);
           }
 
-          return done(null, updatedUser);
+          // Return updated user if update succeeded, otherwise existing user
+          return done(null, updatedUser || existingUser);
         } else {
           // Create new user
           const { data: newUser, error: insertError } = await supabase
