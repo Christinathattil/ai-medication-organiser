@@ -938,6 +938,9 @@
           case 'add_schedule':
             showSchedulePreview(action.data);
             break;
+          case 'add_medication_and_schedule':
+            showCombinedPreview(action.data);
+            break;
           case 'show_schedule':
             await showTodaySchedule();
             break;
@@ -1088,6 +1091,141 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
         // Cancel auto-schedule if user clicks cancel
         cancelBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
         scheduleBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
+      }
+    }
+    
+    function showCombinedPreview(data) {
+      const medData = data.medication;
+      const schedData = data.schedule;
+      
+      // Set default quantity to 30 if not provided
+      if (!medData.total_quantity) {
+        medData.total_quantity = 30;
+      }
+      
+      // Get food timing text
+      const foodTimingText = schedData.food_timing === 'before_food' ? 'Before food' : 
+                             schedData.food_timing === 'after_food' ? 'After food' : 
+                             schedData.food_timing === 'with_food' ? 'With food' :
+                             'No specific timing';
+      
+      const preview = `📋 I've extracted the following details:
+
+**Medication:**
+• Name: ${medData.name || '(Not specified)'}
+• Dosage: ${medData.dosage || '(Not specified)'}
+• Form: ${medData.form || 'tablet'}
+• Quantity: ${medData.total_quantity} units
+
+**Schedule:**
+• Time: ${schedData.time || '(Not specified)'}
+• Frequency: ${schedData.frequency || 'daily'}
+• Food timing: ${foodTimingText}
+
+Would you like to add this medication and schedule?`;
+      
+      addMessage(preview, 'bot');
+      
+      // If all required fields are present, show button and auto-execute
+      if (medData.name && medData.dosage && schedData.time && schedData.food_timing) {
+        const buttonDiv = document.createElement('div');
+        buttonDiv.style.display = 'flex';
+        buttonDiv.style.gap = '8px';
+        buttonDiv.style.marginTop = '8px';
+        buttonDiv.style.marginBottom = '16px';
+        
+        const addBtn = document.createElement('button');
+        addBtn.textContent = '✅ Add Medication & Schedule';
+        addBtn.style.cssText = 'background: linear-gradient(135deg, #10b981 0%, #7c3aed 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        addBtn.onclick = async () => {
+          buttonDiv.remove();
+          await addMedicationAndSchedule(medData, schedData);
+        };
+        
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        cancelBtn.onclick = () => {
+          buttonDiv.remove();
+          addMessage('Cancelled. Let me know if you need anything else!', 'bot');
+        };
+        
+        buttonDiv.appendChild(addBtn);
+        buttonDiv.appendChild(cancelBtn);
+        messagesDiv.appendChild(buttonDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        
+        // Auto-click after 1.5 seconds if user doesn't interact
+        const autoAddTimeout = setTimeout(() => {
+          if (buttonDiv.parentElement) { // Button still exists
+            console.log('🤖 Auto-adding medication+schedule (no user interaction)');
+            addBtn.click();
+          }
+        }, 1500);
+        
+        // Cancel auto-add if user clicks cancel
+        cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+        addBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+      }
+    }
+    
+    async function addMedicationAndSchedule(medData, schedData) {
+      try {
+        // First, add the medication
+        const medResponse = await fetch('/api/medications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(medData)
+        });
+        
+        if (!medResponse.ok) {
+          throw new Error('Failed to add medication');
+        }
+        
+        const medResult = await medResponse.json();
+        const medicationId = medResult.medication_id;
+        
+        // Save for reference
+        lastAddedMedication = { id: medicationId, name: medData.name };
+        
+        console.log('✅ Medication added:', medicationId);
+        addMessage(`✅ Successfully added ${medData.name}!`, 'bot');
+        
+        // Now add the schedule using the medication ID
+        const schedulePayload = {
+          medication_id: medicationId,
+          time: schedData.time,
+          frequency: schedData.frequency || 'daily',
+          food_timing: schedData.food_timing,
+          start_date: new Date().toISOString().split('T')[0]
+        };
+        
+        const schedResponse = await fetch('/api/schedules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(schedulePayload)
+        });
+        
+        if (!schedResponse.ok) {
+          throw new Error('Failed to add schedule');
+        }
+        
+        console.log('✅ Schedule added');
+        addMessage(`✅ Schedule created for ${schedData.time} ${schedData.frequency}!`, 'bot');
+        
+        // Refresh the medications list
+        if (typeof loadMedications === 'function') {
+          await loadMedications();
+        }
+        
+        // Refresh schedule if on schedule page
+        if (typeof loadSchedules === 'function') {
+          await loadSchedules();
+        }
+        
+      } catch (error) {
+        console.error('Error adding medication and schedule:', error);
+        addMessage('❌ Failed to add medication and schedule. Please try again.', 'bot', true);
       }
     }
     

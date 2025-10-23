@@ -47,7 +47,6 @@ export const validateMedication = [
   
   body('form')
     .optional()
-    .default('tablet')
     .trim()
     .isIn(['tablet', 'capsule', 'liquid', 'injection', 'cream', 'inhaler', 'drops', 'patch', 'other'])
     .withMessage('Invalid medication form'),
@@ -90,6 +89,11 @@ export const validateSchedule = [
     .optional()
     .isBoolean().withMessage('with_food must be boolean')
     .toBoolean(),
+  
+  body('food_timing')
+    .optional()
+    .isIn(['before_food', 'after_food', 'with_food', 'none'])
+    .withMessage('Invalid food timing'),
   
   body('special_instructions')
     .optional()

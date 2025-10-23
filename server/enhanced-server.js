@@ -1022,27 +1022,68 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             medicationData.total_quantity = 30;
           }
           
-          action = { type: 'add_medication', data: medicationData };
-          console.log('✅ Follow-up medication action created:', action);
+          // Check if this medication was just successfully added in previous turn
+          // Look for success confirmation in recent history
+          const wasJustAdded = recentHistory.some(h => 
+            h.role === 'assistant' && 
+            h.content.toLowerCase().includes('successfully added') &&
+            h.content.toLowerCase().includes(medicationData.name.toLowerCase())
+          );
+          
+          if (wasJustAdded) {
+            console.log(`⚠️ ${medicationData.name} was just added in previous turn - skipping duplicate`);
+            // Don't create medication action, but check for schedule
+            const schedMedications = await db.getMedications({});
+            const medList = schedMedications?.medications || [];
+            const scheduleData = extractScheduleFromText(message, medList);
+            
+            if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
+              action = { type: 'add_schedule', data: scheduleData };
+              console.log('✅ Schedule-only action created for existing medication:', action);
+            }
+          } else {
+            // Check if schedule info is also present in the message
+            const schedMedications = await db.getMedications({});
+            const medList = schedMedications?.medications || [];
+            const scheduleData = extractScheduleFromText(message, medList);
+            console.log('📅 Checking for schedule data alongside medication:', scheduleData);
+            
+            // If schedule data is present with required fields, create combined action
+            if (scheduleData.time && scheduleData.food_timing) {
+              action = { 
+                type: 'add_medication_and_schedule', 
+                data: {
+                  medication: medicationData,
+                  schedule: scheduleData
+                }
+              };
+              console.log('✅ Combined medication+schedule action created:', action);
+            } else {
+              action = { type: 'add_medication', data: medicationData };
+              console.log('✅ Follow-up medication action created:', action);
+            }
+          }
         }
       }  // End of else block for non-scheduling messages
       
-      // Check for schedule completion
-      const schedMedications = await db.getMedications({});
-      const medList = schedMedications?.medications || [];
-      // CRITICAL: Extract from CURRENT message only, not conversation
-      // Conversation includes AI responses like "8am daily before food" which contaminates extraction
-      const scheduleData = extractScheduleFromText(message, medList);
-      console.log('📅 Extracted schedule data from current message:', scheduleData);
-      
-      // Schedule action creation - food_timing is MANDATORY
-      if (!action && scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
-        // Food timing must be specified - no defaults
-        action = { type: 'add_schedule', data: scheduleData };
-        console.log('✅ Follow-up schedule action created:', action);
-      } else if (!action && scheduleData.medication_id && scheduleData.time && !scheduleData.food_timing) {
-        // Log that food timing is missing
-        console.log('⚠️ Food timing missing - AI will ask for it');
+      // Check for schedule completion (only if no action yet)
+      if (!action) {
+        const schedMedications = await db.getMedications({});
+        const medList = schedMedications?.medications || [];
+        // CRITICAL: Extract from CURRENT message only, not conversation
+        // Conversation includes AI responses like "8am daily before food" which contaminates extraction
+        const scheduleData = extractScheduleFromText(message, medList);
+        console.log('📅 Extracted schedule data from current message:', scheduleData);
+        
+        // Schedule action creation - food_timing is MANDATORY
+        if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
+          // Food timing must be specified - no defaults
+          action = { type: 'add_schedule', data: scheduleData };
+          console.log('✅ Follow-up schedule action created:', action);
+        } else if (scheduleData.medication_id && scheduleData.time && !scheduleData.food_timing) {
+          // Log that food timing is missing
+          console.log('⚠️ Food timing missing - AI will ask for it');
+        }
       }
     }
     
@@ -1509,7 +1550,7 @@ function extractMedicationFromText(text) {
   const data = {
     name: '',
     dosage: '',
-    form: 'tablet',
+    form: '', // No default - user must explicitly provide
     purpose: '',
     total_quantity: null // Will be set to 30 as default if not specified
   };
