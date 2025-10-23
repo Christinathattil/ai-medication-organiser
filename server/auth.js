@@ -117,6 +117,8 @@ passport.deserializeUser(async (id, done) => {
       }
 
       console.log('✅ User deserialized:', user.email);
+      console.log('   Phone verified:', user.phone_verified);
+      console.log('   Phone:', user.phone);
       done(null, user);
     } else {
       // Session-only mode

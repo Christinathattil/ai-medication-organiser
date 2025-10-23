@@ -459,6 +459,28 @@ class SupabaseDatabase {
     
     return log;
   }
+
+  // Update user phone verification
+  async updateUserPhone(userId, phone) {
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        phone: phone,
+        phone_verified: true,
+        phone_verified_at: new Date().toISOString()
+      })
+      .eq('id', userId)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('❌ Error updating user phone:', error);
+      throw error;
+    }
+    
+    console.log('✅ Database updated: phone_verified=true for user', userId);
+    return data;
+  }
 }
 
 export default new SupabaseDatabase();
