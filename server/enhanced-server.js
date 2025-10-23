@@ -67,10 +67,25 @@ const upload = multer({
 });
 
 // Configure CORS to allow credentials (needed for session cookies)
+const allowedOrigins = [
+  'http://localhost:8080',
+  'https://ai-medication-organiser.onrender.com',
+  process.env.RENDER_EXTERNAL_URL, // Render provides this automatically
+  process.env.PUBLIC_URL // Custom domain if configured
+].filter(Boolean); // Remove undefined values
+
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' 
-    ? 'https://ai-medication-organiser.onrender.com'
-    : 'http://localhost:8080',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
+      callback(null, true);
+    } else {
+      console.log('❌ CORS blocked origin:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
