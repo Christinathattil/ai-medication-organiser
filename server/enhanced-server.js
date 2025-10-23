@@ -308,6 +308,14 @@ app.get('/health', (req, res) => {
 
 // Middleware to check phone verification
 function requirePhoneVerification(req, res, next) {
+  // Check if phone verification is required (can be disabled)
+  const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
+  
+  // If phone verification is disabled, skip the check
+  if (!requirePhoneVerif) {
+    return next();
+  }
+  
   // Skip verification check for these routes
   const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms', '/loading'];
   if (skipRoutes.some(route => req.path.includes(route))) {

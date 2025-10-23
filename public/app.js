@@ -896,20 +896,111 @@ document.addEventListener('DOMContentLoaded', () => {
     startDateInput.value = today;
   }
   
-  // Register service worker for PWA support
+  // Register service worker for PWA support and push notifications
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
-        console.log('Service Worker registered:', registration);
+        console.log('✅ Service Worker registered:', registration);
         
-        // Request notification permission
+        // Request notification permission proactively
         if ('Notification' in window && Notification.permission === 'default') {
-          Notification.requestPermission();
+          Notification.requestPermission().then((permission) => {
+            console.log('🔔 Notification permission:', permission);
+            if (permission === 'granted') {
+              showNotification('🔔 Notifications enabled! You\'ll receive medication reminders.', 'success');
+            }
+          });
         }
+        
+        // Start checking for pending medications every minute
+        startMedicationNotificationCheck(registration);
       })
       .catch((error) => {
-        console.log('Service Worker registration failed:', error);
+        console.log('❌ Service Worker registration failed:', error);
       });
+  }
+  
+  // Track shown notifications to avoid duplicates
+  const shownNotifications = new Set();
+  
+  // Check for pending medications and show browser notifications
+  async function startMedicationNotificationCheck(swRegistration) {
+    console.log('🔔 Starting medication notification checker...');
+    
+    async function checkAndNotify() {
+      // Only check if notifications are enabled
+      if (Notification.permission !== 'granted') {
+        return;
+      }
+      
+      try {
+        const res = await fetch(`${API_BASE}/schedules/today`);
+        if (!res.ok) return;
+        
+        const data = await res.json();
+        const now = new Date();
+        const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        
+        for (const schedule of data.schedules || []) {
+          const notificationId = `${schedule.id}-${currentTime}`;
+          
+          // Check if it's time and notification hasn't been shown
+          if (schedule.time === currentTime && 
+              schedule.status === 'pending' && 
+              !shownNotifications.has(notificationId)) {
+            
+            console.log(`🔔 Showing notification for: ${schedule.name}`);
+            
+            // Construct notification message
+            let body = `Time to take ${schedule.name} (${schedule.dosage || 'as prescribed'})`;
+            if (schedule.food_timing === 'before_food') {
+              body += ' - Take before food';
+            } else if (schedule.food_timing === 'after_food') {
+              body += ' - Take after food';
+            } else if (schedule.food_timing === 'with_food') {
+              body += ' - Take with food';
+            }
+            if (schedule.special_instructions) {
+              body += `\n${schedule.special_instructions}`;
+            }
+            
+            // Show notification with action buttons
+            await swRegistration.showNotification('💊 Medication Reminder', {
+              body: body,
+              icon: '/icon-192.png',
+              badge: '/badge-72.png',
+              vibrate: [200, 100, 200],
+              tag: schedule.id,
+              requireInteraction: true, // Keeps notification visible until user interacts
+              data: {
+                medicationId: schedule.medication_id,
+                scheduleId: schedule.id
+              },
+              actions: [
+                { action: 'taken', title: '✅ Taken' },
+                { action: 'skipped', title: '⏭️ Skip' }
+              ]
+            });
+            
+            // Mark as shown
+            shownNotifications.add(notificationId);
+            
+            // Clean up old notification IDs after 5 minutes
+            setTimeout(() => {
+              shownNotifications.delete(notificationId);
+            }, 5 * 60 * 1000);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error checking medications:', error);
+      }
+    }
+    
+    // Check immediately on load
+    checkAndNotify();
+    
+    // Then check every minute
+    setInterval(checkAndNotify, 60 * 1000);
   }
   
   // Add install prompt for PWA
