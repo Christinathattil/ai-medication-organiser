@@ -278,19 +278,31 @@ app.get('/health', (req, res) => {
 // Middleware to check phone verification
 function requirePhoneVerification(req, res, next) {
   // Skip verification check for these routes
-  const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms'];
+  const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms', '/loading'];
   if (skipRoutes.some(route => req.path.includes(route))) {
     return next();
   }
   
+  // Check if user is logged in
+  if (!req.session || !req.session.user) {
+    return next(); // Let auth middleware handle this
+  }
+  
   // If user is logged in but phone not verified, redirect to verification
-  if (req.session && req.session.user && !req.session.user.phoneVerified) {
+  if (!req.session.user.phoneVerified) {
+    console.log(`⚠️ User ${req.session.user.email} needs phone verification`);
+    
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.status(403).json({ error: 'Phone verification required', redirect: '/verify-phone.html' });
+      return res.status(403).json({ 
+        error: 'Phone verification required', 
+        redirect: '/verify-phone.html',
+        message: 'Please verify your phone number to continue'
+      });
     }
     return res.redirect('/verify-phone.html');
   }
   
+  console.log(`✅ User ${req.session.user.email} phone verified: ${req.session.user.phone}`);
   next();
 }
 
@@ -299,6 +311,7 @@ app.use('/dashboard', requirePhoneVerification);
 app.use('/api/medications', requirePhoneVerification);
 app.use('/api/schedules', requirePhoneVerification);
 app.use('/api/logs', requirePhoneVerification);
+app.use('/api/chat', requirePhoneVerification);
 
 // Google OAuth login
 app.get('/auth/google',

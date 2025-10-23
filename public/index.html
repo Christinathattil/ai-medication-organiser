@@ -269,6 +269,9 @@
           <button onclick="showTab('history')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
             <i class="fas fa-history mr-2"></i><span>History</span>
           </button>
+          <button onclick="handleLogout()" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 hover:shadow-md transition-all font-medium text-sm" title="Logout">
+            <i class="fas fa-sign-out-alt mr-2"></i><span>Logout</span>
+          </button>
           <button onclick="showTab('stats')" class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
             <i class="fas fa-chart-line mr-2"></i><span>Stats</span>
           </button>
@@ -690,19 +693,29 @@
   <script>
   console.log('🤖 AI Chatbot initializing (inline, no cache)...');
   
+  // Global logout function (must be outside IIFE for onclick access)
+  window.handleLogout = async function() {
+    if (confirm('Are you sure you want to logout?')) {
+      try {
+        await fetch('/auth/logout');
+        window.location.href = '/login';
+      } catch (error) {
+        console.error('Logout error:', error);
+        alert('Failed to logout. Please try again.');
+      }
+    }
+  };
+  
   (function() {
-    const API_BASE = window.location.hostname === 'localhost' 
-      ? `http://localhost:${window.location.port || 8080}/api` 
-      : '/api';
-    
-    let chatHistory = [];
-    let isProcessing = false;
-    let lastAddedMedication = null; // Track last added medication for context
+    const API_BASE = '/api';
+    let currentMedicationForSchedule = null;
+    let lastAddedMedication = null;
     
     // DOM elements
     const toggleBtn = document.getElementById('ai-chat-toggle');
     const sidebar = document.getElementById('ai-chat-sidebar');
     const closeBtn = document.getElementById('ai-chat-close');
+    const logoutBtn = document.getElementById('ai-chat-logout');
     const sendBtn = document.getElementById('ai-chat-send');
     const input = document.getElementById('ai-chat-input');
     const messagesDiv = document.getElementById('ai-chat-messages');
@@ -1022,17 +1035,8 @@ ${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please 
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click after 3 seconds if user doesn't interact
-        const autoAddTimeout = setTimeout(() => {
-          if (buttonDiv.parentElement) { // Button still exists
-            console.log('🤖 Auto-adding medication (no user interaction)');
-            addBtn.click();
-          }
-        }, 3000);
-        
-        // Cancel auto-add if user clicks cancel
-        cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
-        addBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+        // User must manually confirm - no auto-execution
+        // This ensures users review all details before adding
       }
     }
     
@@ -1083,17 +1087,7 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click schedule after 3 seconds if user doesn't interact
-        const autoScheduleTimeout = setTimeout(() => {
-          if (buttonDiv.parentElement) { // Button still exists
-            console.log('🤖 Auto-scheduling medication (no user interaction)');
-            scheduleBtn.click();
-          }
-        }, 3000);
-        
-        // Cancel auto-schedule if user clicks cancel
-        cancelBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
-        scheduleBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
+        // User must manually confirm schedule - no auto-execution
       }
     }
     
@@ -1158,17 +1152,7 @@ Would you like to add this medication and schedule?`;
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click after 3 seconds if user doesn't interact
-        const autoAddTimeout = setTimeout(() => {
-          if (buttonDiv.parentElement) { // Button still exists
-            console.log('🤖 Auto-adding medication+schedule (no user interaction)');
-            addBtn.click();
-          }
-        }, 3000);
-        
-        // Cancel auto-add if user clicks cancel
-        cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
-        addBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
+        // User must manually confirm combined action - no auto-execution
       }
     }
     

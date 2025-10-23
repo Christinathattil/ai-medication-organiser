@@ -326,20 +326,29 @@
   <script>
     // Smooth redirect after animation
     setTimeout(() => {
-      // Check authentication status
-      fetch('/api/auth/status')
-        .then(res => res.json())
-        .then(data => {
-          if (data.authenticated) {
-            // Add fade out effect before redirect
-            document.body.style.transition = 'opacity 0.5s ease-out';
-            document.body.style.opacity = '0';
-            setTimeout(() => {
-              window.location.href = '/';
-            }, 500);
-          } else {
+      // Check authentication and phone verification status
+      Promise.all([
+        fetch('/api/auth/status').then(res => res.json()),
+        fetch('/api/verify/status').then(res => res.json())
+      ])
+        .then(([authData, verifyData]) => {
+          if (!authData.authenticated) {
             window.location.href = '/login';
+            return;
           }
+          
+          // Add fade out effect before redirect
+          document.body.style.transition = 'opacity 0.5s ease-out';
+          document.body.style.opacity = '0';
+          
+          setTimeout(() => {
+            // Redirect to verification page if phone not verified
+            if (!verifyData.verified) {
+              window.location.href = '/verify-phone.html';
+            } else {
+              window.location.href = '/';
+            }
+          }, 500);
         })
         .catch(() => {
           window.location.href = '/login';
