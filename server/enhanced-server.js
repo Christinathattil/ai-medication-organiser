@@ -98,7 +98,10 @@ const PgSession = connectPgSimple(session);
 // PostgreSQL connection pool for sessions
 const pgPool = new pg.Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: isProduction ? { rejectUnauthorized: false } : false
+  ssl: isProduction ? { rejectUnauthorized: false } : false,
+  connectionTimeoutMillis: 10000, // 10 seconds
+  idleTimeoutMillis: 30000, // 30 seconds
+  max: 10 // Maximum pool size
 });
 
 // Test database connection
@@ -177,17 +180,17 @@ app.get('/verify-phone.html', (req, res) => {
   res.sendFile(join(__dirname, '..', 'public', 'verify-phone.html'));
 });
 
-// Serve static assets (CSS, JS, images, manifest) but NOT index.html
-app.use(express.static(join(__dirname, '..', 'public'), {
-  index: false, // Don't serve index.html automatically
-  setHeaders: (res, path) => {
-    // Only allow certain file types
-    if (!path.endsWith('index.html')) {
-      return;
-    }
-    // Block direct access to index.html
-    res.status(404).send('Not found');
+// Block direct access to index.html (must be before static middleware)
+app.use((req, res, next) => {
+  if (req.path === '/index.html' || req.path === '/public/index.html') {
+    return res.status(404).send('Not Found');
   }
+  next();
+});
+
+// Serve static assets (CSS, JS, images, manifest)
+app.use(express.static(join(__dirname, '..', 'public'), {
+  index: false // Don't serve index.html automatically
 }));
 
 app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
