@@ -710,6 +710,7 @@
     const API_BASE = '/api';
     let currentMedicationForSchedule = null;
     let lastAddedMedication = null;
+    let isProcessing = false; // Track if a message is being sent
     
     // DOM elements
     const toggleBtn = document.getElementById('ai-chat-toggle');
