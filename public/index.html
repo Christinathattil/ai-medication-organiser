@@ -1022,13 +1022,13 @@ ${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please 
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click after 1.5 seconds if user doesn't interact
+        // Auto-click after 3 seconds if user doesn't interact
         const autoAddTimeout = setTimeout(() => {
           if (buttonDiv.parentElement) { // Button still exists
             console.log('🤖 Auto-adding medication (no user interaction)');
             addBtn.click();
           }
-        }, 1500);
+        }, 3000);
         
         // Cancel auto-add if user clicks cancel
         cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
@@ -1083,13 +1083,13 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click after 1.5 seconds if user doesn't interact
+        // Auto-click schedule after 3 seconds if user doesn't interact
         const autoScheduleTimeout = setTimeout(() => {
           if (buttonDiv.parentElement) { // Button still exists
             console.log('🤖 Auto-scheduling medication (no user interaction)');
             scheduleBtn.click();
           }
-        }, 1500);
+        }, 3000);
         
         // Cancel auto-schedule if user clicks cancel
         cancelBtn.addEventListener('click', () => clearTimeout(autoScheduleTimeout), { once: true });
@@ -1158,13 +1158,13 @@ Would you like to add this medication and schedule?`;
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-click after 1.5 seconds if user doesn't interact
+        // Auto-click after 3 seconds if user doesn't interact
         const autoAddTimeout = setTimeout(() => {
           if (buttonDiv.parentElement) { // Button still exists
             console.log('🤖 Auto-adding medication+schedule (no user interaction)');
             addBtn.click();
           }
-        }, 1500);
+        }, 3000);
         
         // Cancel auto-add if user clicks cancel
         cancelBtn.addEventListener('click', () => clearTimeout(autoAddTimeout), { once: true });
