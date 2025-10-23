@@ -1175,20 +1175,34 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     
     if (!action && hasDeleteIntent && !lowerMessage.includes('schedule')) {
       console.log('🗑️ Detected: Delete Medication Intent');
-      const deleteData = findMedicationByName(message, medsList);
-      console.log('🔍 Found medication to delete:', deleteData);
       
-      if (deleteData.matches.length > 0) {
-        // If multiple matches, return all for confirmation
-        action = { 
-          type: 'delete_medication', 
-          data: deleteData.matches.length === 1 
-            ? { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
-            : { multiple: true, medications: deleteData.matches }
+      // Check if user wants to delete ALL medications
+      const deleteAllPatterns = /\b(all|every|everything|entire|complete)\b/i;
+      const wantsDeleteAll = deleteAllPatterns.test(message);
+      
+      if (wantsDeleteAll) {
+        console.log('🗑️ User wants to delete ALL medications');
+        action = {
+          type: 'delete_all_medications',
+          data: { medications: medsList }
         };
-        console.log('✅ Delete medication action created:', action);
+        console.log('✅ Delete all medications action created');
       } else {
-        console.log('⚠️ No medication found to delete');
+        const deleteData = findMedicationByName(message, medsList);
+        console.log('🔍 Found medication to delete:', deleteData);
+        
+        if (deleteData.matches.length > 0) {
+          // If multiple matches, return all for confirmation
+          action = { 
+            type: 'delete_medication', 
+            data: deleteData.matches.length === 1 
+              ? { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
+              : { multiple: true, medications: deleteData.matches }
+          };
+          console.log('✅ Delete medication action created:', action);
+        } else {
+          console.log('⚠️ No medication found to delete');
+        }
       }
     }
     

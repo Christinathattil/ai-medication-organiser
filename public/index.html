@@ -953,6 +953,9 @@
           case 'delete_medication':
             showDeleteMedicationConfirmation(action.data);
             break;
+          case 'delete_all_medications':
+            showDeleteAllMedicationsConfirmation(action.data);
+            break;
           case 'delete_schedule':
             showDeleteScheduleConfirmation(action.data);
             break;
@@ -1548,13 +1551,75 @@ Would you like to add this medication and schedule?`;
     // DELETE MEDICATION CONFIRMATION
     function showDeleteMedicationConfirmation(data) {
       if (data.multiple) {
-        // Multiple matches found
+        // Multiple matches found - show clickable buttons for each
         let msg = '⚠️ I found multiple medications matching your request:\n\n';
         data.medications.forEach((med, idx) => {
-          msg += `${idx + 1}. ${med.name} (${med.dosage}, ${med.form})\n`;
+          msg += `${idx + 1}. ${med.name} (${med.dosage || 'N/A'}, ${med.form || 'N/A'})\n`;
         });
-        msg += '\nWhich one would you like to delete? Please be more specific.';
+        msg += '\nWhich one would you like to delete?';
         addMessage(msg, 'bot');
+        
+        // Create clickable buttons for each medication
+        const buttonContainer = document.createElement('div');
+        buttonContainer.style.display = 'flex';
+        buttonContainer.style.flexDirection = 'column';
+        buttonContainer.style.gap = '8px';
+        buttonContainer.style.marginTop = '8px';
+        buttonContainer.style.marginBottom = '16px';
+        
+        data.medications.forEach((med, idx) => {
+          const deleteBtn = document.createElement('button');
+          deleteBtn.textContent = `🗑️ Delete ${med.name} (${med.dosage || 'N/A'}, ${med.form || 'N/A'})`;
+          deleteBtn.style.cssText = 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+          deleteBtn.onclick = async () => {
+            buttonContainer.remove();
+            // Show individual confirmation for this specific medication
+            const medDetails = `${med.name} (${med.dosage || 'N/A'}, ${med.form || 'N/A'})`;
+            const confirmMsg = `🗑️ Are you sure you want to delete ${medDetails}? This action cannot be undone.`;
+            addMessage(confirmMsg, 'bot');
+            
+            const confirmDiv = document.createElement('div');
+            confirmDiv.style.display = 'flex';
+            confirmDiv.style.gap = '8px';
+            confirmDiv.style.marginTop = '8px';
+            confirmDiv.style.marginBottom = '16px';
+            
+            const yesBtn = document.createElement('button');
+            yesBtn.textContent = '✓ Yes, Delete';
+            yesBtn.style.cssText = 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+            yesBtn.onclick = async () => {
+              confirmDiv.remove();
+              await deleteMedication(med.id, medDetails);
+            };
+            
+            const noBtn = document.createElement('button');
+            noBtn.textContent = 'Cancel';
+            noBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+            noBtn.onclick = () => {
+              confirmDiv.remove();
+              addMessage('Deletion cancelled.', 'bot');
+            };
+            
+            confirmDiv.appendChild(yesBtn);
+            confirmDiv.appendChild(noBtn);
+            messagesDiv.appendChild(confirmDiv);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+          };
+          buttonContainer.appendChild(deleteBtn);
+        });
+        
+        // Add cancel button
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Cancel';
+        cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+        cancelBtn.onclick = () => {
+          buttonContainer.remove();
+          addMessage('Deletion cancelled.', 'bot');
+        };
+        buttonContainer.appendChild(cancelBtn);
+        
+        messagesDiv.appendChild(buttonContainer);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
         return;
       }
       
@@ -1612,6 +1677,100 @@ Would you like to add this medication and schedule?`;
       } catch (error) {
         console.error('Error deleting medication:', error);
         addMessage('❌ Failed to delete medication. Please try again.', 'bot', true);
+      }
+    }
+    
+    // DELETE ALL MEDICATIONS CONFIRMATION
+    function showDeleteAllMedicationsConfirmation(data) {
+      const medications = data.medications || [];
+      
+      if (medications.length === 0) {
+        addMessage('ℹ️ Your medication list is already empty.', 'bot');
+        return;
+      }
+      
+      let msg = `⚠️ I'll delete all ${medications.length} medications. Are you sure?\n\nThis will remove:\n`;
+      medications.forEach(med => {
+        msg += `• ${med.name} (${med.dosage || 'N/A'}, ${med.form || 'N/A'})\n`;
+      });
+      msg += '\nThis action cannot be undone!';
+      
+      addMessage(msg, 'bot');
+      
+      const buttonDiv = document.createElement('div');
+      buttonDiv.style.display = 'flex';
+      buttonDiv.style.gap = '8px';
+      buttonDiv.style.marginTop = '8px';
+      buttonDiv.style.marginBottom = '16px';
+      
+      const deleteBtn = document.createElement('button');
+      deleteBtn.textContent = '🗑️ Yes, Delete All';
+      deleteBtn.style.cssText = 'background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      deleteBtn.onclick = async () => {
+        buttonDiv.remove();
+        await deleteAllMedications(medications);
+      };
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.textContent = 'Cancel';
+      cancelBtn.style.cssText = 'background: #e5e7eb; color: #374151; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px;';
+      cancelBtn.onclick = () => {
+        buttonDiv.remove();
+        addMessage('Deletion cancelled. Your medications are safe!', 'bot');
+      };
+      
+      buttonDiv.appendChild(deleteBtn);
+      buttonDiv.appendChild(cancelBtn);
+      messagesDiv.appendChild(buttonDiv);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+    
+    async function deleteAllMedications(medications) {
+      try {
+        addMessage(`🗑️ Deleting ${medications.length} medications...`, 'bot');
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        // Delete each medication sequentially
+        for (const med of medications) {
+          try {
+            const response = await fetch(`${API_BASE}/medications/${med.id}`, {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' }
+            });
+            
+            if (response.ok) {
+              successCount++;
+            } else {
+              failCount++;
+            }
+          } catch (err) {
+            console.error(`Failed to delete ${med.name}:`, err);
+            failCount++;
+          }
+        }
+        
+        if (successCount === medications.length) {
+          addMessage(`✅ All ${successCount} medications have been deleted from your list.`, 'bot');
+        } else if (successCount > 0) {
+          addMessage(`⚠️ Deleted ${successCount} medications, but ${failCount} failed. Please refresh and try again for the remaining ones.`, 'bot');
+        } else {
+          addMessage(`❌ Failed to delete medications. Please try again.`, 'bot', true);
+        }
+        
+        // Refresh the medications list
+        setTimeout(() => {
+          if (typeof loadMedications === 'function') {
+            loadMedications();
+          } else {
+            window.location.reload();
+          }
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Error deleting all medications:', error);
+        addMessage('❌ Failed to delete medications. Please try again.', 'bot', true);
       }
     }
     
