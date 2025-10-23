@@ -206,14 +206,22 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
   console.log('⚠️  Using JSON storage (temporary). Setup Supabase for persistence!');
 }
 
-// Fast2SMS setup (free SMS API for India)
-const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
-const smsEnabled = !!FAST2SMS_API_KEY;
+// Twilio setup for SMS
+let twilioClient = null;
+let smsEnabled = false;
 
-if (smsEnabled) {
-  console.log('✅ Fast2SMS enabled');
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
+  const twilio = await import('twilio');
+  twilioClient = twilio.default(
+    process.env.TWILIO_ACCOUNT_SID,
+    process.env.TWILIO_AUTH_TOKEN
+  );
+  smsEnabled = true;
+  console.log('✅ Twilio SMS enabled');
+  console.log('📱 Twilio phone number:', process.env.TWILIO_PHONE_NUMBER);
 } else {
-  console.log('⚠️  Fast2SMS not configured. SMS notifications disabled.');
+  console.log('⚠️  Twilio not configured. SMS notifications disabled.');
+  console.log('   Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env');
 }
 
 // Groq AI setup
@@ -226,43 +234,31 @@ if (process.env.GROQ_API_KEY) {
   console.log('⚠️  Groq not configured. AI chatbot will use fallback mode.');
 }
 
-// Helper function to send SMS with database tracking using Fast2SMS
+// Helper function to send SMS with database tracking using Twilio
 async function sendSMS(to, message, metadata = {}) {
   if (!smsEnabled) return { success: false, error: 'SMS API not configured' };
   
   try {
-    // Remove +91 country code if present, Fast2SMS uses 10-digit numbers
-    const phoneNumber = to.replace(/^\+91/, '').replace(/\D/g, '');
+    // Ensure phone number has country code
+    let phoneNumber = to.replace(/\D/g, '');
     
-    if (phoneNumber.length !== 10) {
-      return { success: false, error: 'Invalid phone number format. Must be 10 digits.' };
+    // Add +91 for Indian numbers if not present
+    if (phoneNumber.length === 10) {
+      phoneNumber = '+91' + phoneNumber;
+    } else if (!phoneNumber.startsWith('+')) {
+      phoneNumber = '+' + phoneNumber;
     }
     
-    // Fast2SMS API call
-    const response = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-      method: 'POST',
-      headers: {
-        'authorization': FAST2SMS_API_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        route: 'v3',
-        sender_id: 'TXTIND',
-        message: message,
-        language: 'english',
-        flash: 0,
-        numbers: phoneNumber
-      })
+    // Send SMS via Twilio
+    const twilioMessage = await twilioClient.messages.create({
+      body: message,
+      to: phoneNumber,
+      from: process.env.TWILIO_PHONE_NUMBER
     });
     
-    const result = await response.json();
-    
-    if (!result.return || result.return === false) {
-      throw new Error(result.message || 'SMS sending failed');
-    }
-    
-    const messageSid = result.request_id || `fast2sms_${Date.now()}`;
-    console.log('✅ SMS sent:', messageSid);
+    const messageSid = twilioMessage.sid;
+    console.log('✅ SMS sent via Twilio:', messageSid);
+    console.log('   Status:', twilioMessage.status);
     
     // Track SMS in database if metadata provided
     if (metadata.medication_id && metadata.schedule_id && db.addSMSReminder) {
@@ -270,10 +266,10 @@ async function sendSMS(to, message, metadata = {}) {
         await db.addSMSReminder({
           medication_id: metadata.medication_id,
           schedule_id: metadata.schedule_id,
-          phone_number: to,
+          phone_number: phoneNumber,
           reminder_message: message,
           twilio_message_sid: messageSid,
-          status: 'sent'
+          status: twilioMessage.status
         });
         console.log('✅ SMS tracked in database');
       } catch (dbError) {
@@ -281,9 +277,14 @@ async function sendSMS(to, message, metadata = {}) {
       }
     }
     
-    return { success: true, sid: messageSid, message_id: result.message_id };
+    return { 
+      success: true, 
+      sid: messageSid, 
+      status: twilioMessage.status,
+      to: phoneNumber
+    };
   } catch (error) {
-    console.error('SMS Error:', error);
+    console.error('❌ Twilio SMS Error:', error.message);
     return { 
       success: false, 
       error: error.message
@@ -800,7 +801,7 @@ app.get('/api/test-sms', async (req, res) => {
     if (!smsEnabled) {
       return res.json({ 
         success: false, 
-        message: 'Fast2SMS not configured. Add FAST2SMS_API_KEY to .env'
+        message: 'Twilio not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env'
       });
     }
     
@@ -829,7 +830,7 @@ app.get('/api/test-sms', async (req, res) => {
   }
 });
 
-// SMS webhook endpoint (if needed for 2-way SMS with Fast2SMS premium)
+// SMS webhook endpoint for 2-way SMS with Twilio (YES/NO responses)
 app.post('/api/sms/webhook', async (req, res) => {
   try {
     const { From: phoneNumber, Body: messageBody, MessageSid } = req.body;
