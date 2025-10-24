@@ -246,27 +246,24 @@ class SupabaseDatabase {
       .or(`frequency.eq.daily,days_of_week.like.%${dayOfWeek}%`)
       .order('time');
     
-    // If userId provided, filter by user
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // Note: No need to filter by user_id here
+    // - schedules table doesn't have user_id column
+    // - When userId provided, RLS policies automatically filter by user
+    // - When using admin client (no userId), we want ALL schedules for cron
     
     const { data: schedules, error } = await query;
     
     if (error) throw error;
     
     // Check which ones have been logged today
-    let logsQuery = client
+    const { data: logs } = await client
       .from('medication_logs')
       .select('medication_id, schedule_id, status')
       .gte('taken_at', today)
       .lt('taken_at', today + 'T23:59:59');
     
-    if (userId) {
-      logsQuery = logsQuery.eq('user_id', userId);
-    }
-    
-    const { data: logs } = await logsQuery;
+    // Note: RLS policies handle user filtering automatically
+    // Admin client gets all logs for cron job
     
     const loggedMap = new Map();
     (logs || []).forEach(log => {
