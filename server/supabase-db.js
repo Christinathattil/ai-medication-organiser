@@ -238,8 +238,7 @@ class SupabaseDatabase {
       .from('schedules')
       .select(`
         *,
-        medications (name, dosage, form, remaining_quantity),
-        users (phone)
+        medications (name, dosage, form, remaining_quantity)
       `)
       .eq('active', true)
       .lte('start_date', today)
@@ -281,7 +280,7 @@ class SupabaseDatabase {
       dosage: s.medications?.dosage || '',
       form: s.medications?.form || '',
       remaining_quantity: s.medications?.remaining_quantity || 0,
-      user_phone: s.users?.phone || s.user_phone || null,
+      user_phone: s.user_phone || null, // user_phone is directly on schedules table
       status: loggedMap.get(`${s.medication_id}-${s.id}`) || 'pending'
     }));
   }

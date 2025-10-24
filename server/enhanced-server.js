@@ -2140,13 +2140,20 @@ cron.schedule('* * * * *', async () => {
         });
         
         // SMS notification (if phone is verified)
-        const userPhone = schedule.user_phone; // Assuming user phone is stored with schedule
+        const userPhone = schedule.user_phone; // User phone stored with schedule
         if (smsEnabled && userPhone) {
           // Enhanced SMS message with YES/NO response instructions
           let smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})`;
-          if (schedule.with_food) {
+          
+          // Add food timing info
+          if (schedule.food_timing === 'before_food') {
+            smsMessage += ' - Take before food';
+          } else if (schedule.food_timing === 'after_food') {
+            smsMessage += ' - Take after food';
+          } else if (schedule.food_timing === 'with_food') {
             smsMessage += ' - Take with food';
           }
+          
           if (schedule.special_instructions) {
             smsMessage += ` - ${schedule.special_instructions}`;
           }
