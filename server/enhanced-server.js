@@ -550,16 +550,17 @@ app.delete('/api/medications/:id', ensureAuthenticated, validateId, async (req, 
 });
 
 // Schedules
-app.get('/api/schedules', async (req, res) => {
+app.get('/api/schedules', ensureAuthenticated, async (req, res) => {
   try {
-    const result = await db.getSchedules(req.query);
+    const userId = req.user?.id;
+    const result = await db.getSchedules(req.query, userId);
     res.json(result); // Already wrapped with { schedules: [...] }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/api/schedules', async (req, res) => {
+app.post('/api/schedules', ensureAuthenticated, async (req, res) => {
   try {
     const schedule = await db.addSchedule(req.body);
     res.json({ success: true, schedule_id: schedule.id });
@@ -568,7 +569,7 @@ app.post('/api/schedules', async (req, res) => {
   }
 });
 
-app.put('/api/schedules/:id', async (req, res) => {
+app.put('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
   try {
     await db.updateSchedule(req.params.id, req.body);
     res.json({ success: true });
@@ -577,7 +578,7 @@ app.put('/api/schedules/:id', async (req, res) => {
   }
 });
 
-app.delete('/api/schedules/:id', async (req, res) => {
+app.delete('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
   try {
     await db.deleteSchedule(req.params.id);
     res.json({ success: true });
@@ -587,7 +588,7 @@ app.delete('/api/schedules/:id', async (req, res) => {
 });
 
 // Medication Logs
-app.post('/api/logs', async (req, res) => {
+app.post('/api/logs', ensureAuthenticated, async (req, res) => {
   try {
     const log = await db.addLog(req.body);
     res.json({ success: true, log_id: log.id });
@@ -596,7 +597,7 @@ app.post('/api/logs', async (req, res) => {
   }
 });
 
-app.get('/api/logs', async (req, res) => {
+app.get('/api/logs', ensureAuthenticated, async (req, res) => {
   try {
     const history = await db.getLogs(req.query);
     res.json({ history });
@@ -606,10 +607,11 @@ app.get('/api/logs', async (req, res) => {
 });
 
 // Today's Schedule
-app.get('/api/schedule/today', async (req, res) => {
+app.get('/api/schedule/today', ensureAuthenticated, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const today = new Date().toISOString().split('T')[0];
-    const schedules = await db.getTodaySchedule();
+    const schedules = await db.getTodaySchedule(userId);
     res.json({ date: today, schedules });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -617,7 +619,7 @@ app.get('/api/schedule/today', async (req, res) => {
 });
 
 // Refill Alerts
-app.get('/api/refill-alerts', async (req, res) => {
+app.get('/api/refill-alerts', ensureAuthenticated, async (req, res) => {
   try {
     const threshold = parseInt(req.query.threshold) || 7;
     const medications = await db.getRefillAlerts(threshold);
@@ -628,7 +630,7 @@ app.get('/api/refill-alerts', async (req, res) => {
 });
 
 // Update Quantity
-app.post('/api/medications/:id/quantity', async (req, res) => {
+app.post('/api/medications/:id/quantity', ensureAuthenticated, async (req, res) => {
   try {
     const { quantity_change, is_refill } = req.body;
     await db.updateQuantity(req.params.id, quantity_change, is_refill);
@@ -639,7 +641,7 @@ app.post('/api/medications/:id/quantity', async (req, res) => {
 });
 
 // Adherence Stats
-app.get('/api/stats/adherence', async (req, res) => {
+app.get('/api/stats/adherence', ensureAuthenticated, async (req, res) => {
   try {
     const days = parseInt(req.query.days) || 30;
     const medication_id = req.query.medication_id;
@@ -657,7 +659,7 @@ app.get('/api/stats/adherence', async (req, res) => {
 });
 
 // Interactions
-app.get('/api/interactions', async (req, res) => {
+app.get('/api/interactions', ensureAuthenticated, async (req, res) => {
   try {
     const interactions = await db.getInteractions(req.query.medication_id);
     res.json({ interactions });
@@ -666,7 +668,7 @@ app.get('/api/interactions', async (req, res) => {
   }
 });
 
-app.post('/api/interactions', async (req, res) => {
+app.post('/api/interactions', ensureAuthenticated, async (req, res) => {
   try {
     const interaction = await db.addInteraction(req.body);
     res.json({ success: true, interaction_id: interaction.id });

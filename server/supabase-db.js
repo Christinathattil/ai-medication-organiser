@@ -119,7 +119,10 @@ class SupabaseDatabase {
     return schedule;
   }
 
-  async getSchedules(filter = {}) {
+  async getSchedules(filter = {}, userId = null) {
+    // Use regular client (respects RLS)
+    if (userId) await this.setUserContext(userId);
+    
     let query = supabase
       .from('schedules')
       .select(`
