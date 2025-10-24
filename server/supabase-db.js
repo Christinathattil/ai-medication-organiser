@@ -26,8 +26,15 @@ class SupabaseDatabase {
   // Set user context for RLS
   async setUserContext(userId) {
     if (userId) {
+      console.log(`🔐 Setting user context: ${userId}`);
       const { error } = await supabase.rpc('set_current_user_id', { p_user_id: userId });
-      if (error) console.error('Error setting user context:', error);
+      if (error) {
+        console.error('❌ Error setting user context:', error);
+        throw error; // Don't continue if context can't be set
+      }
+      console.log(`✅ User context set successfully for user ${userId}`);
+    } else {
+      console.warn('⚠️ setUserContext called with null/undefined userId');
     }
   }
 
