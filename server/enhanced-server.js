@@ -1258,6 +1258,19 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     }
     
     // 1B. FOLLOW-UP FOR MEDICATION ADDITION
+    // Check if a medication was just added - define this early so it's available everywhere
+    const recentlyAddedMed = recentHistory.find(h => 
+      h.role === 'assistant' && h.content.toLowerCase().includes('successfully added')
+    );
+    let recentlyAddedName = null;
+    if (recentlyAddedMed) {
+      const addedMatch = recentlyAddedMed.content.match(/successfully added\s+([a-zA-Z]+)/i);
+      if (addedMatch) {
+        recentlyAddedName = addedMatch[1].toLowerCase();
+        console.log(`⚠️ Recently added medication: ${recentlyAddedName} - will use for scheduling`);
+      }
+    }
+    
     if (!action && (isFollowUp || aiIndicatesAction)) {
       // Build conversation text ONCE for both medication and schedule extraction
       const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
@@ -1289,19 +1302,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       const commonWords = ['inhaler', 'tablet', 'capsule', 'dosage', 'form', 'quantity', 'unit', 'units', 'mg', 'ml'];
       const isCommonWord = currentMessageData.name && commonWords.includes(currentMessageData.name.toLowerCase());
       
-      // Check if a medication was just added - if so, exclude it from name extraction
-      const recentlyAddedMed = recentHistory.find(h => 
-        h.role === 'assistant' && h.content.toLowerCase().includes('successfully added')
-      );
-      let recentlyAddedName = null;
-      if (recentlyAddedMed) {
-        const addedMatch = recentlyAddedMed.content.match(/successfully added\s+([a-zA-Z]+)/i);
-        if (addedMatch) {
-          recentlyAddedName = addedMatch[1].toLowerCase();
-          console.log(`⚠️ Recently added medication: ${recentlyAddedName} - will exclude from extraction`);
-        }
-      }
-      
+      // recentlyAddedName is already defined above - use it to exclude from extraction
       // If conversation name matches recently added med, don't use it
       let conversationName = conversationData.name;
       if (conversationName && recentlyAddedName && conversationName.toLowerCase() === recentlyAddedName) {
