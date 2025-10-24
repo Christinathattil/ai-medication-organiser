@@ -3,9 +3,23 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Regular client for user operations (respects RLS)
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_KEY
+);
+
+// Service role client for admin operations (bypasses RLS)
+// Used by cron jobs and system tasks
+const supabaseAdmin = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
 );
 
 class SupabaseDatabase {
@@ -210,16 +224,22 @@ class SupabaseDatabase {
     }));
   }
 
-  // Today's Schedule
-  async getTodaySchedule() {
+  // Today's Schedule (for specific user)
+  async getTodaySchedule(userId = null) {
     const today = new Date().toISOString().split('T')[0];
     const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'short' });
     
-    const { data: schedules, error } = await supabase
+    // Use admin client if no userId (for cron jobs), otherwise use regular client
+    const client = userId ? supabase : supabaseAdmin;
+    
+    if (userId) await this.setUserContext(userId);
+    
+    let query = client
       .from('schedules')
       .select(`
         *,
-        medications (name, dosage, form, remaining_quantity)
+        medications (name, dosage, form, remaining_quantity),
+        users (phone)
       `)
       .eq('active', true)
       .lte('start_date', today)
@@ -227,14 +247,27 @@ class SupabaseDatabase {
       .or(`frequency.eq.daily,days_of_week.like.%${dayOfWeek}%`)
       .order('time');
     
+    // If userId provided, filter by user
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    
+    const { data: schedules, error } = await query;
+    
     if (error) throw error;
     
     // Check which ones have been logged today
-    const { data: logs } = await supabase
+    let logsQuery = client
       .from('medication_logs')
       .select('medication_id, schedule_id, status')
       .gte('taken_at', today)
       .lt('taken_at', today + 'T23:59:59');
+    
+    if (userId) {
+      logsQuery = logsQuery.eq('user_id', userId);
+    }
+    
+    const { data: logs } = await logsQuery;
     
     const loggedMap = new Map();
     (logs || []).forEach(log => {
@@ -248,6 +281,7 @@ class SupabaseDatabase {
       dosage: s.medications?.dosage || '',
       form: s.medications?.form || '',
       remaining_quantity: s.medications?.remaining_quantity || 0,
+      user_phone: s.users?.phone || s.user_phone || null,
       status: loggedMap.get(`${s.medication_id}-${s.id}`) || 'pending'
     }));
   }
