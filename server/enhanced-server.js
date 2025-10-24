@@ -1618,7 +1618,9 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     console.error('Error details:', {
       message: error.message,
       stack: error.stack?.substring(0, 500),
-      name: error.name
+      name: error.name,
+      code: error.code,
+      details: error.details
     });
     
     // Determine error type for better user feedback
