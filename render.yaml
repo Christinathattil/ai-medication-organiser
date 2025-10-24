@@ -11,3 +11,14 @@ services:
         value: production
       - key: PORT
         generateValue: true
+  
+  # Cron job to send medication reminders every minute
+  - type: cron
+    name: medication-reminders
+    env: node
+    schedule: "* * * * *"  # Every minute
+    buildCommand: npm install
+    startCommand: node server/send-reminders.js
+    envVars:
+      - key: NODE_ENV
+        value: production
