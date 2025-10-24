@@ -108,13 +108,15 @@ async function checkAndSendReminders() {
 
         // Compose SMS message
         const foodInstruction = schedule.food_timing !== 'none' 
-          ? ` ${schedule.food_timing.replace('_', ' ')}` 
+          ? ` (${schedule.food_timing.replace('_', ' ')})` 
           : '';
         
-        const message = `💊 MEDICATION REMINDER\n\n` +
+        // Include user name/email to distinguish between multiple accounts using same phone
+        const accountInfo = user.name ? `[${user.name}]` : `[${user.email.split('@')[0]}]`;
+        
+        const message = `💊 ${accountInfo} REMINDER\n\n` +
           `Time to take: ${medication.name}\n` +
-          `Dosage: ${medication.dosage}\n` +
-          `Form: ${medication.form}${foodInstruction}\n\n` +
+          `Dosage: ${medication.dosage}${foodInstruction}\n\n` +
           `Reply YES to confirm or NO to skip.`;
 
         // Send SMS via Twilio
