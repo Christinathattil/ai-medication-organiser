@@ -962,9 +962,18 @@ app.post('/api/sms/webhook', async (req, res) => {
 });
 
 // AI Chat endpoint with Groq
-app.post('/api/chat', async (req, res) => {
+app.post('/api/chat', ensureAuthenticated, async (req, res) => {
   try {
     const { message, history = [] } = req.body;
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      return res.status(401).json({
+        error: 'Unauthorized',
+        response: "Please log in to use the AI assistant.",
+        action: null
+      });
+    }
     
     if (!groqClient) {
       // Return error if Groq is not configured
@@ -976,14 +985,14 @@ app.post('/api/chat', async (req, res) => {
       });
     }
 
-    // Get current medication context
+    // Get current medication context with userId
     console.log('🔍 Fetching medications for chat context...');
-    const medications = await db.getMedications({});
+    const medications = await db.getMedications({}, userId);
     console.log('📋 Medications fetched:', medications);
     console.log('📊 Medications count:', medications?.medications?.length || 0);
     
-    const schedules = await db.getSchedules({});
-    const todaySchedule = await db.getTodaySchedule();
+    const schedules = await db.getSchedules({}, userId);
+    const todaySchedule = await db.getTodaySchedule(userId);
     
     // Safely get counts with fallbacks
     const medCount = medications?.medications?.length || 0;
@@ -1341,7 +1350,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
           if (wasJustAdded) {
             console.log(`⚠️ ${medicationData.name} was just added in previous turn - skipping duplicate`);
             // Don't create medication action, but check for schedule
-            const schedMedications = await db.getMedications({});
+            const schedMedications = await db.getMedications({}, userId);
             const medList = schedMedications?.medications || [];
             const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
             
@@ -1351,7 +1360,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             }
           } else {
             // Check if schedule info is also present in the message
-            const schedMedications = await db.getMedications({});
+            const schedMedications = await db.getMedications({}, userId);
             const medList = schedMedications?.medications || [];
             const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
             console.log('📅 Checking for schedule data alongside medication:', scheduleData);
@@ -1376,7 +1385,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       
       // Check for schedule completion (only if no action yet)
       if (!action) {
-        const schedMedications = await db.getMedications({});
+        const schedMedications = await db.getMedications({}, userId);
         const medList = schedMedications?.medications || [];
         // CRITICAL: Extract from CURRENT message only, not conversation
         // Conversation includes AI responses like "8am daily before food" which contaminates extraction
