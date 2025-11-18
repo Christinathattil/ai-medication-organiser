@@ -941,55 +941,60 @@ document.addEventListener('DOMContentLoaded', () => {
         const now = new Date();
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
         
-        for (const schedule of data.schedules || []) {
-          const notificationId = `${schedule.id}-${currentTime}`;
-          
-          // Check if it's time and notification hasn't been shown
-          if (schedule.time === currentTime && 
-              schedule.status === 'pending' && 
-              !shownNotifications.has(notificationId)) {
-            
-            console.log(`🔔 Showing notification for: ${schedule.name}`);
-            
-            // Construct notification message
-            let body = `Time to take ${schedule.name} (${schedule.dosage || 'as prescribed'})`;
-            if (schedule.food_timing === 'before_food') {
-              body += ' - Take before food';
-            } else if (schedule.food_timing === 'after_food') {
-              body += ' - Take after food';
-            } else if (schedule.food_timing === 'with_food') {
-              body += ' - Take with food';
-            }
-            if (schedule.special_instructions) {
-              body += `\n${schedule.special_instructions}`;
-            }
-            
-            // Show notification with action buttons
-            await swRegistration.showNotification('💊 Medication Reminder', {
-              body: body,
-              icon: '/icon-192.png',
-              badge: '/badge-72.png',
-              vibrate: [200, 100, 200],
-              tag: schedule.id,
-              requireInteraction: true, // Keeps notification visible until user interacts
-              data: {
-                medicationId: schedule.medication_id,
-                scheduleId: schedule.id
-              },
-              actions: [
-                { action: 'taken', title: '✅ Taken' },
-                { action: 'skipped', title: '⏭️ Skip' }
-              ]
-            });
-            
-            // Mark as shown
-            shownNotifications.add(notificationId);
-            
-            // Clean up old notification IDs after 5 minutes
-            setTimeout(() => {
-              shownNotifications.delete(notificationId);
-            }, 5 * 60 * 1000);
-          }
+        // Group pending schedules for the current minute
+        const due = (data.schedules || []).filter(s => s.time === currentTime && s.status === 'pending');
+
+        if (due.length === 0) return;
+
+        // If only one, keep existing per-medication behaviour
+        if (due.length === 1) {
+          const s = due[0];
+          const nid = `${s.id}-${currentTime}`;
+          if (shownNotifications.has(nid)) return;
+          shownNotifications.add(nid);
+          const body = buildBody(s);
+          await swRegistration.showNotification('💊 Medication Reminder', {
+            body,
+            icon: '/icon-192.png',
+            badge: '/badge-72.png',
+            vibrate: [200,100,200],
+            tag: s.id,
+            requireInteraction: true,
+            data:{ medicationId: s.medication_id, scheduleId: s.id },
+            actions:[{action:'taken',title:'✅ Taken'},{action:'skipped',title:'⏭️ Skip'}]
+          });
+          setTimeout(()=>shownNotifications.delete(nid),5*60*1000);
+          return;
+        }
+
+        // Combined notification
+        const tag = `group-${currentTime}`;
+        if (shownNotifications.has(tag)) return;
+        shownNotifications.add(tag);
+        const list = due.map(s=>`• ${s.name} (${s.dosage||''})`).join('\n');
+        const body = `${list}`;
+        await swRegistration.showNotification('💊 Medication Reminder', {
+          body,
+          icon:'/icon-192.png',
+          badge:'/badge-72.png',
+          vibrate:[200,100,200],
+          tag,
+          requireInteraction:true,
+          data:{
+            group:true,
+            items: due.map(s=>({medicationId:s.medication_id,scheduleId:s.id}))
+          },
+          actions:[{action:'mark_all_taken',title:'Mark All Taken'},{action:'open_app',title:'Open App'}]
+        });
+        setTimeout(()=>shownNotifications.delete(tag),5*60*1000);
+
+        function buildBody(schedule){
+          let body = `Time to take ${schedule.name} (${schedule.dosage || 'as prescribed'})`;
+          if (schedule.food_timing==='before_food') body += ' - Take before food';
+          if (schedule.food_timing==='after_food') body += ' - Take after food';
+          if (schedule.food_timing==='with_food') body += ' - Take with food';
+          if (schedule.special_instructions) body += `\n${schedule.special_instructions}`;
+          return body;
         }
       } catch (error) {
         console.error('❌ Error checking medications:', error);

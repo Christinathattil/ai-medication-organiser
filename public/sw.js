@@ -131,8 +131,23 @@ self.addEventListener('notificationclick', (event) => {
         console.error('❌ Error logging medication:', err);
       })
     );
+  } else if (event.action === 'mark_all_taken') {
+    // Combined notification: mark every item as taken
+    const items = notification.data?.items || [];
+    event.waitUntil(
+      Promise.all(items.map(it => fetch('/api/logs', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        credentials:'include',
+        body: JSON.stringify({ medication_id: it.medicationId, schedule_id: it.scheduleId, status:'taken', taken_at:new Date().toISOString() })
+      }))).then(()=>{
+        self.registration.showNotification('✅ Medications Logged',{
+          body:'All marked as taken!', icon:'/icon-192.png', badge:'/badge-72.png', tag:'log-success'
+        });
+      })
+    );
   } else {
-    // No action button clicked - just open the app
+    // open_app or default
     event.waitUntil(
       clients.openWindow('/').catch(() => {
         console.log('Could not open window');
