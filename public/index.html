@@ -1007,7 +1007,7 @@ ${!data.name || !data.dosage ? '⚠️ Some required fields are missing. Please 
       
       addMessage(preview, 'bot');
       
-      // If all required fields are present, auto-execute after a short delay
+      // Required fields present – user must click the button to confirm
       // This prevents the AI from falsely claiming success while waiting for manual confirmation
       if (data.name && data.dosage) {
         const buttonDiv = document.createElement('div');
@@ -1089,26 +1089,6 @@ ${!data.medication_id || !data.time || !data.food_timing ? '⚠️ Some required
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         
-        // Auto-execute after 3 seconds if user doesn't interact
-        let autoExecuted = false;
-        const autoExecuteTimeout = setTimeout(() => {
-          if (!autoExecuted && buttonDiv.parentNode) {
-            autoExecuted = true;
-            console.log('⏰ Auto-executing schedule creation after 3 seconds');
-            scheduleBtn.click();
-          }
-        }, 3000);
-        
-        // Cancel auto-execute if user clicks either button
-        scheduleBtn.addEventListener('click', () => {
-          clearTimeout(autoExecuteTimeout);
-          autoExecuted = true;
-        }, { once: true });
-        
-        cancelBtn.addEventListener('click', () => {
-          clearTimeout(autoExecuteTimeout);
-          autoExecuted = true;
-        }, { once: true });
       }
     }
     
