@@ -21,6 +21,7 @@ import {
   stripSensitiveData,
   secureErrorHandler,
   validateMedication,
+  validateMedicationPatch,
   validateSchedule,
   validateId,
   validateLog
@@ -522,6 +523,20 @@ app.post('/api/medications', ensureAuthenticated, upload.single('photo'), valida
     
     const medication = await db.addMedication(medicationData, userId);
     res.json({ success: true, medication_id: medication.id, medication });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH – partial update
+app.patch('/api/medications/:id', ensureAuthenticated, validateId, upload.single('photo'), validateMedicationPatch, async (req, res) => {
+  try {
+    const updates = { ...req.body };
+    if (req.file) {
+      updates.photo_url = `/uploads/${req.file.filename}`;
+    }
+    await db.updateMedication(req.params.id, updates);
+    res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1790,7 +1805,12 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
     data.food_timing = 'none';
     data.with_food = false;
   }
-  // If not matched, leave as null - AI MUST ask for it!
+  // If not matched, default to 'none' so schedule can still be created
+  if (!data.food_timing) {
+    data.food_timing = 'none';
+    data.with_food = false;
+  }
+  // If not matched, leave as 'none'
 
   // Extract special instructions
   const instructionKeywords = ['before bed', 'before sleep', 'in the morning', 'with water', 'on empty stomach'];

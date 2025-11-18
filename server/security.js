@@ -71,6 +71,19 @@ export const validateMedication = [
 ];
 
 /**
+ * Medication PATCH/UPDATE validation – all fields optional
+ */
+export const validateMedicationPatch = [
+  body('name').optional().trim().isLength({ min: 1, max: 200 }),
+  body('dosage').optional().trim().isLength({ max: 100 }),
+  body('form').optional().trim().isIn(['tablet','capsule','liquid','injection','cream','inhaler','drops','patch','other']),
+  body('purpose').optional().trim().isLength({ max: 500 }),
+  body('total_quantity').optional().isInt({ min: 0, max: 10000 }).toInt(),
+  body('remaining_quantity').optional().isInt({ min: 0, max: 10000 }).toInt(),
+  validate
+];
+
+/**
  * Schedule validation rules
  */
 export const validateSchedule = [
@@ -82,6 +95,7 @@ export const validateSchedule = [
     .matches(/^([01]\d|2[0-3]):([0-5]\d)$/).withMessage('Invalid time format (HH:MM required)'),
   
   body('frequency')
+    .optional()
     .isIn(['daily', 'weekly', 'monthly', 'as_needed'])
     .withMessage('Invalid frequency'),
   
@@ -102,10 +116,12 @@ export const validateSchedule = [
     .escape(),
   
   body('start_date')
-    .matches(/^\d{4}-\d{2}-\d{2}$/).withMessage('Invalid date format (YYYY-MM-DD required)'),
+    .optional()
+    .matches(/^[\d]{4}-[\d]{2}-[\d]{2}$/).withMessage('Invalid date format (YYYY-MM-DD required)'),
   
   validate
 ];
+
 
 /**
  * ID parameter validation
@@ -310,6 +326,7 @@ export async function validateOwnership(req, res, next) {
 export default {
   validate,
   validateMedication,
+  validateMedicationPatch,
   validateSchedule,
   validateId,
   validateLog,
