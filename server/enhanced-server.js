@@ -240,6 +240,35 @@ if (process.env.GROQ_API_KEY) {
 
 // Helper function to send SMS with database tracking using Twilio
 async function sendSMS(to, message, metadata = {}) {
+  // If Twilio not configured, but Fast2SMS key present, use Fast2SMS
+  if (!smsEnabled && process.env.FAST2SMS_API_KEY) {
+    try {
+      const phoneNumber = to.replace(/\D/g, '');
+      const payload = {
+        route: 'q',
+        message,
+        language: 'english',
+        flash: 0,
+        numbers: phoneNumber.startsWith('91') ? phoneNumber : '91' + phoneNumber,
+      };
+      const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
+        method: 'POST',
+        headers: {
+          'Authorization': process.env.FAST2SMS_API_KEY,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+      if (json.return) {
+        return { success: true, provider: 'fast2sms' };
+      }
+      return { success: false, error: json.message || 'Fast2SMS error' };
+    } catch (e) {
+      return { success: false, error: e.message };
+    }
+  }
+
   if (!smsEnabled) return { success: false, error: 'SMS API not configured' };
   
   try {
