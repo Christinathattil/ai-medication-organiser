@@ -502,10 +502,13 @@ class SupabaseDatabase {
 
   // Update user phone verification
   async updateUserPhone(userId, phone) {
-    // Set user context for RLS before updating
-    await this.setUserContext(userId);
-    
-    const { data, error } = await supabase
+    /*
+      Use the service-role client (supabaseAdmin) to bypass RLS for this
+      sensitive update. This guarantees that the database reflects the
+      verified status immediately, avoiding the phone-verification redirect
+      loop observed after OTP success when switching accounts.
+    */
+    const { data, error } = await supabaseAdmin
       .from('users')
       .update({
         phone: phone,
@@ -514,26 +517,14 @@ class SupabaseDatabase {
       })
       .eq('id', userId)
       .select()
-      .maybeSingle(); // Use maybeSingle() to handle potential RLS issues
-    
+      .single();
+
     if (error) {
-      console.error('❌ Error updating user phone:', error);
+      console.error('❌ Error updating user phone (admin):', error);
       throw error;
     }
-    
-    if (!data) {
-      console.warn('⚠️ User phone update returned no data - RLS may be blocking');
-      // Verification still succeeds even if DB update fails
-      // The session will be updated with verified status
-      return {
-        id: userId,
-        phone: phone,
-        phone_verified: true,
-        phone_verified_at: new Date().toISOString()
-      };
-    }
-    
-    console.log('✅ Database updated: phone_verified=true for user', userId);
+
+    console.log('✅ Database updated via service role: phone_verified=true for user', userId);
     return data;
   }
 }

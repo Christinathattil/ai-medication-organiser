@@ -5,9 +5,11 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const supabase = process.env.SUPABASE_URL && process.env.SUPABASE_KEY
-  ? createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY)
-  : null;
+// Regular anon / service-role selection
+const supabase = process.env.SUPABASE_URL ? createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY // prefer service role so we bypass RLS when operating server-side
+) : null;
 
 // Configure Google OAuth Strategy
 passport.use(new GoogleStrategy({
@@ -96,8 +98,7 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     if (supabase) {
-      // Use service role to bypass RLS during deserialization
-      // This is safe because the user ID comes from a signed session
+      // Service-role client (see constructor) already bypasses RLS, so we can fetch the row directly
       const { data: user, error } = await supabase
         .from('users')
         .select('*')

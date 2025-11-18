@@ -399,13 +399,18 @@ app.get('/auth/google/callback',
   }
 );
 
-// Logout
+// Logout – add full session destroy to prevent stale data between accounts
 app.get('/auth/logout', (req, res) => {
   req.logout((err) => {
     if (err) {
       return res.status(500).json({ error: 'Logout failed' });
     }
-    res.redirect('/login');
+    // Destroy the entire session so no data bleeds into the next login
+    req.session.destroy(() => {
+      /* Explicitly clear cookie – some browsers cache aggressively */
+      res.clearCookie('connect.sid');
+      res.redirect('/login');
+    });
   });
 });
 
