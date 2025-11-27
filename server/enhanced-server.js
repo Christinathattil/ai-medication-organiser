@@ -79,7 +79,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.some(allowed => origin.startsWith(allowed))) {
       callback(null, true);
     } else {
@@ -270,29 +270,29 @@ async function sendSMS(to, message, metadata = {}) {
   }
 
   if (!smsEnabled) return { success: false, error: 'SMS API not configured' };
-  
+
   try {
     // Ensure phone number has country code
     let phoneNumber = to.replace(/\D/g, '');
-    
+
     // Add +91 for Indian numbers if not present
     if (phoneNumber.length === 10) {
       phoneNumber = '+91' + phoneNumber;
     } else if (!phoneNumber.startsWith('+')) {
       phoneNumber = '+' + phoneNumber;
     }
-    
+
     // Send SMS via Twilio
     const twilioMessage = await twilioClient.messages.create({
       body: message,
       to: phoneNumber,
       from: process.env.TWILIO_PHONE_NUMBER
     });
-    
+
     const messageSid = twilioMessage.sid;
     console.log('✅ SMS sent via Twilio:', messageSid);
     console.log('   Status:', twilioMessage.status);
-    
+
     // Track SMS in database if metadata provided
     if (metadata.medication_id && metadata.schedule_id && db.addSMSReminder) {
       try {
@@ -309,17 +309,17 @@ async function sendSMS(to, message, metadata = {}) {
         console.error('Failed to track SMS in database:', dbError);
       }
     }
-    
-    return { 
-      success: true, 
-      sid: messageSid, 
+
+    return {
+      success: true,
+      sid: messageSid,
       status: twilioMessage.status,
       to: phoneNumber
     };
   } catch (error) {
     console.error('❌ Twilio SMS Error:', error.message);
-    return { 
-      success: false, 
+    return {
+      success: false,
       error: error.message
     };
   }
@@ -343,37 +343,37 @@ app.get('/health', (req, res) => {
 function requirePhoneVerification(req, res, next) {
   // Check if phone verification is required (can be disabled)
   const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
-  
+
   // If phone verification is disabled, skip the check
   if (!requirePhoneVerif) {
     return next();
   }
-  
+
   // Skip verification check for these routes
   const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms', '/loading'];
   if (skipRoutes.some(route => req.path.includes(route))) {
     return next();
   }
-  
+
   // Check if user is logged in (Passport uses req.user)
   if (!req.user) {
     return next(); // Let auth middleware handle this
   }
-  
+
   // If user is logged in but phone not verified, redirect to verification
   if (!req.user.phone_verified) {
     console.log(`⚠️ User ${req.user.email} needs phone verification`);
-    
+
     if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.status(403).json({ 
-        error: 'Phone verification required', 
+      return res.status(403).json({
+        error: 'Phone verification required',
         redirect: '/verify-phone.html',
         message: 'Please verify your phone number to continue'
       });
     }
     return res.redirect('/verify-phone.html');
   }
-  
+
   console.log(`✅ User ${req.user.email} phone verified: ${req.user.phone}`);
   next();
 }
@@ -399,22 +399,22 @@ app.get('/auth/google/callback',
         console.error('❌ OAuth error:', err);
         return res.redirect('/login?error=auth_failed');
       }
-      
+
       if (!user) {
         console.error('❌ No user returned from OAuth');
         return res.redirect('/login?error=no_user');
       }
-      
+
       req.logIn(user, (loginErr) => {
         if (loginErr) {
           console.error('❌ Login error:', loginErr);
           return res.redirect('/login?error=login_failed');
         }
-        
+
         console.log('✅ User authenticated:', user.email);
         console.log('📱 Phone verified status:', user.phone_verified || false);
         console.log('🔐 Session ID:', req.sessionID);
-        
+
         // Save session explicitly before redirect
         req.session.save((saveErr) => {
           if (saveErr) {
@@ -451,7 +451,7 @@ app.get('/api/auth/status', (req, res) => {
   console.log('  - Session exists:', !!req.session);
   console.log('  - User in session:', !!req.user);
   console.log('  - Is authenticated:', req.isAuthenticated());
-  
+
   if (req.isAuthenticated()) {
     console.log('  ✅ User authenticated:', req.user.email);
     res.json({
@@ -484,12 +484,12 @@ app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
 app.get('/', ensureAuthenticatedHTML, (req, res) => {
   // Check if phone verification is required (can be disabled for testing)
   const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
-  
+
   if (requirePhoneVerif && req.user && !req.user.phone_verified) {
     console.log(`⚠️ Root route: User ${req.user.email} not verified, redirecting to verification`);
     return res.redirect('/verify-phone.html');
   }
-  
+
   console.log(`✅ Root route: User ${req.user?.email} accessing dashboard`);
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
 });
@@ -530,26 +530,26 @@ app.post('/api/medications', ensureAuthenticated, upload.single('photo'), valida
   try {
     const userId = req.user?.id;
     const medicationData = { ...req.body };
-    
+
     // Check for duplicates (same name and dosage)
     const existingMeds = await db.getMedications({}, userId);
-    const duplicate = existingMeds.medications?.find(m => 
+    const duplicate = existingMeds.medications?.find(m =>
       m.name?.toLowerCase() === medicationData.name?.toLowerCase() &&
       m.dosage?.toLowerCase() === medicationData.dosage?.toLowerCase()
     );
-    
+
     if (duplicate) {
-      return res.status(409).json({ 
+      return res.status(409).json({
         error: `${medicationData.name} ${medicationData.dosage} already exists in your medication list`,
-        duplicate: true 
+        duplicate: true
       });
     }
-    
+
     // Add photo URL if uploaded
     if (req.file) {
       medicationData.photo_url = `/uploads/${req.file.filename}`;
     }
-    
+
     const medication = await db.addMedication(medicationData, userId);
     res.json({ success: true, medication_id: medication.id, medication });
   } catch (error) {
@@ -560,11 +560,12 @@ app.post('/api/medications', ensureAuthenticated, upload.single('photo'), valida
 // PATCH – partial update
 app.patch('/api/medications/:id', ensureAuthenticated, validateId, upload.single('photo'), validateMedicationPatch, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const updates = { ...req.body };
     if (req.file) {
       updates.photo_url = `/uploads/${req.file.filename}`;
     }
-    await db.updateMedication(req.params.id, updates);
+    await db.updateMedication(req.params.id, updates, userId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -575,13 +576,13 @@ app.put('/api/medications/:id', ensureAuthenticated, validateId, upload.single('
   try {
     const userId = req.user?.id;
     const updates = { ...req.body };
-    
+
     // Add photo URL if uploaded
     if (req.file) {
       updates.photo_url = `/uploads/${req.file.filename}`;
     }
-    
-    await db.updateMedication(req.params.id, updates);
+
+    await db.updateMedication(req.params.id, updates, userId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -611,7 +612,8 @@ app.get('/api/schedules', ensureAuthenticated, async (req, res) => {
 
 app.post('/api/schedules', ensureAuthenticated, async (req, res) => {
   try {
-    const schedule = await db.addSchedule(req.body);
+    const userId = req.user?.id;
+    const schedule = await db.addSchedule(req.body, userId);
     res.json({ success: true, schedule_id: schedule.id });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -620,7 +622,8 @@ app.post('/api/schedules', ensureAuthenticated, async (req, res) => {
 
 app.put('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
   try {
-    await db.updateSchedule(req.params.id, req.body);
+    const userId = req.user?.id;
+    await db.updateSchedule(req.params.id, req.body, userId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -629,7 +632,8 @@ app.put('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
 
 app.delete('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
   try {
-    await db.deleteSchedule(req.params.id);
+    const userId = req.user?.id;
+    await db.deleteSchedule(req.params.id, userId);
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -639,7 +643,8 @@ app.delete('/api/schedules/:id', ensureAuthenticated, async (req, res) => {
 // Medication Logs
 app.post('/api/logs', ensureAuthenticated, async (req, res) => {
   try {
-    const log = await db.addLog(req.body);
+    const userId = req.user?.id;
+    const log = await db.addLog(req.body, userId);
     res.json({ success: true, log_id: log.id });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -648,7 +653,8 @@ app.post('/api/logs', ensureAuthenticated, async (req, res) => {
 
 app.get('/api/logs', ensureAuthenticated, async (req, res) => {
   try {
-    const history = await db.getLogs(req.query);
+    const userId = req.user?.id;
+    const history = await db.getLogs(req.query, userId);
     res.json({ history });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -670,8 +676,9 @@ app.get('/api/schedule/today', ensureAuthenticated, async (req, res) => {
 // Refill Alerts
 app.get('/api/refill-alerts', ensureAuthenticated, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const threshold = parseInt(req.query.threshold) || 7;
-    const medications = await db.getRefillAlerts(threshold);
+    const medications = await db.getRefillAlerts(threshold, userId);
     res.json({ threshold, medications });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -692,15 +699,16 @@ app.post('/api/medications/:id/quantity', ensureAuthenticated, async (req, res) 
 // Adherence Stats
 app.get('/api/stats/adherence', ensureAuthenticated, async (req, res) => {
   try {
+    const userId = req.user?.id;
     const days = parseInt(req.query.days) || 30;
     const medication_id = req.query.medication_id;
-    const statistics = await db.getAdherenceStats(days, medication_id);
+    const statistics = await db.getAdherenceStats(days, medication_id, userId);
     const startDate = new Date();
     startDate.setDate(startDate.getDate() - days);
-    res.json({ 
-      period_days: days, 
-      start_date: startDate.toISOString().split('T')[0], 
-      statistics 
+    res.json({
+      period_days: days,
+      start_date: startDate.toISOString().split('T')[0],
+      statistics
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -744,34 +752,34 @@ const verificationCodes = new Map();
 app.post('/api/verify/send-otp', async (req, res) => {
   try {
     const { phone } = req.body;
-    
+
     if (!phone) {
       return res.status(400).json({ error: 'Phone number required' });
     }
-    
+
     // Generate 6-digit OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    
+
     // Store OTP with 5-minute expiry
     verificationCodes.set(phone, {
       otp,
       createdAt: Date.now(),
       expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
     });
-    
+
     // Send OTP via SMS
     const message = `Your MediCare Pro verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
     const result = await sendSMS(phone, message);
-    
+
     if (result.success) {
-      res.json({ 
-        success: true, 
+      res.json({
+        success: true,
         message: 'OTP sent successfully',
         phone: phone
       });
     } else {
-      res.status(500).json({ 
-        success: false, 
+      res.status(500).json({
+        success: false,
         error: result.error || 'Failed to send OTP'
       });
     }
@@ -785,26 +793,26 @@ app.post('/api/verify/send-otp', async (req, res) => {
 app.post('/api/verify/check-otp', async (req, res) => {
   try {
     const { phone, otp } = req.body;
-    
+
     if (!phone || !otp) {
       return res.status(400).json({ error: 'Phone number and OTP required' });
     }
-    
+
     const stored = verificationCodes.get(phone);
-    
+
     if (!stored) {
       return res.status(400).json({ error: 'No OTP found for this phone number' });
     }
-    
+
     if (Date.now() > stored.expiresAt) {
       verificationCodes.delete(phone);
       return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
     }
-    
+
     if (stored.otp !== otp) {
       return res.status(400).json({ error: 'Invalid OTP' });
     }
-    
+
     // OTP verified - update user in database and session
     if (req.isAuthenticated() && req.user) {
       // Try to update user in database (may fail due to RLS, but that's OK)
@@ -818,12 +826,12 @@ app.post('/api/verify/check-otp', async (req, res) => {
           // Don't fail - we'll update the session instead
         }
       }
-      
+
       // Update req.user with verified status
       req.user.phone = phone;
       req.user.phone_verified = true;
       req.user.phone_verified_at = new Date().toISOString();
-      
+
       // If DB update succeeded, reload from database to get any other changes
       if (dbUpdateSuccess && supabase) {
         const { data: updatedUser, error } = await supabase
@@ -831,12 +839,12 @@ app.post('/api/verify/check-otp', async (req, res) => {
           .select('*')
           .eq('id', req.user.id)
           .maybeSingle();
-        
+
         if (!error && updatedUser) {
           req.user = updatedUser;
         }
       }
-      
+
       // Save session to persist verified status
       await new Promise((resolve, reject) => {
         req.session.save((err) => {
@@ -850,12 +858,12 @@ app.post('/api/verify/check-otp', async (req, res) => {
         });
       });
     }
-    
+
     // Clean up verification code
     verificationCodes.delete(phone);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Phone verified successfully'
     });
   } catch (error) {
@@ -870,13 +878,13 @@ app.get('/api/verify/status', (req, res) => {
   console.log('  - Is authenticated:', req.isAuthenticated());
   console.log('  - User exists:', !!req.user);
   console.log('  - Phone verified:', req.user?.phone_verified || false);
-  
+
   // Use req.user from Passport, not req.session.user
   if (req.isAuthenticated() && req.user && req.user.phone_verified) {
     console.log('  ✅ Phone verified:', req.user.phone);
-    res.json({ 
-      verified: true, 
-      phone: req.user.phone 
+    res.json({
+      verified: true,
+      phone: req.user.phone
     });
   } else {
     console.log('  ❌ Phone not verified');
@@ -888,31 +896,31 @@ app.get('/api/verify/status', (req, res) => {
 app.get('/api/test-sms', async (req, res) => {
   try {
     if (!smsEnabled) {
-      return res.json({ 
-        success: false, 
+      return res.json({
+        success: false,
         message: 'Twilio not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env'
       });
     }
-    
+
     const testPhone = req.query.phone || req.user?.phone;
-    
+
     if (!testPhone) {
-      return res.json({ 
-        success: false, 
+      return res.json({
+        success: false,
         message: 'Phone number not provided. Add ?phone=XXXXXXXXXX to URL'
       });
     }
-    
+
     const testMessage = '🧪 Test SMS from MediCare Pro - Your SMS notifications are working! 💊';
     const result = await sendSMS(testPhone, testMessage);
-    
-    res.json({ 
-      success: result.success, 
+
+    res.json({
+      success: result.success,
       message: result.success ? 'Test SMS sent successfully!' : `Failed: ${result.error}`,
       sentTo: testPhone
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: error.message
     });
@@ -923,14 +931,14 @@ app.get('/api/test-sms', async (req, res) => {
 app.post('/api/sms/webhook', async (req, res) => {
   try {
     const { From: phoneNumber, Body: messageBody, MessageSid } = req.body;
-    
+
     console.log(`📱 Received SMS from ${phoneNumber}: "${messageBody}"`);
-    
+
     // Parse the response
     const response = messageBody.trim().toUpperCase();
     let status = null;
     let replyMessage = '';
-    
+
     if (response === 'YES' || response === 'Y' || response === '1') {
       status = 'taken';
       replyMessage = '✅ Great! Marked as taken. Stay healthy! 💊';
@@ -940,7 +948,7 @@ app.post('/api/sms/webhook', async (req, res) => {
     } else {
       // Unknown response
       replyMessage = 'Please reply with YES if you took your medication, or NO if you skipped it.';
-      
+
       // Send TwiML response
       res.type('text/xml');
       res.send(`<?xml version="1.0" encoding="UTF-8"?>
@@ -949,12 +957,12 @@ app.post('/api/sms/webhook', async (req, res) => {
 </Response>`);
       return;
     }
-    
+
     // Find the most recent SMS reminder for this phone number
     try {
       // Look for any recent reminder from this phone number (within last 2 hours)
       const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-      
+
       const { data: recentReminders, error } = await supabase
         .from('sms_reminders')
         .select('*')
@@ -963,12 +971,12 @@ app.post('/api/sms/webhook', async (req, res) => {
         .gte('sent_at', twoHoursAgo)
         .order('sent_at', { ascending: false })
         .limit(1);
-      
+
       if (error) throw error;
-      
+
       if (recentReminders && recentReminders.length > 0) {
         const reminder = recentReminders[0];
-        
+
         // Update the SMS reminder
         await db.updateSMSReminder(reminder.id, {
           response_received: true,
@@ -976,7 +984,7 @@ app.post('/api/sms/webhook', async (req, res) => {
           response_at: new Date().toISOString(),
           status: status === 'taken' ? 'responded_yes' : 'responded_no'
         });
-        
+
         // Log the medication
         await db.logMedicationFromSMS(
           reminder.id,
@@ -984,7 +992,7 @@ app.post('/api/sms/webhook', async (req, res) => {
           reminder.schedule_id,
           status
         );
-        
+
         console.log(`✅ Logged medication ${status} for reminder ${reminder.id} via SMS`);
       } else {
         console.log('⚠️  No matching recent reminder found');
@@ -994,14 +1002,14 @@ app.post('/api/sms/webhook', async (req, res) => {
       console.error('❌ Database error processing SMS response:', dbError);
       replyMessage = 'Sorry, there was an error processing your response. Please try again or use the app.';
     }
-    
+
     // Send TwiML response
     res.type('text/xml');
     res.send(`<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${replyMessage}</Message>
 </Response>`);
-    
+
   } catch (error) {
     console.error('❌ Error processing SMS webhook:', error);
     res.type('text/xml');
@@ -1017,7 +1025,7 @@ app.post('/api/chat', ensureAuthenticated, async (req, res) => {
   try {
     const { message, history = [] } = req.body;
     const userId = req.user?.id;
-    
+
     if (!userId) {
       return res.status(401).json({
         error: 'Unauthorized',
@@ -1025,7 +1033,7 @@ app.post('/api/chat', ensureAuthenticated, async (req, res) => {
         action: null
       });
     }
-    
+
     if (!groqClient) {
       // Return error if Groq is not configured
       console.error('❌ Groq API not configured - GROQ_API_KEY missing');
@@ -1041,23 +1049,23 @@ app.post('/api/chat', ensureAuthenticated, async (req, res) => {
     const medications = await db.getMedications({}, userId);
     console.log('📋 Medications fetched:', medications);
     console.log('📊 Medications count:', medications?.medications?.length || 0);
-    
+
     const schedules = await db.getSchedules({}, userId);
     const todaySchedule = await db.getTodaySchedule(userId);
-    
+
     // Safely get counts with fallbacks
     const medCount = medications?.medications?.length || 0;
     const schedCount = schedules?.schedules?.length || 0;
     const todayCount = Array.isArray(todaySchedule) ? todaySchedule.length : 0;
-    
+
     console.log(`📈 Context: ${medCount} meds, ${schedCount} schedules, ${todayCount} today`);
-    
+
     // Enhanced medications list for context
     const medsList = medications?.medications || [];
-    const medsContext = medsList.length > 0 
+    const medsContext = medsList.length > 0
       ? `\nYour medications: ${medsList.map(m => `${m.name} (${m.dosage})`).join(', ')}`
       : '';
-    
+
     // Build context for AI
     const systemPrompt = `You are a precise medication management assistant. Be accurate, crisp, and direct.
 
@@ -1226,7 +1234,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     let completion;
     let retries = 3;
     let lastError;
-    
+
     while (retries > 0) {
       try {
         completion = await Promise.race([
@@ -1236,7 +1244,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             temperature: 0.7,
             max_tokens: 200, // Reduced for concise responses
           }),
-          new Promise((_, reject) => 
+          new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
           )
         ]);
@@ -1250,7 +1258,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         }
       }
     }
-    
+
     if (!completion) {
       throw lastError || new Error('Failed to get AI response after retries');
     }
@@ -1261,13 +1269,13 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     let action = null;
     const lowerMessage = message.toLowerCase().trim();
     const lowerResponse = aiResponse.toLowerCase();
-    
+
     console.log('🔍 Analyzing user intent from:', message);
     console.log('🤖 AI Response:', aiResponse);
 
     // Check conversation history for context
     const recentHistory = history.slice(-3); // Last 3 messages
-    const isFollowUp = recentHistory.some(h => 
+    const isFollowUp = recentHistory.some(h =>
       h.role === 'assistant' && (
         h.content.toLowerCase().includes('is it a tablet') ||
         h.content.toLowerCase().includes('how many') ||
@@ -1277,24 +1285,24 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         h.content.toLowerCase().includes('after food')
       )
     );
-    
+
     console.log('📜 Is follow-up response?', isFollowUp);
     if (isFollowUp) {
       console.log('📜 Recent conversation:', recentHistory.map(h => `${h.role}: ${h.content.substring(0, 50)}`));
     }
-    
+
     // Check if AI response indicates action should be taken
-    const aiIndicatesAction = lowerResponse.includes('i\'ll add') || 
-                              lowerResponse.includes('perfect') ||
-                              lowerResponse.includes('great!') ||
-                              lowerResponse.includes('setting up') ||
-                              lowerResponse.includes('correct?') ||
-                              (lowerResponse.includes('add') && lowerResponse.includes('correct'));
-    
+    const aiIndicatesAction = lowerResponse.includes('i\'ll add') ||
+      lowerResponse.includes('perfect') ||
+      lowerResponse.includes('great!') ||
+      lowerResponse.includes('setting up') ||
+      lowerResponse.includes('correct?') ||
+      (lowerResponse.includes('add') && lowerResponse.includes('correct'));
+
     console.log('🎯 AI indicates action should be taken?', aiIndicatesAction);
 
     // Intent detection with improved pattern matching
-    
+
     // 1. MEDICATION ADDITION - Check first as it's most specific
     const addPatterns = [
       /add (a |an |the )?(\w+)/i,
@@ -1303,14 +1311,14 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       /\b(\w+)\s+\d+\s*(mg|ml|g|mcg|iu|units?)\b/i
     ];
     const hasMedicationPattern = addPatterns.some(pattern => pattern.test(message));
-    const hasAddIntent = lowerMessage.includes('add') || lowerMessage.includes('new') || 
-                         lowerMessage.includes('start taking') || lowerMessage.includes('i need');
-    
+    const hasAddIntent = lowerMessage.includes('add') || lowerMessage.includes('new') ||
+      lowerMessage.includes('start taking') || lowerMessage.includes('i need');
+
     if (hasAddIntent && hasMedicationPattern) {
       console.log('💊 Detected: Add Medication Intent');
       const medicationData = extractMedicationFromText(message);
       console.log('🔍 Extracted medication data:', medicationData);
-      
+
       // Only create action if we have REQUIRED fields (name + dosage)
       if (medicationData.name && medicationData.dosage) {
         action = { type: 'add_medication', data: medicationData };
@@ -1319,10 +1327,10 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         console.log('⚠️ Incomplete data - name found but missing dosage. AI will ask for it.');
       }
     }
-    
+
     // 1B. FOLLOW-UP FOR MEDICATION ADDITION
     // Check if a medication was just added - define this early so it's available everywhere
-    const recentlyAddedMed = recentHistory.find(h => 
+    const recentlyAddedMed = recentHistory.find(h =>
       h.role === 'assistant' && h.content.toLowerCase().includes('successfully added')
     );
     let recentlyAddedName = null;
@@ -1333,16 +1341,16 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         console.log(`⚠️ Recently added medication: ${recentlyAddedName} - will use for scheduling`);
       }
     }
-    
+
     if (!action && (isFollowUp || aiIndicatesAction)) {
       // Build conversation text ONCE for both medication and schedule extraction
       const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
-      
+
       // Skip if this is clearly a scheduling response
       // BUT: If message contains form/quantity keywords, it's likely medication details, not scheduling
       const hasMedicationKeywords = /\b(tablet|capsule|pill|syrup|liquid|inhaler|cream|drops|units?|mg|ml)\b/i.test(message);
       const isSchedulingMsg = isSchedulingMessage(message);
-      
+
       if (isSchedulingMsg && !hasMedicationKeywords) {
         console.log('⏭️ Skipping medication extraction - detected scheduling message:', message);
         // Don't set action, let it flow to schedule extraction
@@ -1353,73 +1361,73 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         // First, try extracting from the current message (prioritize latest user input)
         const currentMessageData = extractMedicationFromText(message);
         console.log('🔍 Current message extraction:', currentMessageData);
-      
-      // Then extract from full conversation for missing fields
-      console.log('🔄 Extracting from conversation:', conversationText.substring(0, 200));
-      
-      const conversationData = extractMedicationFromText(conversationText);
-      console.log('💊 Conversation extraction:', conversationData);
-      
-      // Merge data: prioritize current message over conversation context
-      // BUT: Never override name if current message extracted a common word
-      const commonWords = ['inhaler', 'tablet', 'capsule', 'dosage', 'form', 'quantity', 'unit', 'units', 'mg', 'ml'];
-      const isCommonWord = currentMessageData.name && commonWords.includes(currentMessageData.name.toLowerCase());
-      
-      // recentlyAddedName is already defined above - use it to exclude from extraction
-      // If conversation name matches recently added med, don't use it
-      let conversationName = conversationData.name;
-      if (conversationName && recentlyAddedName && conversationName.toLowerCase() === recentlyAddedName) {
-        console.log(`⚠️ Skipping ${conversationName} - it was just added`);
-        conversationName = null;
-        
-        // Try to find the NEXT medication name in the original message
-        // Look for patterns like "add X and Y" where X was just added
-        const multiMedPattern = new RegExp(`and\\s+([a-zA-Z]+)`, 'i');
-        const originalMessage = recentHistory.find(h => h.role === 'user' && h.content.toLowerCase().includes('add'));
-        if (originalMessage) {
-          const nextMedMatch = originalMessage.content.match(multiMedPattern);
-          if (nextMedMatch && nextMedMatch[1].toLowerCase() !== recentlyAddedName) {
-            conversationName = nextMedMatch[1].charAt(0).toUpperCase() + nextMedMatch[1].slice(1).toLowerCase();
-            console.log(`✅ Found next medication to add: ${conversationName}`);
+
+        // Then extract from full conversation for missing fields
+        console.log('🔄 Extracting from conversation:', conversationText.substring(0, 200));
+
+        const conversationData = extractMedicationFromText(conversationText);
+        console.log('💊 Conversation extraction:', conversationData);
+
+        // Merge data: prioritize current message over conversation context
+        // BUT: Never override name if current message extracted a common word
+        const commonWords = ['inhaler', 'tablet', 'capsule', 'dosage', 'form', 'quantity', 'unit', 'units', 'mg', 'ml'];
+        const isCommonWord = currentMessageData.name && commonWords.includes(currentMessageData.name.toLowerCase());
+
+        // recentlyAddedName is already defined above - use it to exclude from extraction
+        // If conversation name matches recently added med, don't use it
+        let conversationName = conversationData.name;
+        if (conversationName && recentlyAddedName && conversationName.toLowerCase() === recentlyAddedName) {
+          console.log(`⚠️ Skipping ${conversationName} - it was just added`);
+          conversationName = null;
+
+          // Try to find the NEXT medication name in the original message
+          // Look for patterns like "add X and Y" where X was just added
+          const multiMedPattern = new RegExp(`and\\s+([a-zA-Z]+)`, 'i');
+          const originalMessage = recentHistory.find(h => h.role === 'user' && h.content.toLowerCase().includes('add'));
+          if (originalMessage) {
+            const nextMedMatch = originalMessage.content.match(multiMedPattern);
+            if (nextMedMatch && nextMedMatch[1].toLowerCase() !== recentlyAddedName) {
+              conversationName = nextMedMatch[1].charAt(0).toUpperCase() + nextMedMatch[1].slice(1).toLowerCase();
+              console.log(`✅ Found next medication to add: ${conversationName}`);
+            }
           }
         }
-      }
-      
-      const medicationData = {
-        name: (currentMessageData.name && !isCommonWord) ? currentMessageData.name : conversationName,
-        // For dosage: prioritize current message, but fall back to conversation if missing
-        // This handles follow-up responses like just "capsule" where dosage was given earlier
-        dosage: currentMessageData.dosage || conversationData.dosage || '',
-        form: currentMessageData.form || conversationData.form,
-        // NEVER use purpose from conversation - it includes AI responses with medication descriptions
-        purpose: currentMessageData.purpose || '',
-        // For quantity: prioritize current message, fall back to conversation
-        total_quantity: currentMessageData.total_quantity || conversationData.total_quantity || null
-      };
+
+        const medicationData = {
+          name: (currentMessageData.name && !isCommonWord) ? currentMessageData.name : conversationName,
+          // For dosage: prioritize current message, but fall back to conversation if missing
+          // This handles follow-up responses like just "capsule" where dosage was given earlier
+          dosage: currentMessageData.dosage || conversationData.dosage || '',
+          form: currentMessageData.form || conversationData.form,
+          // NEVER use purpose from conversation - it includes AI responses with medication descriptions
+          purpose: currentMessageData.purpose || '',
+          // For quantity: prioritize current message, fall back to conversation
+          total_quantity: currentMessageData.total_quantity || conversationData.total_quantity || null
+        };
         console.log('✅ Merged medication data:', medicationData);
-        
+
         // Check if we have enough data to create action
         if (medicationData.name && medicationData.dosage && medicationData.form) {
           // Set default quantity if not provided
           if (!medicationData.total_quantity) {
             medicationData.total_quantity = 30;
           }
-          
+
           // Check if this medication was just successfully added in previous turn
           // Look for success confirmation in recent history
-          const wasJustAdded = recentHistory.some(h => 
-            h.role === 'assistant' && 
+          const wasJustAdded = recentHistory.some(h =>
+            h.role === 'assistant' &&
             h.content.toLowerCase().includes('successfully added') &&
             h.content.toLowerCase().includes(medicationData.name.toLowerCase())
           );
-          
+
           if (wasJustAdded) {
             console.log(`⚠️ ${medicationData.name} was just added in previous turn - skipping duplicate`);
             // Don't create medication action, but check for schedule
             const schedMedications = await db.getMedications({}, userId);
             const medList = schedMedications?.medications || [];
             const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
-            
+
             if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
               action = { type: 'add_schedule', data: scheduleData };
               console.log('✅ Schedule-only action created for existing medication:', action);
@@ -1430,11 +1438,11 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             const medList = schedMedications?.medications || [];
             const scheduleData = extractScheduleFromText(message, medList, medicationData.name);
             console.log('📅 Checking for schedule data alongside medication:', scheduleData);
-            
+
             // If schedule data is present with required fields, create combined action
             if (scheduleData.time && scheduleData.food_timing) {
-              action = { 
-                type: 'add_medication_and_schedule', 
+              action = {
+                type: 'add_medication_and_schedule',
                 data: {
                   medication: medicationData,
                   schedule: scheduleData
@@ -1448,7 +1456,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
           }
         }
       }  // End of else block for non-scheduling messages
-      
+
       // Check for schedule completion (only if no action yet)
       if (!action) {
         const schedMedications = await db.getMedications({}, userId);
@@ -1457,7 +1465,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         // Conversation includes AI responses like "8am daily before food" which contaminates extraction
         const scheduleData = extractScheduleFromText(message, medList, recentlyAddedName);
         console.log('📅 Extracted schedule data from current message:', scheduleData);
-        
+
         // Schedule action creation - food_timing is MANDATORY
         if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
           // Food timing must be specified - no defaults
@@ -1469,7 +1477,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         }
       }
     }
-    
+
     // 2. SCHEDULE CREATION - More flexible pattern matching
     const schedulePatterns = [
       /schedule|reminder|set (a )?(time|reminder)/i,
@@ -1480,17 +1488,17 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     ];
     const hasSchedulePattern = schedulePatterns.some(pattern => pattern.test(message));
     const hasScheduleIntent = lowerMessage.includes('schedule') || lowerMessage.includes('reminder') ||
-                              lowerMessage.includes('set time') || lowerMessage.includes('when should') ||
-                              (lowerMessage.includes('take') && (lowerMessage.includes(' at ') || lowerMessage.includes('daily')));
-    
+      lowerMessage.includes('set time') || lowerMessage.includes('when should') ||
+      (lowerMessage.includes('take') && (lowerMessage.includes(' at ') || lowerMessage.includes('daily')));
+
     if (!action && (hasScheduleIntent || hasSchedulePattern)) {
       console.log('📅 Detected: Schedule Creation Intent');
       const medList = medications?.medications || [];
       console.log('📋 Available medications for scheduling:', medList.map(m => ({ id: m.id, name: m.name })));
-      
+
       // Check for recently added medication to use as fallback
       let lastAddedName = null;
-      const recentlyAdded = recentHistory.find(h => 
+      const recentlyAdded = recentHistory.find(h =>
         h.role === 'assistant' && h.content.toLowerCase().includes('successfully added')
       );
       if (recentlyAdded) {
@@ -1499,10 +1507,10 @@ Always validate mandatory fields, handle multiple requests, and guide users step
           lastAddedName = addedMatch[1];
         }
       }
-      
+
       const scheduleData = extractScheduleFromText(message, medList, lastAddedName);
       console.log('📅 Extracted schedule data:', scheduleData);
-      
+
       // REQUIRE food_timing - it's mandatory!
       if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
         action = { type: 'add_schedule', data: scheduleData };
@@ -1515,7 +1523,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         }
       }
     }
-    
+
     // 3. VIEW TODAY'S SCHEDULE - Multiple variations
     const todayPatterns = [
       /what.*(do|should|need).*(i|we).*(take|have)/i,
@@ -1524,13 +1532,13 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       /list.*(today|medication)/i
     ];
     const hasTodayIntent = todayPatterns.some(pattern => pattern.test(message)) ||
-                           (lowerMessage.includes('today') && (lowerMessage.includes('take') || lowerMessage.includes('schedule')));
-    
+      (lowerMessage.includes('today') && (lowerMessage.includes('take') || lowerMessage.includes('schedule')));
+
     if (!action && hasTodayIntent) {
       console.log('📅 Detected: View Today\'s Schedule');
       action = { type: 'show_schedule' };
     }
-    
+
     // 4. VIEW STATISTICS
     const statsPatterns = [
       /stat(istic)?s?/i,
@@ -1539,14 +1547,14 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       /progress/i,
       /compliance/i
     ];
-    const hasStatsIntent = statsPatterns.some(pattern => pattern.test(message)) || 
-                           lowerResponse.includes('statistic');
-    
+    const hasStatsIntent = statsPatterns.some(pattern => pattern.test(message)) ||
+      lowerResponse.includes('statistic');
+
     if (!action && hasStatsIntent) {
       console.log('📊 Detected: View Statistics');
       action = { type: 'show_stats' };
     }
-    
+
     // 5. REFILL ALERTS
     const refillPatterns = [
       /refill/i,
@@ -1556,25 +1564,25 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       /(almost|nearly) (out|finished)/i
     ];
     const hasRefillIntent = refillPatterns.some(pattern => pattern.test(message));
-    
+
     if (!action && hasRefillIntent) {
       console.log('🔔 Detected: Refill Alerts');
       action = { type: 'show_refills' };
     }
-    
+
     // 6. DELETE MEDICATION
     const deletePatterns = [
       /delete|remove|get rid of|erase/i
     ];
     const hasDeleteIntent = deletePatterns.some(pattern => pattern.test(lowerMessage));
-    
+
     if (!action && hasDeleteIntent && !lowerMessage.includes('schedule')) {
       console.log('🗑️ Detected: Delete Medication Intent');
-      
+
       // Check if user wants to delete ALL medications
       const deleteAllPatterns = /\b(all|every|everything|entire|complete)\b/i;
       const wantsDeleteAll = deleteAllPatterns.test(message);
-      
+
       if (wantsDeleteAll) {
         console.log('🗑️ User wants to delete ALL medications');
         action = {
@@ -1585,12 +1593,12 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       } else {
         const deleteData = findMedicationByName(message, medsList);
         console.log('🔍 Found medication to delete:', deleteData);
-        
+
         if (deleteData.matches.length > 0) {
           // If multiple matches, return all for confirmation
-          action = { 
-            type: 'delete_medication', 
-            data: deleteData.matches.length === 1 
+          action = {
+            type: 'delete_medication',
+            data: deleteData.matches.length === 1
               ? { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
               : { multiple: true, medications: deleteData.matches }
           };
@@ -1600,71 +1608,71 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         }
       }
     }
-    
+
     // 7. DELETE SCHEDULE
     if (!action && hasDeleteIntent && lowerMessage.includes('schedule')) {
       console.log('🗑️ Detected: Delete Schedule Intent');
       const deleteData = findMedicationByName(message, medsList);
       console.log('🔍 Found medication schedule to delete:', deleteData);
-      
+
       if (deleteData.matches.length > 0) {
-        action = { 
-          type: 'delete_schedule', 
+        action = {
+          type: 'delete_schedule',
           data: { medication_id: deleteData.matches[0].id, medication_name: deleteData.matches[0].name }
         };
         console.log('✅ Delete schedule action created:', action);
       }
     }
-    
+
     // 8. UPDATE/EDIT MEDICATION
     const updatePatterns = [
       /update|edit|change|modify|set/i
     ];
     const hasUpdateIntent = updatePatterns.some(pattern => pattern.test(lowerMessage));
-    
+
     if (!action && hasUpdateIntent && !lowerMessage.includes('schedule')) {
       console.log('✏️ Detected: Update Medication Intent');
       const medicationData = findMedicationByName(message, medsList);
-      
+
       if (medicationData.matches.length > 0) {
         const medication = medicationData.matches[0];
         const updates = extractUpdateDetails(message);
-        
+
         if (Object.keys(updates).length > 0) {
-          action = { 
-            type: 'update_medication', 
-            data: { 
-              medication_id: medication.id, 
+          action = {
+            type: 'update_medication',
+            data: {
+              medication_id: medication.id,
               medication_name: medication.name,
-              updates 
+              updates
             }
           };
           console.log('✅ Update medication action created:', action);
         }
       }
     }
-    
+
     // 9. UPDATE/EDIT SCHEDULE
     if (!action && hasUpdateIntent && lowerMessage.includes('schedule')) {
       console.log('✏️ Detected: Update Schedule Intent');
       const medicationData = findMedicationByName(message, medsList);
-      
+
       if (medicationData.matches.length > 0) {
         const medication = medicationData.matches[0];
         const scheduleUpdates = extractScheduleFromText(message, medsList);
-        
-        action = { 
-          type: 'update_schedule', 
-          data: { 
-            medication_id: medication.id, 
+
+        action = {
+          type: 'update_schedule',
+          data: {
+            medication_id: medication.id,
             medication_name: medication.name,
-            updates: scheduleUpdates 
+            updates: scheduleUpdates
           }
         };
         console.log('✅ Update schedule action created:', action);
       }
     }
-    
+
     // Log final decision
     if (action) {
       console.log('✅ Final action:', action.type);
@@ -1686,10 +1694,10 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       code: error.code,
       details: error.details
     });
-    
+
     // Determine error type for better user feedback
     let userMessage = "I'm having trouble processing your request. Please try again or rephrase your question.";
-    
+
     if (error.message?.includes('API key')) {
       userMessage = "⚠️ AI service configuration error. Please contact support.";
     } else if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
@@ -1699,8 +1707,8 @@ Always validate mandatory fields, handle multiple requests, and guide users step
     } else if (error.message?.includes('rate limit')) {
       userMessage = "⏳ Too many requests. Please wait a moment and try again.";
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       error: 'Failed to process chat request',
       response: userMessage,
       action: null
@@ -1731,7 +1739,7 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
       if (med && med.name) {
         const medNameLower = med.name.toLowerCase();
         const medFirstWord = medNameLower.split(' ')[0]; // e.g., "aspirin" from "aspirin 500mg"
-        
+
         // Try exact match first
         if (lowerText.includes(medNameLower)) {
           data.medication_id = med.id;
@@ -1749,13 +1757,13 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
       }
     }
   }
-  
+
   // If no match found in text, try lastAddedMedicationName (contextual fallback)
   if (!foundMatch && lastAddedMedicationName) {
     console.log(`🔍 No medication mentioned in text, checking lastAddedMedication: ${lastAddedMedicationName}`);
     // Find the medication by name
     if (Array.isArray(medications) && medications.length > 0) {
-      const lastAddedMed = medications.find(med => 
+      const lastAddedMed = medications.find(med =>
         med && med.name && med.name.toLowerCase() === lastAddedMedicationName.toLowerCase()
       );
       if (lastAddedMed) {
@@ -1766,7 +1774,7 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
       }
     }
   }
-  
+
   // If still no match found, try to extract medication name from text
   if (!foundMatch) {
     // Look for "schedule [medication]" pattern
@@ -1781,7 +1789,7 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
   let hour = 0;
   let minute = 0;
   let period = null;
-  
+
   // Try HH:MM am/pm format first (e.g., "4:30 pm")
   timeMatch = text.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
   if (timeMatch) {
@@ -1805,7 +1813,7 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
       }
     }
   }
-  
+
   if (timeMatch) {
     // Convert to 24-hour format
     if (period && period.toLowerCase() === 'pm' && hour < 12) {
@@ -1813,7 +1821,7 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
     } else if (period && period.toLowerCase() === 'am' && hour === 12) {
       hour = 0;
     }
-    
+
     data.time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
   }
 
@@ -1827,24 +1835,24 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
   }
 
   // Extract food timing (MANDATORY field - no defaults!)
-  if (lowerText.includes('before food') || lowerText.includes('before eating') || 
-      lowerText.includes('before meal') || lowerText.includes('empty stomach') ||
-      lowerText.includes('before breakfast') || lowerText.includes('before lunch') || 
-      lowerText.includes('before dinner')) {
+  if (lowerText.includes('before food') || lowerText.includes('before eating') ||
+    lowerText.includes('before meal') || lowerText.includes('empty stomach') ||
+    lowerText.includes('before breakfast') || lowerText.includes('before lunch') ||
+    lowerText.includes('before dinner')) {
     data.food_timing = 'before_food';
     data.with_food = false;
-  } else if (lowerText.includes('after food') || lowerText.includes('after eating') || 
-             lowerText.includes('after meal') ||
-             lowerText.includes('after breakfast') || lowerText.includes('after lunch') || 
-             lowerText.includes('after dinner')) {
+  } else if (lowerText.includes('after food') || lowerText.includes('after eating') ||
+    lowerText.includes('after meal') ||
+    lowerText.includes('after breakfast') || lowerText.includes('after lunch') ||
+    lowerText.includes('after dinner')) {
     data.food_timing = 'after_food';
     data.with_food = true;
   } else if (lowerText.includes('with food') || lowerText.includes('with meal') || lowerText.includes('during meal')) {
     // "with food" means take during/after eating
     data.food_timing = 'with_food';
     data.with_food = true;
-  } else if (lowerText.includes('no timing') || lowerText.includes('no specific') || 
-             lowerText.includes('anytime') || lowerText.includes('any time')) {
+  } else if (lowerText.includes('no timing') || lowerText.includes('no specific') ||
+    lowerText.includes('anytime') || lowerText.includes('any time')) {
     data.food_timing = 'none';
     data.with_food = false;
   }
@@ -1870,24 +1878,24 @@ function extractScheduleFromText(text, medications, lastAddedMedicationName = nu
 // Helper function to detect if message is about scheduling (not medication details)
 function isSchedulingMessage(text) {
   const lowerText = text.toLowerCase();
-  
+
   // Time patterns: 8am, 10:30pm, 8 am, etc.
   const hasTimePattern = /\b\d{1,2}(:\d{2})?\s*(am|pm|a\.m\.|p\.m\.)\b/i.test(text) ||
-                         /\b(morning|afternoon|evening|night|daily|twice|thrice|weekly)\b/i.test(text);
-  
+    /\b(morning|afternoon|evening|night|daily|twice|thrice|weekly)\b/i.test(text);
+
   // Food timing patterns
   const hasFoodTiming = /\b(before|after)\s+(food|meal|eating|breakfast|lunch|dinner)\b/i.test(text);
-  
+
   // Frequency patterns
   const hasFrequency = /\b(daily|twice|thrice|once|every|day|week|hour)\b/i.test(text);
-  
+
   // Schedule keywords
   const hasScheduleKeywords = /\b(schedule|reminder|time|when|alarm)\b/i.test(text);
-  
+
   // If message is SHORT (< 15 words) AND has time/scheduling patterns, it's likely a schedule response
   const wordCount = text.split(/\s+/).length;
   const isShortMessage = wordCount < 15;
-  
+
   return isShortMessage && (hasTimePattern || hasFoodTiming) && !(/\b(add|new|medication|medicine|aspirin|paracetamol|drug)\b/i.test(text));
 }
 
@@ -1895,30 +1903,30 @@ function isSchedulingMessage(text) {
 function findMedicationByName(text, medications) {
   const matches = [];
   const lowerText = text.toLowerCase();
-  
+
   if (!Array.isArray(medications) || medications.length === 0) {
     return { matches: [], searchTerm: text };
   }
-  
+
   // Try to find medication name in text
   for (const med of medications) {
     if (med && med.name) {
       const medNameLower = med.name.toLowerCase();
       const medFirstWord = medNameLower.split(' ')[0];
-      
+
       // Exact match
       if (lowerText.includes(medNameLower)) {
         matches.push(med);
         continue;
       }
-      
+
       // First word match (e.g., "aspirin" matches "Aspirin 500mg")
       if (medFirstWord.length > 3 && lowerText.includes(medFirstWord)) {
         matches.push(med);
       }
     }
   }
-  
+
   console.log(`🔍 Found ${matches.length} medication matches:`, matches.map(m => m.name));
   return { matches, searchTerm: text };
 }
@@ -1927,13 +1935,13 @@ function findMedicationByName(text, medications) {
 function extractUpdateDetails(text) {
   const updates = {};
   const lowerText = text.toLowerCase();
-  
+
   // Extract dosage update
   const dosageMatch = text.match(/(dosage|dose)\s+(to|is)?\s*([\d.]+\s*(?:mg|ml|g|mcg|iu))/i);
   if (dosageMatch) {
     updates.dosage = dosageMatch[3].trim();
   }
-  
+
   // Extract quantity update
   const quantityMatch = text.match(/(quantity|amount|count)\s+(to|is)?\s*(\d+)/i);
   if (quantityMatch) {
@@ -1947,7 +1955,7 @@ function extractUpdateDetails(text) {
       updates.remaining_quantity = parseInt(numberMatch[1]);
     }
   }
-  
+
   // Extract form update
   const formMappings = {
     'tablet': ['tablet', 'tab', 'pill'],
@@ -1960,20 +1968,20 @@ function extractUpdateDetails(text) {
     'patch': ['patch'],
     'other': ['spray', 'powder', 'suppository']
   };
-  
+
   for (const [formName, variants] of Object.entries(formMappings)) {
     if (variants.some(v => lowerText.includes(v))) {
       updates.form = formName;
       break;
     }
   }
-  
+
   // Extract purpose update
   const purposeMatch = text.match(/(?:purpose|for|treats?)\s+(?:to|is)?\s+(.+?)(?:\.|$)/i);
   if (purposeMatch) {
     updates.purpose = purposeMatch[1].trim();
   }
-  
+
   console.log('🔍 Extracted update details:', updates);
   return updates;
 }
@@ -1998,12 +2006,12 @@ function extractMedicationFromText(text) {
     /(\d+\.?\d*)\s*milligram/gi,
     /(\d+\.?\d*)\s*milliliter/gi
   ];
-  
+
   for (const pattern of dosagePatterns) {
     const match = text.match(pattern);
     if (match) {
       data.dosage = match[0].trim();
-      
+
       // If dosage contains 'ml', set form to liquid (unless explicitly stated otherwise)
       if (match[0].toLowerCase().includes('ml') && !lowerText.match(/\b(tablet|capsule|pill|injection|cream|inhaler|drops|patch)\b/)) {
         data.form = 'liquid';
@@ -2011,7 +2019,7 @@ function extractMedicationFromText(text) {
       break;
     }
   }
-  
+
   // IMPROVED: Extract quantity with multiple patterns
   // Priority 1: Standalone "X units" or just "X" when it's clearly quantity
   const standaloneUnitsMatch = text.match(/\b(\d+)\s*units?\b/i);
@@ -2069,7 +2077,7 @@ function extractMedicationFromText(text) {
       'patch': ['patch'],
       'other': ['spray', 'powder', 'suppository']
     };
-    
+
     for (const [formName, variants] of Object.entries(formMappings)) {
       if (variants.some(v => lowerText.includes(v))) {
         data.form = formName;
@@ -2087,7 +2095,7 @@ function extractMedicationFromText(text) {
     { keyword: 'because', minWords: 2 },
     { keyword: 'to help with', minWords: 1 }
   ];
-  
+
   for (const { keyword, minWords } of purposeKeywords) {
     const index = lowerText.indexOf(keyword);
     if (index !== -1) {
@@ -2095,7 +2103,7 @@ function extractMedicationFromText(text) {
       const words = afterKeyword.split(/\s+/).slice(0, 5);
       if (words.length >= minWords) {
         let purpose = words.join(' ').replace(/[.,!?;]$/, '').trim();
-        
+
         // Filter out AI response artifacts and invalid text
         // Skip if contains parentheses (e.g., "m (e.g., tablet...)") or "e.g."
         // Skip if contains medication names or dosages (AI response artifacts)
@@ -2110,13 +2118,13 @@ function extractMedicationFromText(text) {
           /inhaler|tablet|capsule/i,  // medication forms
           /unit/i  // "1 unit", "14 units"
         ];
-        
+
         const isInvalid = invalidPatterns.some(pattern => pattern.test(purpose)) || purpose.length < 3;
-        
+
         if (isInvalid) {
           continue;
         }
-        
+
         data.purpose = purpose;
         if (data.purpose.length > 0) break;
       }
@@ -2126,15 +2134,15 @@ function extractMedicationFromText(text) {
   // IMPROVED: Extract medication name with better logic
   // Strategy: Find the first meaningful word after "add" or similar triggers
   const addTriggers = ['add', 'new', 'start', 'begin', 'taking', 'take', 'need', 'have'];
-  const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or', 
-                     'tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'syrup', 'syrups',
-                     'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu',
-                     'inhaler', 'inhalers', 'cream', 'creams', 'drops', 'drop', 'patch', 'patches',
-                     'injection', 'injections', 'liquid', 'liquids', 'spray', 'sprays',
-                     'dosage', 'form', 'quantity', 'amount', 'total',
-                     'anytime', 'daily', 'weekly', 'morning', 'evening', 'night', 'afternoon',
-                     'before', 'after', 'with', 'food', 'meal', 'schedule', 'time'];
-  
+  const skipWords = ['a', 'an', 'the', 'my', 'medication', 'medicine', 'drug', 'med', 'and', 'or',
+    'tablet', 'tablets', 'capsule', 'capsules', 'pill', 'pills', 'syrup', 'syrups',
+    'unit', 'units', 'dose', 'doses', 'bottle', 'bottles', 'mg', 'ml', 'g', 'mcg', 'iu',
+    'inhaler', 'inhalers', 'cream', 'creams', 'drops', 'drop', 'patch', 'patches',
+    'injection', 'injections', 'liquid', 'liquids', 'spray', 'sprays',
+    'dosage', 'form', 'quantity', 'amount', 'total',
+    'anytime', 'daily', 'weekly', 'morning', 'evening', 'night', 'afternoon',
+    'before', 'after', 'with', 'food', 'meal', 'schedule', 'time'];
+
   // Try pattern 1: "add [medication]" or similar
   for (const trigger of addTriggers) {
     const pattern = new RegExp(`\\b${trigger}\\s+([a-z]+)`, 'i');
@@ -2144,15 +2152,15 @@ function extractMedicationFromText(text) {
       break;
     }
   }
-  
+
   // Try pattern 2: Look for capitalized word or common medication names
   if (!data.name) {
     // Additional words to skip (numbers as words, common phrases)
     const additionalSkipWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
-                                  'default', 'like', 'you', 'your', 'have', 'many', 'how', 'what', 'when', 'where',
-                                  'would', 'should', 'could', 'can', 'will', 'it', 'is', 'be', 'to', 'for', 'that',
-                                  'this', 'these', 'those', 'if', 'also', 'previously', 'noted', 'mentioned'];
-    
+      'default', 'like', 'you', 'your', 'have', 'many', 'how', 'what', 'when', 'where',
+      'would', 'should', 'could', 'can', 'will', 'it', 'is', 'be', 'to', 'for', 'that',
+      'this', 'these', 'those', 'if', 'also', 'previously', 'noted', 'mentioned'];
+
     const words = text.split(/\s+/);
     for (let i = 0; i < words.length; i++) {
       const word = words[i].replace(/[^a-zA-Z]/g, '');
@@ -2160,7 +2168,7 @@ function extractMedicationFromText(text) {
       if (skipWords.includes(word.toLowerCase())) continue;
       if (additionalSkipWords.includes(word.toLowerCase())) continue;
       if (addTriggers.includes(word.toLowerCase())) continue;
-      
+
       // Check if it's a potential medication name
       // - At least 4 characters for safety (filters out "Two", "One", etc.)
       // - Not a common word
@@ -2171,7 +2179,7 @@ function extractMedicationFromText(text) {
       }
     }
   }
-  
+
   // Try pattern 3: Extract from compound statements like "aspirin 500mg" or "aspirin paracetamol"
   if (!data.name) {
     const medicationPattern = text.match(/\b([a-z]{3,})\s+(?:\d+|and|or)/i);
@@ -2189,21 +2197,21 @@ cron.schedule('* * * * *', async () => {
   const now = new Date();
   const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
   const today = now.toISOString().split('T')[0];
-  
+
   console.log(`⏰ Checking schedules at ${currentTime}...`);
-  
+
   try {
     const schedules = await db.getTodaySchedule();
     console.log(`📋 Found ${schedules.length} schedules for today`);
-    
+
     let notificationsSent = 0;
-    
+
     for (const schedule of schedules) {
       console.log(`   - ${schedule.name} at ${schedule.time} (status: ${schedule.status})`);
-      
+
       if (schedule.time === currentTime && schedule.status === 'pending') {
         console.log(`   ✅ SENDING NOTIFICATION for ${schedule.name}!`);
-        
+
         // Desktop notification
         notifier.notify({
           title: '💊 Medication Reminder',
@@ -2211,13 +2219,13 @@ cron.schedule('* * * * *', async () => {
           sound: true,
           wait: false,
         });
-        
+
         // SMS notification (if phone is verified)
         const userPhone = schedule.user_phone; // User phone stored with schedule
         if (smsEnabled && userPhone) {
           // Enhanced SMS message with YES/NO response instructions
           let smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})`;
-          
+
           // Add food timing info
           if (schedule.food_timing === 'before_food') {
             smsMessage += ' - Take before food';
@@ -2226,29 +2234,29 @@ cron.schedule('* * * * *', async () => {
           } else if (schedule.food_timing === 'with_food') {
             smsMessage += ' - Take with food';
           }
-          
+
           if (schedule.special_instructions) {
             smsMessage += ` - ${schedule.special_instructions}`;
           }
           smsMessage += '\n\nReply YES when taken or NO if skipped.';
-          
+
           // Send SMS with tracking metadata
           const result = await sendSMS(userPhone, smsMessage, {
             medication_id: schedule.medication_id,
             schedule_id: schedule.id
           });
-          
+
           if (result.success) {
             console.log(`   📱 SMS sent to ${userPhone}`);
           } else {
             console.error(`   ❌ SMS failed: ${result.error}`);
           }
         }
-        
+
         notificationsSent++;
       }
     }
-    
+
     if (notificationsSent > 0) {
       console.log(`✅ Sent ${notificationsSent} notification(s)`);
     }
