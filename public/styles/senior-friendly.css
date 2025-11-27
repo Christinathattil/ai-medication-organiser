@@ -16,34 +16,91 @@
   --touch-target: 48px;
   --input-height: 52px;
 
-  /* High Contrast Colors */
+  /* Default Theme (Light) */
+  --color-primary: #7c3aed;
+  --color-primary-dark: #6d28d9;
+  --color-secondary: #e5e7eb;
   --color-success: #10b981;
   --color-success-dark: #059669;
   --color-danger: #ef4444;
   --color-danger-dark: #dc2626;
   --color-warning: #f59e0b;
   --color-warning-dark: #d97706;
-  --color-primary: #7c3aed;
-  --color-primary-dark: #6d28d9;
-
-  --color-text: #1f2937;
-  --color-text-light: #6b7280;
   --color-bg: #ffffff;
   --color-bg-gray: #f9fafb;
+  --color-text: #1f2937;
+  --color-text-light: #6b7280;
+  --color-border: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
 
-  /* Spacing */
+/* Theme: Dark */
+[data-theme="dark"] {
+  --color-primary: #8b5cf6;
+  --color-primary-dark: #7c3aed;
+  --color-secondary: #374151;
+  --color-success: #34d399;
+  --color-success-dark: #10b981;
+  --color-danger: #f87171;
+  --color-danger-dark: #ef4444;
+  --color-warning: #fbbf24;
+  --color-warning-dark: #f59e0b;
+  --color-bg: #111827;
+  --color-bg-gray: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-light: #d1d5db;
+  --color-border: #374151;
+}
+
+/* Theme: Calm (Blue) */
+[data-theme="calm"] {
+  --color-primary: #3b82f6;
+  --color-primary-dark: #2563eb;
+  --color-secondary: #dbeafe;
+  --color-success: #10b981;
+  --color-success-dark: #059669;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
+  --color-warning: #f59e0b;
+  --color-warning-dark: #d97706;
+  --color-bg: #f0f9ff;
+  --color-bg-gray: #e0f2fe;
+  --color-text: #1e3a8a;
+  --color-text-light: #60a5fa;
+  --color-border: #bfdbfe;
+}
+
+/* Theme: High Contrast */
+[data-theme="contrast"] {
+  --color-primary: #000000;
+  --color-primary-dark: #000000;
+  --color-secondary: #ffffff;
+  --color-success: #006400;
+  --color-success-dark: #006400;
+  --color-danger: #8b0000;
+  --color-danger-dark: #8b0000;
+  --color-warning: #b8860b;
+  --color-warning-dark: #b8860b;
+  --color-bg: #ffffff;
+  --color-bg-gray: #f3f4f6;
+  --color-text: #000000;
+  --color-text-light: #000000;
+  --color-border: #000000;
+}
+
+/* Spacing & Radius */
+:root {
   --spacing-xs: 8px;
   --spacing-sm: 12px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 32px;
 
-  /* Border Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
 
-  /* Icons */
   --icon-size-sm: 24px;
   --icon-size-md: 32px;
   --icon-size-lg: 48px;

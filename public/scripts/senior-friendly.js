@@ -1,7 +1,31 @@
 // ============================================
 // SENIOR-FRIENDLY JAVASCRIPT
-// Text size control, voice features, and accessibility
-// ============================================
+// Senior-Friendly Features
+// Handles accessibility, voice, and themes
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+    loadPreferences();
+    initSpeechRecognition();
+
+    // Check for saved theme
+    const savedTheme = localStorage.getItem('appTheme') || 'light';
+    setTheme(savedTheme);
+});
+
+// Theme Management
+function setTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('appTheme', theme);
+
+    // Update active state of theme buttons if they exist
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.theme === theme) {
+            btn.classList.add('active');
+        }
+    });
+}
 
 // Text Size Management
 function setTextSize(size) {
@@ -30,7 +54,7 @@ function setTextSize(size) {
 
     // Save preference
     localStorage.setItem('textSize', size);
-    showNotification(`Text size set to ${size}`, 'success');
+    showNotification(`Text size set to ${size} `, 'success');
 }
 
 // Load saved text size on page load
@@ -209,7 +233,7 @@ const audioCache = {};
 
 function playSound(soundName) {
     try {
-        const soundPath = `/sounds/${soundName}.mp3`;
+        const soundPath = `/ sounds / ${soundName}.mp3`;
 
         if (!audioCache[soundName]) {
             audioCache[soundName] = new Audio(soundPath);
@@ -249,7 +273,7 @@ function showReminderWithAudioVibration(medication) {
     vibrate([300, 100, 300, 100, 300]);
 
     // Speak
-    const message = `Time to take your ${medication.name}`;
+    const message = `Time to take your ${medication.name} `;
     speak(message);
 
     // Show visual reminder
@@ -265,7 +289,7 @@ function showFullScreenReminder(medication) {
     modal.id = 'fullscreen-reminder';
     modal.className = 'fullscreen-modal';
     modal.innerHTML = `
-    <div class="reminder-content">
+    < div class="reminder-content" >
       <i class="fas fa-pills mega-icon" style="color: var(--color-success);"></i>
       <h1 style="font-size: 32px; margin: 20px 0;">Time for your medicine!</h1>
       <h2 style="font-size: 28px; margin: 10px 0;">${medication.name}</h2>
@@ -281,8 +305,8 @@ function showFullScreenReminder(medication) {
       <button class="btn-secondary" onclick="dismissReminder()" style="margin-top: 16px;">
         Not now
       </button>
-    </div>
-  `;
+    </div >
+    `;
 
     document.body.appendChild(modal);
     modal.classList.add('fade-in');

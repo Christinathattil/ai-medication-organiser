@@ -2231,9 +2231,18 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         <button onclick="setTextSize('medium')" class="active" title="Medium text">A</button>
         <button onclick="setTextSize('large')" title="Large text">A</button>
       </div>
-      <button onclick="toggleHighContrast()" class="btn-secondary" style="width: 100%; margin-top: 12px;">
-        <i class="fas fa-adjust"></i> High Contrast
-      </button>
+
+      <h3 style="font-size: 18px; margin: 16px 0 12px 0;">Theme</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+        <button onclick="setTheme('light')" class="theme-btn" data-theme="light"
+          style="padding: 8px; border: 2px solid #e5e7eb; border-radius: 8px; background: white; color: black;">Light</button>
+        <button onclick="setTheme('dark')" class="theme-btn" data-theme="dark"
+          style="padding: 8px; border: 2px solid #374151; border-radius: 8px; background: #1f2937; color: white;">Dark</button>
+        <button onclick="setTheme('calm')" class="theme-btn" data-theme="calm"
+          style="padding: 8px; border: 2px solid #bfdbfe; border-radius: 8px; background: #f0f9ff; color: #1e3a8a;">Blue</button>
+        <button onclick="setTheme('contrast')" class="theme-btn" data-theme="contrast"
+          style="padding: 8px; border: 2px solid black; border-radius: 8px; background: white; color: black; font-weight: bold;">Contrast</button>
+      </div>
     </div>
   </div>
 
