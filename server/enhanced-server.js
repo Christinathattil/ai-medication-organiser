@@ -1239,10 +1239,11 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       try {
         completion = await Promise.race([
           groqClient.chat.completions.create({
-            model: 'llama-3.3-70b-versatile',
-            messages: messages,
+            model: 'llama-3.1-8b-instant', // Faster model for lower latency
+            messages,
             temperature: 0.7,
-            max_tokens: 200, // Reduced for concise responses
+            max_tokens: 300, // Limit response length for faster replies
+            top_p: 0.9
           }),
           new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
