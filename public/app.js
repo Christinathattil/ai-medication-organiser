@@ -1,20 +1,20 @@
 // Dynamically get the API base URL based on current port
-const API_BASE = window.location.hostname === 'localhost' 
+const API_BASE = window.location.hostname === 'localhost'
   ? `http://localhost:${window.location.port || 8080}/api`
   : '/api';
 
 console.log('✅ API Base URL:', API_BASE);
 
 // Tab Management
-window.showTab = function(tabName) {
+window.showTab = function (tabName) {
   document.querySelectorAll('.tab-content').forEach(tab => tab.classList.add('hidden'));
   document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-  
+
   document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.remove('bg-white', 'shadow-md', 'text-purple-700', 'font-bold');
     btn.classList.add('text-gray-600');
   });
-  
+
   // Find and activate the correct tab button
   const tabButtons = document.querySelectorAll('.tab-btn');
   tabButtons.forEach(btn => {
@@ -23,7 +23,7 @@ window.showTab = function(tabName) {
       btn.classList.remove('text-gray-600');
     }
   });
-  
+
   if (tabName === 'dashboard') loadDashboard();
   if (tabName === 'medications') loadMedications();
   if (tabName === 'schedules') loadSchedules();
@@ -32,31 +32,31 @@ window.showTab = function(tabName) {
 }
 
 // Modal Management
-window.showAddMedicationModal = function() {
+window.showAddMedicationModal = function () {
   // Reset form and modal state
   const form = document.getElementById('medication-form');
   form.reset();
   form.removeAttribute('data-edit-id');
-  
+
   // Reset modal title and button text
   document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
   const submitBtn = document.querySelector('#medication-form button[type="submit"]');
   submitBtn.textContent = 'Add Medication';
-  
+
   // Show modal
   document.getElementById('add-medication-modal').classList.add('active');
 }
 
-window.showAddScheduleModal = function() {
+window.showAddScheduleModal = function () {
   loadMedicationsForSchedule();
   document.getElementById('add-schedule-modal').classList.add('active');
 }
 
-window.closeModal = function(modalId) {
+window.closeModal = function (modalId) {
   document.getElementById(modalId).classList.remove('active');
 }
 
-window.openModal = function(modalId) {
+window.openModal = function (modalId) {
   document.getElementById(modalId).classList.add('active');
 }
 
@@ -76,14 +76,14 @@ async function loadQuickStats() {
       fetch(`${API_BASE}/schedule/today`),
       fetch(`${API_BASE}/stats/adherence?days=7`)
     ]);
-    
+
     const meds = await medsRes.json();
     const schedule = await scheduleRes.json();
     const stats = await statsRes.json();
-    
+
     document.getElementById('stat-active-meds').textContent = meds.medications.length;
     document.getElementById('stat-today-doses').textContent = schedule.schedules.length;
-    
+
     const avgAdherence = stats.statistics.length > 0
       ? (stats.statistics.reduce((sum, s) => sum + parseFloat(s.adherence_rate), 0) / stats.statistics.length).toFixed(1)
       : 0;
@@ -97,14 +97,14 @@ async function loadRefillAlerts() {
   try {
     const res = await fetch(`${API_BASE}/refill-alerts?threshold=7`);
     const data = await res.json();
-    
+
     const container = document.getElementById('refill-list');
-    
+
     if (data.medications.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No medications need refilling.</p>';
       return;
     }
-    
+
     container.innerHTML = data.medications.map(med => `
       <div class="flex items-center justify-between p-4 bg-orange-50 border border-orange-200 rounded-lg mb-2">
         <div>
@@ -126,14 +126,14 @@ async function loadTodaySchedule() {
   try {
     const res = await fetch(`${API_BASE}/schedule/today`);
     const data = await res.json();
-    
+
     const container = document.getElementById('today-schedule');
-    
+
     if (data.schedules.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No medications scheduled for today.</p>';
       return;
     }
-    
+
     container.innerHTML = data.schedules.map(schedule => `
       <div class="flex items-center justify-between p-4 border rounded-lg mb-3">
         <div class="flex-1">
@@ -172,14 +172,14 @@ async function loadMedications() {
     const search = document.getElementById('search-meds')?.value || '';
     const res = await fetch(`${API_BASE}/medications?search=${search}`);
     const data = await res.json();
-    
+
     const container = document.getElementById('medications-list');
-    
+
     if (data.medications.length === 0) {
       container.innerHTML = '<p class="text-gray-500 col-span-3">No medications found.</p>';
       return;
     }
-    
+
     container.innerHTML = data.medications.map(med => `
       <div class="bg-white rounded-lg shadow-sm p-6 card">
         ${med.photo_url ? `<img src="${med.photo_url}" alt="${med.name}" class="w-full h-32 object-cover rounded-lg mb-4">` : ''}
@@ -232,15 +232,15 @@ function getFoodTimingText(timing) {
 
 async function addMedication(event) {
   event.preventDefault();
-  
+
   // Check if we're in edit mode
   const editId = event.target.dataset.editId;
   const isEditing = !!editId;
-  
+
   console.log(isEditing ? '🔵 Updating medication...' : '🔵 Adding medication...');
-  
+
   const formData = new FormData(event.target);
-  
+
   // Remove empty values to avoid sending empty strings
   const cleanedData = new FormData();
   for (let [key, value] of formData.entries()) {
@@ -255,27 +255,27 @@ async function addMedication(event) {
       console.log(`  ${key}: ${value}`);
     }
   }
-  
+
   try {
     console.log('📤 Sending to API...');
     const url = isEditing ? `${API_BASE}/medications/${editId}` : `${API_BASE}/medications`;
     const method = isEditing ? 'PUT' : 'POST';
-    
+
     const res = await fetch(url, {
       method: method,
       body: cleanedData
     });
-    
+
     console.log('📥 Response status:', res.status);
-    
+
     if (res.ok) {
       const data = await res.json();
       console.log('✅ Success:', data);
-      
+
       // Reset modal to add mode
       event.target.removeAttribute('data-edit-id');
       document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
-      
+
       closeModal('add-medication-modal');
       event.target.reset();
       loadMedications();
@@ -295,7 +295,7 @@ async function viewMedication(id) {
   try {
     const res = await fetch(`${API_BASE}/medications/${id}`);
     const data = await res.json();
-    
+
     if (data.medication) {
       const med = data.medication;
       alert(`Medication Details:
@@ -319,10 +319,10 @@ async function editMedication(id) {
   try {
     const res = await fetch(`${API_BASE}/medications/${id}`);
     const data = await res.json();
-    
+
     if (data.medication) {
       const med = data.medication;
-      
+
       // Fill the form with existing data
       document.getElementById('med-name').value = med.name || '';
       document.getElementById('med-dosage').value = med.dosage || '';
@@ -333,18 +333,18 @@ async function editMedication(id) {
       document.getElementById('med-quantity').value = med.total_quantity || '';
       document.getElementById('med-side-effects').value = med.side_effects || '';
       document.getElementById('med-notes').value = med.notes || '';
-      
+
       // Change modal title and button
       const modal = document.getElementById('add-medication-modal');
       modal.querySelector('h2').textContent = 'Edit Medication';
-      
+
       // Change submit button text
       const submitBtn = document.querySelector('#medication-form button[type="submit"]');
       submitBtn.textContent = 'Update Medication';
-      
+
       // Store the ID in a data attribute for the submit handler
       document.getElementById('medication-form').dataset.editId = id;
-      
+
       // Open the modal
       openModal('add-medication-modal');
     }
@@ -356,7 +356,7 @@ async function editMedication(id) {
 
 async function deleteMedication(id) {
   if (!confirm('Are you sure you want to delete this medication?')) return;
-  
+
   try {
     const res = await fetch(`${API_BASE}/medications/${id}`, { method: 'DELETE' });
     if (res.ok) {
@@ -372,25 +372,25 @@ async function refillMedication(id, defaultQuantity) {
   try {
     // Ask user to confirm the refill quantity
     const userQuantity = prompt(`How many units are you adding?\n\nSuggested: ${defaultQuantity || '(please enter amount)'}\n\nEnter the quantity:`, defaultQuantity || '');
-    
+
     // Cancel if user clicks cancel or doesn't enter anything
     if (userQuantity === null || userQuantity === '') {
       return;
     }
-    
+
     // Validate the input
     const quantity = parseInt(userQuantity);
     if (isNaN(quantity) || quantity <= 0) {
       showNotification('Please enter a valid positive number', 'error');
       return;
     }
-    
+
     const res = await fetch(`${API_BASE}/medications/${id}/quantity`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ quantity_change: quantity, is_refill: true })
     });
-    
+
     if (res.ok) {
       loadDashboard();
       showNotification(`Medication refilled! Added ${quantity} units.`, 'success');
@@ -406,18 +406,18 @@ async function loadSchedules() {
   try {
     const res = await fetch(`${API_BASE}/schedules`);
     const data = await res.json();
-    
+
     const container = document.getElementById('schedules-list');
-    
+
     if (data.schedules.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No schedules found.</p>';
       return;
     }
-    
+
     // Get sorting and grouping preferences
     const sortBy = document.getElementById('schedule-sort')?.value || 'time';
     const groupByTime = document.getElementById('schedule-group')?.checked || false;
-    
+
     // Sort schedules
     let schedules = [...data.schedules];
     schedules.sort((a, b) => {
@@ -430,7 +430,7 @@ async function loadSchedules() {
       }
       return 0;
     });
-    
+
     // Group by time if enabled
     if (groupByTime && sortBy === 'time') {
       const grouped = {};
@@ -440,22 +440,22 @@ async function loadSchedules() {
         }
         grouped[schedule.time].push(schedule);
       });
-      
+
       container.innerHTML = Object.keys(grouped).sort().map(time => {
         const timeSchedules = grouped[time];
-        
+
         // If more than 2 medicines at the same time, subgroup by food timing
         if (timeSchedules.length > 2) {
           const beforeFood = timeSchedules.filter(s => s.food_timing === 'before_food');
           const afterFood = timeSchedules.filter(s => s.food_timing === 'after_food');
           const noTiming = timeSchedules.filter(s => !s.food_timing || s.food_timing === 'none' || s.food_timing === 'with_food');
-          
+
           let html = `
             <div class="mb-6">
               <h3 class="text-lg font-bold text-purple-700 mb-3 flex items-center">
                 <i class="fas fa-clock mr-2"></i>${time}
               </h3>`;
-          
+
           if (beforeFood.length > 0) {
             html += `
               <div class="ml-4 mb-3">
@@ -465,7 +465,7 @@ async function loadSchedules() {
                 ${beforeFood.map(schedule => renderScheduleCard(schedule)).join('')}
               </div>`;
           }
-          
+
           if (noTiming.length > 0) {
             html += `
               <div class="ml-4 mb-3">
@@ -475,7 +475,7 @@ async function loadSchedules() {
                 ${noTiming.map(schedule => renderScheduleCard(schedule)).join('')}
               </div>`;
           }
-          
+
           if (afterFood.length > 0) {
             html += `
               <div class="ml-4 mb-3">
@@ -485,7 +485,7 @@ async function loadSchedules() {
                 ${afterFood.map(schedule => renderScheduleCard(schedule)).join('')}
               </div>`;
           }
-          
+
           html += `</div>`;
           return html;
         } else {
@@ -550,9 +550,9 @@ async function loadMedicationsForSchedule() {
   try {
     const res = await fetch(`${API_BASE}/medications`);
     const data = await res.json();
-    
+
     const select = document.getElementById('schedule-medication-select');
-    select.innerHTML = '<option value="">Select medication</option>' + 
+    select.innerHTML = '<option value="">Select medication</option>' +
       data.medications.map(med => `<option value="${med.id}">${med.name} (${med.dosage})</option>`).join('');
   } catch (error) {
     console.error('Error loading medications:', error);
@@ -560,21 +560,21 @@ async function loadMedicationsForSchedule() {
 }
 
 // Edit Schedule
-window.editSchedule = async function(scheduleId) {
+window.editSchedule = async function (scheduleId) {
   try {
     // Fetch schedule details
     const res = await fetch(`${API_BASE}/schedules`);
     const data = await res.json();
     const schedule = data.schedules.find(s => s.id === scheduleId);
-    
+
     if (!schedule) {
       showNotification('Schedule not found', 'error');
       return;
     }
-    
+
     // Load medications for dropdown
     await loadMedicationsForEditSchedule();
-    
+
     // Populate form
     document.getElementById('edit-schedule-id').value = schedule.id;
     document.getElementById('edit-medication-select').value = schedule.medication_id;
@@ -582,7 +582,7 @@ window.editSchedule = async function(scheduleId) {
     document.getElementById('edit-schedule-frequency').value = schedule.frequency;
     document.getElementById('edit-schedule-start').value = schedule.start_date || '';
     document.getElementById('edit-schedule-end').value = schedule.end_date || '';
-    
+
     // Set food timing radio button
     // Handle backward compatibility: convert old with_food to before_food
     let foodTiming = schedule.food_timing;
@@ -590,17 +590,17 @@ window.editSchedule = async function(scheduleId) {
       foodTiming = 'before_food'; // Convert old with_food to before_food
     }
     foodTiming = foodTiming || 'none';
-    
+
     // If old data has 'with_food', convert to 'before_food'
     if (foodTiming === 'with_food') {
       foodTiming = 'before_food';
     }
-    
+
     const foodRadio = document.querySelector(`input[name="food_timing"][value="${foodTiming}"]`);
     if (foodRadio) foodRadio.checked = true;
-    
+
     document.getElementById('edit-schedule-instructions').value = schedule.special_instructions || '';
-    
+
     // Open modal
     openModal('edit-schedule-modal');
   } catch (error) {
@@ -610,21 +610,21 @@ window.editSchedule = async function(scheduleId) {
 }
 
 // Update Schedule
-window.updateSchedule = async function(event) {
+window.updateSchedule = async function (event) {
   event.preventDefault();
   console.log('🔵 Updating schedule...');
-  
+
   const formData = new FormData(event.target);
   const scheduleId = formData.get('schedule_id');
   const data = {};
-  
+
   // Only include non-empty values
   for (let [key, value] of formData.entries()) {
     if (key !== 'schedule_id' && value && value.trim() !== '') {
       data[key] = value.trim();
     }
   }
-  
+
   // Handle food timing - convert to backend format
   const foodTiming = formData.get('food_timing');
   if (!foodTiming) {
@@ -633,9 +633,9 @@ window.updateSchedule = async function(event) {
   }
   data.with_food = false; // No longer using with_food
   data.food_timing = foodTiming;
-  
+
   console.log('Update data:', data);
-  
+
   try {
     console.log('📤 Sending to API...');
     const res = await fetch(`${API_BASE}/schedules/${scheduleId}`, {
@@ -643,9 +643,9 @@ window.updateSchedule = async function(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    
+
     console.log('📥 Response status:', res.status);
-    
+
     if (res.ok) {
       const result = await res.json();
       console.log('✅ Success:', result);
@@ -668,9 +668,9 @@ async function loadMedicationsForEditSchedule() {
   try {
     const res = await fetch(`${API_BASE}/medications`);
     const data = await res.json();
-    
+
     const select = document.getElementById('edit-medication-select');
-    select.innerHTML = '<option value="">Select medication</option>' + 
+    select.innerHTML = '<option value="">Select medication</option>' +
       data.medications.map(med => `<option value="${med.id}">${med.name} (${med.dosage})</option>`).join('');
   } catch (error) {
     console.error('Error loading medications:', error);
@@ -680,17 +680,17 @@ async function loadMedicationsForEditSchedule() {
 async function addSchedule(event) {
   event.preventDefault();
   console.log('🔵 Adding schedule...');
-  
+
   const formData = new FormData(event.target);
   const data = {};
-  
+
   // Only include non-empty values
   for (let [key, value] of formData.entries()) {
     if (value && value.trim() !== '') {
       data[key] = value.trim();
     }
   }
-  
+
   // Handle food timing - convert to backend format
   const foodTiming = formData.get('food_timing');
   if (!foodTiming) {
@@ -699,9 +699,9 @@ async function addSchedule(event) {
   }
   data.with_food = false; // No longer using with_food
   data.food_timing = foodTiming;
-  
+
   console.log('Schedule data:', data);
-  
+
   try {
     console.log('📤 Sending to API...');
     const res = await fetch(`${API_BASE}/schedules`, {
@@ -709,9 +709,9 @@ async function addSchedule(event) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data)
     });
-    
+
     console.log('📥 Response status:', res.status);
-    
+
     if (res.ok) {
       const result = await res.json();
       console.log('✅ Success:', result);
@@ -737,7 +737,7 @@ async function toggleSchedule(id, active) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ active })
     });
-    
+
     if (res.ok) {
       loadSchedules();
       showNotification(`Schedule ${active ? 'activated' : 'deactivated'}`, 'success');
@@ -749,7 +749,7 @@ async function toggleSchedule(id, active) {
 
 async function deleteSchedule(id) {
   if (!confirm('Are you sure you want to delete this schedule?')) return;
-  
+
   try {
     const res = await fetch(`${API_BASE}/schedules/${id}`, { method: 'DELETE' });
     if (res.ok) {
@@ -769,7 +769,7 @@ async function logMedication(medicationId, scheduleId, status) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ medication_id: medicationId, schedule_id: scheduleId, status })
     });
-    
+
     if (res.ok) {
       loadTodaySchedule();
       loadQuickStats();
@@ -785,14 +785,14 @@ async function loadHistory() {
   try {
     const res = await fetch(`${API_BASE}/logs?limit=100`);
     const data = await res.json();
-    
+
     const container = document.getElementById('history-list');
-    
+
     if (data.history.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No history found.</p>';
       return;
     }
-    
+
     container.innerHTML = `
       <table class="w-full">
         <thead>
@@ -832,14 +832,14 @@ async function loadAdherenceStats() {
     const days = document.getElementById('stats-period')?.value || 30;
     const res = await fetch(`${API_BASE}/stats/adherence?days=${days}`);
     const data = await res.json();
-    
+
     const container = document.getElementById('stats-list');
-    
+
     if (data.statistics.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No statistics available.</p>';
       return;
     }
-    
+
     container.innerHTML = data.statistics.map(stat => `
       <div class="bg-white border rounded-lg p-6 mb-4">
         <h3 class="text-lg font-bold text-gray-900 mb-4">${stat.medication_name}</h3>
@@ -874,12 +874,11 @@ async function loadAdherenceStats() {
 // Notification System
 function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
-  notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white ${
-    type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
-  }`;
+  notification.className = `fixed top-4 right-4 px-6 py-3 rounded-lg shadow-lg text-white ${type === 'success' ? 'bg-green-600' : type === 'error' ? 'bg-red-600' : 'bg-blue-600'
+    }`;
   notification.textContent = message;
   document.body.appendChild(notification);
-  
+
   setTimeout(() => {
     notification.remove();
   }, 3000);
@@ -888,20 +887,20 @@ function showNotification(message, type = 'info') {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   loadDashboard();
-  
+
   // Set default date for schedule form
   const today = new Date().toISOString().split('T')[0];
   const startDateInput = document.querySelector('[name="start_date"]');
   if (startDateInput) {
     startDateInput.value = today;
   }
-  
+
   // Register service worker for PWA support and push notifications
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js')
       .then((registration) => {
         console.log('✅ Service Worker registered:', registration);
-        
+
         // Request notification permission proactively
         if ('Notification' in window && Notification.permission === 'default') {
           Notification.requestPermission().then((permission) => {
@@ -911,7 +910,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
           });
         }
-        
+
         // Start checking for pending medications every minute
         startMedicationNotificationCheck(registration);
       })
@@ -919,28 +918,28 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('❌ Service Worker registration failed:', error);
       });
   }
-  
+
   // Track shown notifications to avoid duplicates
   const shownNotifications = new Set();
-  
+
   // Check for pending medications and show browser notifications
   async function startMedicationNotificationCheck(swRegistration) {
     console.log('🔔 Starting medication notification checker...');
-    
+
     async function checkAndNotify() {
       // Only check if notifications are enabled
       if (Notification.permission !== 'granted') {
         return;
       }
-      
+
       try {
         const res = await fetch(`${API_BASE}/schedules/today`);
         if (!res.ok) return;
-        
+
         const data = await res.json();
         const now = new Date();
         const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        
+
         // Group pending schedules for the current minute
         const due = (data.schedules || []).filter(s => s.time === currentTime && s.status === 'pending');
 
@@ -957,13 +956,13 @@ document.addEventListener('DOMContentLoaded', () => {
             body,
             icon: '/icon-192.png',
             badge: '/badge-72.png',
-            vibrate: [200,100,200],
+            vibrate: [200, 100, 200],
             tag: s.id,
             requireInteraction: true,
-            data:{ medicationId: s.medication_id, scheduleId: s.id },
-            actions:[{action:'taken',title:'✅ Taken'},{action:'skipped',title:'⏭️ Skip'}]
+            data: { medicationId: s.medication_id, scheduleId: s.id },
+            actions: [{ action: 'taken', title: '✅ Taken' }, { action: 'skipped', title: '⏭️ Skip' }]
           });
-          setTimeout(()=>shownNotifications.delete(nid),5*60*1000);
+          setTimeout(() => shownNotifications.delete(nid), 5 * 60 * 1000);
           return;
         }
 
@@ -971,28 +970,28 @@ document.addEventListener('DOMContentLoaded', () => {
         const tag = `group-${currentTime}`;
         if (shownNotifications.has(tag)) return;
         shownNotifications.add(tag);
-        const list = due.map(s=>`• ${s.name} (${s.dosage||''})`).join('\n');
+        const list = due.map(s => `• ${s.name} (${s.dosage || ''})`).join('\n');
         const body = `${list}`;
         await swRegistration.showNotification('💊 Medication Reminder', {
           body,
-          icon:'/icon-192.png',
-          badge:'/badge-72.png',
-          vibrate:[200,100,200],
+          icon: '/icon-192.png',
+          badge: '/badge-72.png',
+          vibrate: [200, 100, 200],
           tag,
-          requireInteraction:true,
-          data:{
-            group:true,
-            items: due.map(s=>({medicationId:s.medication_id,scheduleId:s.id}))
+          requireInteraction: true,
+          data: {
+            group: true,
+            items: due.map(s => ({ medicationId: s.medication_id, scheduleId: s.id }))
           },
-          actions:[{action:'mark_all_taken',title:'Mark All Taken'},{action:'open_app',title:'Open App'}]
+          actions: [{ action: 'mark_all_taken', title: 'Mark All Taken' }, { action: 'open_app', title: 'Open App' }]
         });
-        setTimeout(()=>shownNotifications.delete(tag),5*60*1000);
+        setTimeout(() => shownNotifications.delete(tag), 5 * 60 * 1000);
 
-        function buildBody(schedule){
+        function buildBody(schedule) {
           let body = `Time to take ${schedule.name} (${schedule.dosage || 'as prescribed'})`;
-          if (schedule.food_timing==='before_food') body += ' - Take before food';
-          if (schedule.food_timing==='after_food') body += ' - Take after food';
-          if (schedule.food_timing==='with_food') body += ' - Take with food';
+          if (schedule.food_timing === 'before_food') body += ' - Take before food';
+          if (schedule.food_timing === 'after_food') body += ' - Take after food';
+          if (schedule.food_timing === 'with_food') body += ' - Take with food';
           if (schedule.special_instructions) body += `\n${schedule.special_instructions}`;
           return body;
         }
@@ -1000,20 +999,20 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('❌ Error checking medications:', error);
       }
     }
-    
+
     // Check immediately on load
     checkAndNotify();
-    
+
     // Then check every minute
     setInterval(checkAndNotify, 60 * 1000);
   }
-  
+
   // Add install prompt for PWA
   let deferredPrompt;
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();
     deferredPrompt = e;
-    
+
     // Show install button
     const installBtn = document.createElement('button');
     installBtn.className = 'fixed bottom-20 right-6 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-green-700 z-40';
