@@ -830,15 +830,38 @@
       // Add welcome message
       addMessage('👋 Hi! I\'m your AI medication assistant powered by Groq. I can help you:\n\n• Add medications naturally\n• Create schedules\n• Check your plan\n• View statistics\n\nTry: "Add aspirin 500mg for headaches"', 'bot');
 
-      // Event listeners
-      toggleBtn.addEventListener('click', () => {
-        sidebar.style.transform = 'translateX(0)';
-        input.focus();
-      });
+      // Chatbot Toggle Logic
+      const chatToggleBtn = document.getElementById('ai-chat-toggle');
+      const chatSidebar = document.getElementById('ai-chat-sidebar');
+      const closeChatBtn = document.getElementById('close-chat-btn'); // Ensure this ID matches your HTML
 
-      closeBtn.addEventListener('click', () => {
-        sidebar.style.transform = 'translateX(100%)';
-      });
+      function toggleChat() {
+        const isOpen = chatSidebar.style.transform === 'translateX(0%)';
+        if (isOpen) {
+          chatSidebar.style.transform = 'translateX(100%)';
+          // Change icon back to chat bubble
+          chatToggleBtn.innerHTML = `
+            <svg style="width: 32px; height: 32px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path>
+            </svg>
+            <span style="position: absolute; top: -2px; right: -2px; background: #ef4444; color: white; font-size: 11px; border-radius: 50%; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; font-weight: bold;">AI</span>
+          `;
+        } else {
+          chatSidebar.style.transform = 'translateX(0%)';
+          // Change icon to X (close)
+          chatToggleBtn.innerHTML = `
+            <svg style="width: 32px; height: 32px; color: white;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          `;
+          // Focus input
+          setTimeout(() => document.getElementById('chat-input').focus(), 300);
+        }
+      }
+
+      // Event listeners
+      if (chatToggleBtn) chatToggleBtn.addEventListener('click', toggleChat);
+      if (closeChatBtn) closeChatBtn.addEventListener('click', toggleChat);
 
       sendBtn.addEventListener('click', sendMessage);
       input.addEventListener('keypress', (e) => {
