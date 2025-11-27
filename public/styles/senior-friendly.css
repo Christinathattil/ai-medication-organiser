@@ -4,9 +4,12 @@
    ============================================ */
 
 :root {
+  /* Typography */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
   /* Text Size Options */
-  --text-size-small: 14px;
-  --text-size-medium: 16px;
+  --text-size-small: 15px;
+  --text-size-medium: 17px;
   --text-size-large: 20px;
   --text-size: var(--text-size-medium);
 
@@ -14,31 +17,47 @@
   --button-min-height: 48px;
   --button-min-width: 48px;
   --touch-target: 48px;
-  --input-height: 52px;
+  --input-height: 50px;
 
-  /* Default Theme (Light) */
-  --color-primary: #7c3aed;
-  --color-primary-dark: #6d28d9;
-  --color-secondary: #e5e7eb;
+  /* Default Theme (Light - Professional) */
+  --color-primary: #6366f1;
+  /* Indigo-500 */
+  --color-primary-dark: #4f46e5;
+  /* Indigo-600 */
+  --color-secondary: #f3f4f6;
+  /* Gray-100 */
   --color-success: #10b981;
+  /* Emerald-500 */
   --color-success-dark: #059669;
+  /* Emerald-600 */
   --color-danger: #ef4444;
+  /* Red-500 */
   --color-danger-dark: #dc2626;
+  /* Red-600 */
   --color-warning: #f59e0b;
+  /* Amber-500 */
   --color-warning-dark: #d97706;
-  --color-bg: #ffffff;
-  --color-bg-gray: #f9fafb;
-  --color-text: #1f2937;
+  /* Amber-600 */
+
+  --color-bg: #f9fafb;
+  /* Gray-50 */
+  --color-bg-card: #ffffff;
+  --color-text: #111827;
+  /* Gray-900 */
   --color-text-light: #6b7280;
+  /* Gray-500 */
   --color-border: #e5e7eb;
+  /* Gray-200 */
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Theme: Dark */
 [data-theme="dark"] {
-  --color-primary: #8b5cf6;
-  --color-primary-dark: #7c3aed;
+  --color-primary: #818cf8;
+  --color-primary-dark: #6366f1;
   --color-secondary: #374151;
   --color-success: #34d399;
   --color-success-dark: #10b981;
@@ -46,11 +65,16 @@
   --color-danger-dark: #ef4444;
   --color-warning: #fbbf24;
   --color-warning-dark: #f59e0b;
+
   --color-bg: #111827;
-  --color-bg-gray: #1f2937;
+  --color-bg-card: #1f2937;
   --color-text: #f9fafb;
   --color-text-light: #d1d5db;
   --color-border: #374151;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
 }
 
 /* Theme: Calm (Blue) */
@@ -58,35 +82,37 @@
   --color-primary: #3b82f6;
   --color-primary-dark: #2563eb;
   --color-secondary: #dbeafe;
-  --color-success: #10b981;
-  --color-success-dark: #059669;
-  --color-danger: #ef4444;
-  --color-danger-dark: #dc2626;
-  --color-warning: #f59e0b;
-  --color-warning-dark: #d97706;
   --color-bg: #f0f9ff;
-  --color-bg-gray: #e0f2fe;
+  --color-bg-card: #ffffff;
   --color-text: #1e3a8a;
   --color-text-light: #60a5fa;
   --color-border: #bfdbfe;
 }
 
-/* Theme: High Contrast */
-[data-theme="contrast"] {
-  --color-primary: #000000;
-  --color-primary-dark: #000000;
-  --color-secondary: #ffffff;
-  --color-success: #006400;
-  --color-success-dark: #006400;
-  --color-danger: #8b0000;
-  --color-danger-dark: #8b0000;
-  --color-warning: #b8860b;
-  --color-warning-dark: #b8860b;
-  --color-bg: #ffffff;
-  --color-bg-gray: #f3f4f6;
-  --color-text: #000000;
-  --color-text-light: #000000;
-  --color-border: #000000;
+/* Icons should follow theme colors */
+i.fas,
+i.far,
+i.fab,
+svg {
+  color: var(--color-primary);
+  transition: color 0.2s ease;
+}
+
+/* Specific overrides for buttons to keep white icons */
+.btn-primary i,
+.btn-success i,
+.btn-danger i,
+.btn-warning i {
+  color: white;
+}
+
+/* Bottom nav icons */
+.bottom-nav button i {
+  color: var(--color-text-light);
+}
+
+.bottom-nav button.active i {
+  color: var(--color-primary);
 }
 
 /* Spacing & Radius */
@@ -100,10 +126,11 @@
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-full: 9999px;
 
-  --icon-size-sm: 24px;
-  --icon-size-md: 32px;
-  --icon-size-lg: 48px;
+  --icon-size-sm: 20px;
+  --icon-size-md: 24px;
+  --icon-size-lg: 32px;
 }
 
 /* ============================================
@@ -116,36 +143,40 @@
 
 body {
   font-size: var(--text-size);
-  line-height: 1.6;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  font-family: var(--font-main);
   color: var(--color-text);
+  background-color: var(--color-bg);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  padding-bottom: 100px;
+  /* Space for bottom nav */
 }
 
 /* ============================================
-   BUTTONS - Large & Touch-Friendly
+   BUTTONS - Professional & Accessible
    ============================================ */
 
 button,
 .btn {
   min-height: var(--button-min-height);
-  min-width: var(--button-min-width);
-  font-size: calc(var(--text-size) * 0.9);
-  padding: var(--spacing-sm) var(--spacing-lg);
+  font-size: var(--text-size);
+  padding: 10px 20px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--spacing-xs);
+  gap: 8px;
   -webkit-tap-highlight-color: transparent;
+  position: relative;
+  /* Fix z-index issues */
+  z-index: 1;
 }
 
 button:active,
@@ -155,53 +186,56 @@ button:active,
 
 /* Button Variants */
 .btn-primary {
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  background: var(--color-primary);
   color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark);
 }
 
 .btn-success {
-  background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+  background: var(--color-success);
   color: white;
+  box-shadow: var(--shadow-md);
 }
 
 .btn-danger {
-  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark));
+  background: var(--color-danger);
   color: white;
-}
-
-.btn-warning {
-  background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark));
-  color: white;
+  box-shadow: var(--shadow-md);
 }
 
 .btn-secondary {
-  background: #e5e7eb;
+  background: var(--color-secondary);
   color: var(--color-text);
+  border: 1px solid var(--color-border);
 }
 
 /* Large Action Buttons */
 .btn-large,
 .big-action-btn {
-  min-height: 64px;
-  font-size: calc(var(--text-size) * 1.2);
-  padding: var(--spacing-md) var(--spacing-xl);
+  min-height: 56px;
+  font-size: calc(var(--text-size) * 1.1);
+  padding: 16px 24px;
   width: 100%;
-  margin: var(--spacing-sm) 0;
+  margin: 12px 0;
 }
 
 /* Giant Buttons (for critical actions) */
 .btn-giant,
 .giant-btn {
-  min-height: 80px;
-  font-size: calc(var(--text-size) * 1.4);
-  padding: var(--spacing-lg) var(--spacing-xl);
+  min-height: 72px;
+  font-size: calc(var(--text-size) * 1.25);
+  padding: 20px;
   width: 100%;
-  margin: var(--spacing-md) 0;
+  margin: 16px 0;
   border-radius: var(--radius-lg);
 }
 
 /* ============================================
-   FORM INPUTS - Large & Clear
+   FORM INPUTS - Clean & Accessible
    ============================================ */
 
 input,
@@ -209,12 +243,14 @@ select,
 textarea {
   min-height: var(--input-height);
   font-size: var(--text-size);
-  padding: var(--spacing-sm) var(--spacing-md);
-  border: 2px solid #d1d5db;
+  padding: 12px 16px;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   font-family: inherit;
   width: 100%;
-  transition: border-color 0.2s;
+  background-color: var(--color-bg-card);
+  color: var(--color-text);
+  transition: all 0.2s;
 }
 
 input:focus,
@@ -222,60 +258,31 @@ select:focus,
 textarea:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
-}
-
-input[type="time"],
-input[type="date"] {
-  min-height: var(--input-height);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 /* ============================================
-   ICONS - Larger for Visibility
-   ============================================ */
-
-.icon-sm {
-  font-size: var(--icon-size-sm);
-  min-width: var(--icon-size-sm);
-  min-height: var(--icon-size-sm);
-}
-
-.icon-md,
-.icon {
-  font-size: var(--icon-size-md);
-  min-width: var(--icon-size-md);
-  min-height: var(--icon-size-md);
-}
-
-.icon-lg {
-  font-size: var(--icon-size-lg);
-  min-width: var(--icon-size-lg);
-  min-height: var(--icon-size-lg);
-}
-
-.mega-icon {
-  font-size: 120px;
-  min-width: 120px;
-  min-height: 120px;
-}
-
-/* ============================================
-   CARDS - Enhanced Visibility
+   CARDS - Professional Look
    ============================================ */
 
 .card {
-  background: white;
+  background: var(--color-bg-card);
   border-radius: var(--radius-lg);
-  padding: var(--spacing-lg);
-  margin: var(--spacing-md) 0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  border: 2px solid transparent;
-  transition: all 0.2s ease;
+  padding: 20px;
+  margin: 16px 0;
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card:active {
-  border-color: var(--color-primary);
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
 }
+
+/* ============================================
+   BOTTOM NAVIGATION - Mobile Friendly
+   ============================================ */
 
 /* ============================================
    BOTTOM NAVIGATION - Mobile Friendly
@@ -286,12 +293,14 @@ input[type="date"] {
   bottom: 0;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--color-bg-card);
   display: flex;
   justify-content: space-around;
-  padding: var(--spacing-sm) 0;
-  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  padding: 8px 0;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
   z-index: 900;
+  border-top: 1px solid var(--color-border);
+  backdrop-filter: blur(10px);
 }
 
 .bottom-nav button {
@@ -300,21 +309,26 @@ input[type="date"] {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  padding: var(--spacing-sm);
-  min-height: 64px;
+  padding: 8px;
+  min-height: 60px;
   background: none;
   border: none;
   color: var(--color-text-light);
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 12px;
+  margin: 0 8px;
 }
 
 .bottom-nav button.active {
   color: var(--color-primary);
-  font-weight: bold;
+  background-color: rgba(99, 102, 241, 0.1);
+  font-weight: 600;
 }
 
 .bottom-nav button i {
-  font-size: 28px;
+  font-size: 24px;
+  margin-bottom: 2px;
 }
 
 /* ============================================
