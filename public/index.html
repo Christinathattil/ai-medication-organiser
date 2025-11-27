@@ -16,6 +16,7 @@
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="/styles/senior-friendly.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -754,15 +755,18 @@
 
     <!-- Input -->
     <div style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
-      <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-        <input id="ai-chat-input" type="text" placeholder="Ask me anything..."
-          style="flex: 1; padding: 12px; border: 2px solid #e5e7eb; border-radius: 12px; font-size: 14px; outline: none;">
-        <button id="ai-chat-send"
-          style="background: linear-gradient(135deg, #7c3aed 0%, #2563eb 100%); color: white; border: none; padding: 12px 20px; border-radius: 12px; cursor: pointer; font-weight: 600;">
-          <svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8">
-            </path>
-          </svg>
+      <div class="chat-input-container"
+        style="display: flex; gap: 8px; padding: 16px; background: white; border-top: 1px solid #e5e7eb;">
+        <button id="voice-btn" class="voice-btn" onclick="startVoiceInput('chat-input')"
+          style="min-width: 52px; min-height: 52px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; cursor: pointer; flex-shrink: 0;"
+          title="Voice input">
+          <i class="fas fa-microphone" style="font-size: 22px;"></i>
+        </button>
+        <input type="text" id="chat-input" placeholder="Ask me anything... or use voice 🎤"
+          style="flex: 1; padding: 14px 18px; font-size: 18px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none;">
+        <button id="send-btn" onclick="sendMessage()"
+          style="min-width: 52px; min-height: 52px; border-radius: 12px; background: linear-gradient(135deg, #7c3aed, #6d28d9); border: none; color: white; cursor: pointer; font-weight: 600; flex-shrink: 0;">
+          <i class="fas fa-paper-plane" style="font-size: 20px;"></i>
         </button>
       </div>
       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -2178,6 +2182,78 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
       }, 3000);
     });
   </script>
+
+  <!-- Bottom Navigation for Mobile -->
+  <nav class="bottom-nav">
+    <button onclick="showTab('medications')" data-tab="medications">
+      <i class="fas fa-pills"></i>
+      <span>My Meds</span>
+    </button>
+    <button onclick="showTab('dashboard')" data-tab="dashboard" class="active">
+      <i class="fas fa-home"></i>
+      <span>Today</span>
+    </button>
+    <button onclick="showTab('history')" data-tab="history">
+      <i class="fas fa-history"></i>
+      <span>History</span>
+    </button>
+  </nav>
+
+  <!-- Text Size & Accessibility Controls (Floating) -->
+  <div id="accessibility-controls" style="position: fixed; top: 80px; right: 16px; z-index: 999; display: none;">
+    <div style="background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+      <h3 style="font-size: 18px; margin-bottom: 12px;">Text Size</h3>
+      <div class="text-size-controls">
+        <button onclick="setTextSize('small')" title="Small text">A</button>
+        <button onclick="setTextSize('medium')" class="active" title="Medium text">A</button>
+        <button onclick="setTextSize('large')" title="Large text">A</button>
+      </div>
+      <button onclick="toggleHighContrast()" class="btn-secondary" style="width: 100%; margin-top: 12px;">
+        <i class="fas fa-adjust"></i> High Contrast
+      </button>
+    </div>
+  </div>
+
+  <!-- Accessibility Toggle Button -->
+  <button onclick="toggleAccessibilityControls()"
+    style="position: fixed; top: 80px; right: 16px; z-index: 1000; min-width: 48px; min-height: 48px; border-radius: 50%; background: white; border: 2px solid #e5e7eb; box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
+    title="Accessibility options">
+    <i class="fas fa-universal-access" style="font-size: 24px; color: #7c3aed;"></i>
+  </button>
+
+  <script>
+    function toggleAccessibilityControls() {
+      const controls = document.getElementById('accessibility-controls');
+      controls.style.display = controls.style.display === 'none' ? 'block' : 'none';
+    }
+
+    // Update bottom nav active state
+    function updateBottomNav(tabName) {
+      document.querySelectorAll('.bottom-nav button').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.tab === tabName) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    // Override showTab to update bottom nav
+    const originalShowTab = window.showTab;
+    window.showTab = function (tabName) {
+      if (originalShowTab) originalShowTab(tabName);
+      updateBottomNav(tabName);
+    };
+  </script>
+
+  <!-- Senior-Friendly Features Script -->
+  <script src="/scripts/senior-friendly.js"></script>
+
+  <!-- Hammer.js for Touch Gestures (Free CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+
+  <!-- QR Code Generator for Emergency Info (Free CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+
 </body>
 
 </html>

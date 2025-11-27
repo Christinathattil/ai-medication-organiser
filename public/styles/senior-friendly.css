@@ -1,0 +1,522 @@
+/* ============================================
+   SENIOR-FRIENDLY STYLES
+   Optimized for elderly users and mobile
+   ============================================ */
+
+:root {
+  /* Text Size Options */
+  --text-size-small: 16px;
+  --text-size-medium: 20px;
+  --text-size-large: 24px;
+  --text-size: var(--text-size-medium);
+  
+  /* Touch-Friendly Sizing */
+  --button-min-height: 48px;
+  --button-min-width: 48px;
+  --touch-target: 48px;
+  --input-height: 52px;
+  
+  /* High Contrast Colors */
+  --color-success: #10b981;
+  --color-success-dark: #059669;
+  --color-danger: #ef4444;
+  --color-danger-dark: #dc2626;
+  --color-warning: #f59e0b;
+  --color-warning-dark: #d97706;
+  --color-primary: #7c3aed;
+  --color-primary-dark: #6d28d9;
+  
+  --color-text: #1f2937;
+  --color-text-light: #6b7280;
+  --color-bg: #ffffff;
+  --color-bg-gray: #f9fafb;
+  
+  /* Spacing */
+  --spacing-xs: 8px;
+  --spacing-sm: 12px;
+  --spacing-md: 16px;
+  --spacing-lg: 24px;
+  --spacing-xl: 32px;
+  
+  /* Border Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  
+  /* Icons */
+  --icon-size-sm: 24px;
+  --icon-size-md: 32px;
+  --icon-size-lg: 48px;
+}
+
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  font-size: var(--text-size);
+  line-height: 1.6;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 
+               'Helvetica Neue', Arial, sans-serif;
+  color: var(--color-text);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ============================================
+   BUTTONS - Large & Touch-Friendly
+   ============================================ */
+
+button, .btn {
+  min-height: var(--button-min-height);
+  min-width: var(--button-min-width);
+  font-size: calc(var(--text-size) * 0.9);
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active, .btn:active {
+  transform: scale(0.98);
+}
+
+/* Button Variants */
+.btn-primary {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  color: white;
+}
+
+.btn-success {
+  background: linear-gradient(135deg, var(--color-success), var(--color-success-dark));
+  color: white;
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, var(--color-danger), var(--color-danger-dark));
+  color: white;
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, var(--color-warning), var(--color-warning-dark));
+  color: white;
+}
+
+.btn-secondary {
+  background: #e5e7eb;
+  color: var(--color-text);
+}
+
+/* Large Action Buttons */
+.btn-large, .big-action-btn {
+  min-height: 64px;
+  font-size: calc(var(--text-size) * 1.2);
+  padding: var(--spacing-md) var(--spacing-xl);
+  width: 100%;
+  margin: var(--spacing-sm) 0;
+}
+
+/* Giant Buttons (for critical actions) */
+.btn-giant, .giant-btn {
+  min-height: 80px;
+  font-size: calc(var(--text-size) * 1.4);
+  padding: var(--spacing-lg) var(--spacing-xl);
+  width: 100%;
+  margin: var(--spacing-md) 0;
+  border-radius: var(--radius-lg);
+}
+
+/* ============================================
+   FORM INPUTS - Large & Clear
+   ============================================ */
+
+input, select, textarea {
+  min-height: var(--input-height);
+  font-size: var(--text-size);
+  padding: var(--spacing-sm) var(--spacing-md);
+  border: 2px solid #d1d5db;
+  border-radius: var(--radius-md);
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 0.2s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1);
+}
+
+input[type="time"],
+input[type="date"] {
+  min-height: var(--input-height);
+}
+
+/* ============================================
+   ICONS - Larger for Visibility
+   ============================================ */
+
+.icon-sm {
+  font-size: var(--icon-size-sm);
+  min-width: var(--icon-size-sm);
+  min-height: var(--icon-size-sm);
+}
+
+.icon-md, .icon {
+  font-size: var(--icon-size-md);
+  min-width: var(--icon-size-md);
+  min-height: var(--icon-size-md);
+}
+
+.icon-lg {
+  font-size: var(--icon-size-lg);
+  min-width: var(--icon-size-lg);
+  min-height: var(--icon-size-lg);
+}
+
+.mega-icon {
+  font-size: 120px;
+  min-width: 120px;
+  min-height: 120px;
+}
+
+/* ============================================
+   CARDS - Enhanced Visibility
+   ============================================ */
+
+.card {
+  background: white;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin: var(--spacing-md) 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.card:active {
+  border-color: var(--color-primary);
+}
+
+/* ============================================
+   BOTTOM NAVIGATION - Mobile Friendly
+   ============================================ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  display: flex;
+  justify-content: space-around;
+  padding: var(--spacing-sm) 0;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+}
+
+.bottom-nav button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: var(--spacing-sm);
+  min-height: 64px;
+  background: none;
+  border: none;
+  color: var(--color-text-light);
+  font-size: 14px;
+}
+
+.bottom-nav button.active {
+  color: var(--color-primary);
+  font-weight: bold;
+}
+
+.bottom-nav button i {
+  font-size: 28px;
+}
+
+/* ============================================
+   TEXT SIZE CONTROLS
+   ============================================ */
+
+.text-size-controls {
+  display: flex;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background: var(--color-bg-gray);
+  border-radius: var(--radius-md);
+  margin: var(--spacing-md) 0;
+}
+
+.text-size-controls button {
+  flex: 1;
+  min-width: 60px;
+  background: white;
+  border: 2px solid #d1d5db;
+  font-weight: bold;
+}
+
+.text-size-controls button.active {
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+}
+
+/* Small size */
+.text-size-controls button:nth-child(1) {
+  font-size: 14px;
+}
+
+/* Medium size */
+.text-size-controls button:nth-child(2) {
+  font-size: 18px;
+}
+
+/* Large size */
+.text-size-controls button:nth-child(3) {
+  font-size: 22px;
+}
+
+/* ============================================
+   HIGH CONTRAST MODE
+   ============================================ */
+
+body.high-contrast {
+  --color-text: #000000;
+  --color-bg: #ffffff;
+  filter: contrast(1.2);
+}
+
+body.high-contrast button,
+body.high-contrast .card {
+  border: 3px solid #000000;
+}
+
+/* ============================================
+   ACCESSIBILITY - Screen Readers
+   ============================================ */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* ============================================
+   RESPONSIVE DESIGN - Mobile First
+   ============================================ */
+
+/* Small phones (320px - 375px) */
+@media (max-width: 375px) {
+  :root {
+    --text-size: 18px;
+  }
+  
+  body {
+    padding-bottom: 80px; /* Space for bottom nav */
+  }
+}
+
+/* Standard phones (376px - 767px) */
+@media (min-width: 376px) and (max-width: 767px) {
+  :root {
+    --text-size: 20px;
+  }
+  
+  body {
+    padding-bottom: 80px;
+  }
+}
+
+/* Tablets (768px - 1024px) */
+@media (min-width: 768px) and (max-width: 1024px) {
+  :root {
+    --text-size: 19px;
+  }
+  
+  .bottom-nav {
+    display: none; /* Use top nav on tablets */
+  }
+}
+
+/* Desktop (1025px+) */
+@media (min-width: 1025px) {
+  :root {
+    --text-size: 18px;
+  }
+  
+  .bottom-nav {
+    display: none;
+  }
+  
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+}
+
+/* Landscape mode on phones */
+@media (orientation: landscape) and (max-height: 500px) {
+  .bottom-nav {
+    padding: 4px 0;
+  }
+  
+  .bottom-nav button {
+    min-height: 48px;
+    font-size: 12px;
+  }
+  
+  .bottom-nav button i {
+    font-size: 20px;
+  }
+}
+
+/* ============================================
+   TOUCH IMPROVEMENTS
+   ============================================ */
+
+/* Larger touch targets */
+a, button, input, select, .clickable {
+  min-height: var(--touch-target);
+  min-width: var(--touch-target);
+}
+
+/* Remove tap highlight on iOS */
+* {
+  -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+
+/* Smooth scrolling */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ============================================
+   LOADING & SKELETON STATES
+   ============================================ */
+
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+  border-radius: var(--radius-md);
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* ============================================
+   ANIMATIONS - Smooth & Gentle
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease-out;
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.text-center {
+  text-align: center;
+}
+
+.text-bold {
+  font-weight: 700;
+}
+
+.mt-sm { margin-top: var(--spacing-sm); }
+.mt-md { margin-top: var(--spacing-md); }
+.mt-lg { margin-top: var(--spacing-lg); }
+
+.mb-sm { margin-bottom: var(--spacing-sm); }
+.mb-md { margin-bottom: var(--spacing-md); }
+.mb-lg { margin-bottom: var(--spacing-lg); }
+
+.p-sm { padding: var(--spacing-sm); }
+.p-md { padding: var(--spacing-md); }
+.p-lg { padding: var(--spacing-lg); }
+
+.hidden {
+  display: none !important;
+}
+
+.visible {
+  display: block !important;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .bottom-nav,
+  .floating-btn,
+  button,
+  .no-print {
+    display: none !important;
+  }
+  
+  body {
+    font-size: 12pt;
+    color: black;
+    background: white;
+  }
+  
+  .card {
+    page-break-inside: avoid;
+    border: 1px solid #000;
+  }
+}
