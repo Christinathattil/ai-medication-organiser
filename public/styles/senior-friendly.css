@@ -23,23 +23,30 @@
   --touch-target: 44px;
   --input-height: 44px;
 
-  /* Medical Professional Theme - Teal/Emerald */
-  --color-primary: #14b8a6;
-  /* Teal-500 - Primary brand color */
-  --color-primary-dark: #0d9488;
-  /* Teal-600 - Hover/active states */
-  --color-primary-light: #5eead4;
-  /* Teal-300 - Light accents */
+  /* Modern Vibrant Health App Theme - Blue/Purple/Pink Gradients */
+  --color-primary-start: #667eea;
+  /* Indigo */
+  --color-primary-end: #764ba2;
+  /* Purple */
+  --color-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 
-  --color-secondary: #6366f1;
-  /* Indigo-500 - Secondary accent */
-  --color-secondary-dark: #4f46e5;
-  /* Indigo-600 */
+  --color-secondary-start: #f093fb;
+  /* Pink */
+  --color-secondary-end: #f5576c;
+  /* Coral */
+  --color-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
 
-  --color-success: #10b981;
-  /* Emerald-500 - Success states */
-  --color-success-dark: #059669;
-  /* Emerald-600 */
+  --color-success-start: #4facfe;
+  /* Light Blue */
+  --color-success-end: #00f2fe;
+  /* Cyan */
+  --color-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+
+  --color-accent-start: #fa709a;
+  /* Pink */
+  --color-accent-end: #fee140;
+  /* Yellow */
+  --color-accent: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
 
   --color-danger: #ef4444;
   /* Red-500 - Errors/alerts */
@@ -63,11 +70,15 @@
   --color-border: #e5e7eb;
   /* Gray-200 - Borders */
 
-  /* Shadows - Subtle and professional */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  /* Shadows - Subtle and professional with color tints */
+  --shadow-sm: 0 1px 2px 0 rgba(102, 126, 234, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(102, 126, 234, 0.1), 0 2px 4px -1px rgba(102, 126, 234, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(102, 126, 234, 0.1), 0 4px 6px -2px rgba(102, 126, 234, 0.06);
+  --shadow-xl: 0 20px 25px -5px rgba(102, 126, 234, 0.1), 0 10px 10px -5px rgba(102, 126, 234, 0.04);
+
+  /* Bottom Navigation */
+  --bottom-nav-height: 64px;
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 /* ============================================
@@ -685,13 +696,135 @@ html {
   }
 
   body {
-    font-size: 12pt;
-    color: black;
-    background: white;
+    padding-bottom: 0 !important;
+  }
+}
+
+/* ============================================
+   BOTTOM NAVIGATION - Modern Mobile Design
+   ============================================ */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
+  background: white;
+  border-top: 1px solid var(--color-border);
+  box-shadow: 0 -4px 20px rgba(102, 126, 234, 0.08);
+  display: flex;
+  justify-content: space-around;
+  align-items: flex-start;
+  padding-top: 8px;
+  padding-bottom: var(--safe-area-bottom);
+  z-index: 1000;
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: none;
+  background: transparent;
+  min-height: 56px;
+  position: relative;
+}
+
+.bottom-nav-item i {
+  font-size: 22px;
+  transition: all 0.3s ease;
+}
+
+.bottom-nav-item span {
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  letter-spacing: 0.3px;
+}
+
+.bottom-nav-item.inactive {
+  color: #9ca3af;
+}
+
+.bottom-nav-item.inactive:active {
+  transform: scale(0.95);
+}
+
+.bottom-nav-item.active {
+  color: #667eea;
+}
+
+.bottom-nav-item.active i {
+  transform: translateY(-2px);
+}
+
+.bottom-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border-radius: 0 0 3px 3px;
+}
+
+/* Floating Action Button */
+.floating-add-btn {
+  position: fixed;
+  bottom: calc(var(--bottom-nav-height) + 12px + var(--safe-area-bottom));
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(250, 112, 154, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.floating-add-btn:hover {
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 12px 32px rgba(250, 112, 154, 0.5);
+}
+
+.floating-add-btn:active {
+  transform: scale(0.95) rotate(90deg);
+}
+
+/* Add padding to body to account for bottom nav */
+body {
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 16px);
+}
+
+/* Hide bottom nav on desktop */
+@media (min-width: 768px) {
+  .bottom-nav {
+    display: none;
   }
 
-  .card {
-    page-break-inside: avoid;
-    border: 1px solid #000;
+  .floating-add-btn {
+    bottom: 24px;
+  }
+
+  body {
+    padding-bottom: 16px;
   }
 }
