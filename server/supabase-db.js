@@ -86,11 +86,14 @@ class SupabaseDatabase {
   async getMedication(id, userId = null) {
     if (userId) await this.setUserContext(userId);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('medications')
       .select('*')
-      .eq('id', id)
-      .single();
+      .eq('id', id);
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+    const { data, error } = await query.single();
 
     if (error) throw error;
     return data;
