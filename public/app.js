@@ -419,102 +419,52 @@ async function loadSchedules() {
 
     const data = await res.json();
 
-    const container = document.getElementById('schedules-list');
-
     if (data.schedules.length === 0) {
-      container.innerHTML = '<p class="text-gray-500">No schedules found.</p>';
+      container.innerHTML = `
+        <div class="text-center py-12">
+          <div class="bg-gray-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4">
+            <i class="fas fa-calendar-times text-2xl text-gray-400"></i>
+          </div>
+          <h3 class="text-lg font-medium text-gray-900">No schedules yet</h3>
+          <p class="text-gray-500 mt-1">Add your first medication schedule to get started</p>
+          <button onclick="showAddScheduleModal()" class="mt-4 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-md">
+            Add Schedule
+          </button>
+        </div>
+      `;
       return;
     }
 
-    // Get sorting and grouping preferences
-    const sortBy = document.getElementById('schedule-sort')?.value || 'time';
-    const groupByTime = document.getElementById('schedule-group')?.checked || false;
+    // Always group by time for timeline view
+    const schedules = [...data.schedules];
 
-    // Sort schedules
-    let schedules = [...data.schedules];
-    schedules.sort((a, b) => {
-      if (sortBy === 'time') {
-        return a.time.localeCompare(b.time);
-      } else if (sortBy === 'medication') {
-        return a.medication_name.localeCompare(b.medication_name);
-      } else if (sortBy === 'frequency') {
-        return a.frequency.localeCompare(b.frequency);
+    // Sort by time
+    schedules.sort((a, b) => a.time.localeCompare(b.time));
+
+    const grouped = {};
+    schedules.forEach(schedule => {
+      if (!grouped[schedule.time]) {
+        grouped[schedule.time] = [];
       }
-      return 0;
+      grouped[schedule.time].push(schedule);
     });
 
-    // Group by time if enabled
-    if (groupByTime && sortBy === 'time') {
-      const grouped = {};
-      schedules.forEach(schedule => {
-        if (!grouped[schedule.time]) {
-          grouped[schedule.time] = [];
-        }
-        grouped[schedule.time].push(schedule);
-      });
-
-      container.innerHTML = Object.keys(grouped).sort().map(time => {
-        const timeSchedules = grouped[time];
-
-        // If more than 2 medicines at the same time, subgroup by food timing
-        if (timeSchedules.length > 2) {
-          const beforeFood = timeSchedules.filter(s => s.food_timing === 'before_food');
-          const afterFood = timeSchedules.filter(s => s.food_timing === 'after_food');
-          const noTiming = timeSchedules.filter(s => !s.food_timing || s.food_timing === 'none' || s.food_timing === 'with_food');
-
-          let html = `
-            <div class="mb-6">
-              <h3 class="text-lg font-bold text-purple-700 mb-3 flex items-center">
-                <i class="fas fa-clock mr-2"></i>${time}
-              </h3>`;
-
-          if (beforeFood.length > 0) {
-            html += `
-              <div class="ml-4 mb-3">
-                <h4 class="text-sm font-semibold text-blue-600 mb-2 flex items-center">
-                  <i class="fas fa-utensils mr-2"></i>Before Food
-                </h4>
-                ${beforeFood.map(schedule => renderScheduleCard(schedule)).join('')}
-              </div>`;
-          }
-
-          if (noTiming.length > 0) {
-            html += `
-              <div class="ml-4 mb-3">
-                <h4 class="text-sm font-semibold text-gray-600 mb-2 flex items-center">
-                  <i class="fas fa-clock mr-2"></i>No Specific Timing
-                </h4>
-                ${noTiming.map(schedule => renderScheduleCard(schedule)).join('')}
-              </div>`;
-          }
-
-          if (afterFood.length > 0) {
-            html += `
-              <div class="ml-4 mb-3">
-                <h4 class="text-sm font-semibold text-green-600 mb-2 flex items-center">
-                  <i class="fas fa-utensils mr-2"></i>After Food
-                </h4>
-                ${afterFood.map(schedule => renderScheduleCard(schedule)).join('')}
-              </div>`;
-          }
-
-          html += `</div>`;
-          return html;
-        } else {
-          // 2 or fewer medicines, no subgrouping
-          return `
-            <div class="mb-6">
-              <h3 class="text-lg font-bold text-purple-700 mb-3 flex items-center">
-                <i class="fas fa-clock mr-2"></i>${time}
-              </h3>
-              ${timeSchedules.map(schedule => renderScheduleCard(schedule)).join('')}
+    container.innerHTML = `
+      <div class="timeline-container">
+        ${Object.keys(grouped).sort().map(time => {
+      const timeSchedules = grouped[time];
+      return `
+            <div class="timeline-item">
+              <div class="timeline-dot"></div>
+              <div class="timeline-time">${formatTime(time)}</div>
+              <div class="space-y-3">
+                ${timeSchedules.map(schedule => renderTimelineCard(schedule)).join('')}
+              </div>
             </div>
           `;
-        }
-      }).join('');
-    } else {
-      container.innerHTML = schedules.map(schedule => renderScheduleCard(schedule)).join('');
-    }
+    }).join('')}
+      </div>
+    `;
   } catch (error) {
     console.error('Error loading schedules:', error);
     container.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Failed to load schedules. Please try refreshing the page.</div>';
@@ -522,39 +472,46 @@ async function loadSchedules() {
   }
 }
 
-// Helper function to render a schedule card
-function renderScheduleCard(schedule) {
+// Helper to format time (HH:mm to 12h format)
+function formatTime(timeStr) {
+  const [hours, minutes] = timeStr.split(':');
+  const h = parseInt(hours);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 || 12;
+  return `${h12}:${minutes} ${ampm}`;
+}
+
+// Helper function to render a timeline card
+function renderTimelineCard(schedule) {
   return `
-    <div class="bg-white rounded-lg shadow-sm p-6 mb-4">
+    <div class="timeline-card">
       <div class="flex justify-between items-start">
         <div>
           <h3 class="text-lg font-bold text-gray-900">${schedule.medication_name}</h3>
-          <p class="text-gray-600 mt-1">
-            <i class="fas fa-clock mr-2"></i>${schedule.time} - ${schedule.frequency}
+          <p class="text-sm text-gray-600 mt-1">
+            ${schedule.dosage} • ${schedule.frequency}
           </p>
-          ${schedule.days_of_week ? `<p class="text-sm text-gray-600 mt-1">${schedule.days_of_week}</p>` : ''}
-          ${schedule.food_timing && schedule.food_timing !== 'none' ? `<p class="text-sm text-gray-600 mt-1"><i class="fas fa-utensils mr-1"></i>${getFoodTimingText(schedule.food_timing)}</p>` : ''}
-          ${schedule.special_instructions ? `<p class="text-sm text-gray-600 mt-1">${schedule.special_instructions}</p>` : ''}
-          <p class="text-sm text-gray-500 mt-2">
-            ${schedule.start_date} ${schedule.end_date ? `to ${schedule.end_date}` : '(ongoing)'}
-          </p>
+          ${schedule.food_timing && schedule.food_timing !== 'none' ?
+      `<p class="text-xs text-indigo-600 mt-1 font-medium bg-indigo-50 inline-block px-2 py-1 rounded">
+              <i class="fas fa-utensils mr-1"></i>${getFoodTimingText(schedule.food_timing)}
+            </p>` : ''}
         </div>
-        <div class="flex items-center space-x-2">
-          <span class="px-3 py-1 rounded-full text-sm ${schedule.active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}">
-            ${schedule.active ? 'Active' : 'Inactive'}
-          </span>
-          <button onclick="editSchedule(${schedule.id})" 
-            class="text-blue-600 hover:text-blue-700" title="Edit">
+        <div class="flex items-center">
+          <button onclick="editSchedule(${schedule.id})" class="text-gray-400 hover:text-indigo-600 p-2">
             <i class="fas fa-edit"></i>
           </button>
-          <button onclick="toggleSchedule(${schedule.id}, ${!schedule.active})" 
-            class="text-gray-600 hover:text-gray-700" title="Toggle Active">
-            <i class="fas fa-toggle-${schedule.active ? 'on' : 'off'}"></i>
-          </button>
-          <button onclick="deleteSchedule(${schedule.id})" class="text-red-600 hover:text-red-700" title="Delete">
-            <i class="fas fa-trash"></i>
-          </button>
         </div>
+      </div>
+      
+      <div class="timeline-actions">
+        <button onclick="logMedication(${schedule.medication_id}, ${schedule.id}, 'taken')" 
+          class="timeline-btn timeline-btn-take">
+          <i class="fas fa-check mr-1"></i> Take
+        </button>
+        <button onclick="logMedication(${schedule.medication_id}, ${schedule.id}, 'missed')" 
+          class="timeline-btn timeline-btn-skip">
+          <i class="fas fa-times mr-1"></i> Skip
+        </button>
       </div>
     </div>
   `;

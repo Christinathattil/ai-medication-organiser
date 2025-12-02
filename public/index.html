@@ -33,52 +33,58 @@
     }
 
     .glass-effect {
-      background: rgba(255, 255, 255, 0.98);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      box-shadow: 0 8px 32px rgba(31, 38, 135, 0.1);
     }
 
     .card {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+      border-radius: 20px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      overflow: hidden;
     }
 
     .card:hover {
-      transform: translateY(-4px);
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: var(--shadow-xl);
     }
 
     .status-pending {
-      background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%);
-      color: #92400E;
+      background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+      color: #9a3412;
       font-weight: 600;
+      border: 1px solid #fed7aa;
     }
 
     .status-taken {
-      background: linear-gradient(135deg, #D1FAE5 0%, #A7F3D0 100%);
-      color: #065F46;
+      background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+      color: #166534;
       font-weight: 600;
+      border: 1px solid #bbf7d0;
     }
 
     .status-missed {
-      background: linear-gradient(135deg, #FEE2E2 0%, #FECACA 100%);
-      color: #991B1B;
+      background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+      color: #991b1b;
       font-weight: 600;
+      border: 1px solid #fecaca;
     }
 
     .modal {
       display: none;
       position: fixed;
-      z-index: 50;
+      z-index: 2000;
       left: 0;
       top: 0;
       width: 100%;
       height: 100%;
-      background-color: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(4px);
-      animation: fadeIn 0.2s ease;
+      background-color: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(8px);
+      animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .modal.active {
@@ -88,7 +94,9 @@
     }
 
     .modal-content {
-      animation: slideUp 0.3s ease;
+      animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      border-radius: 24px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
     }
 
     @keyframes fadeIn {
@@ -103,12 +111,12 @@
 
     @keyframes slideUp {
       from {
-        transform: translateY(20px);
+        transform: translateY(40px) scale(0.95);
         opacity: 0;
       }
 
       to {
-        transform: translateY(0);
+        transform: translateY(0) scale(1);
         opacity: 1;
       }
     }
@@ -287,34 +295,13 @@
           </div>
         </div>
         <div class="flex items-center space-x-1 sm:space-x-2 justify-center sm:justify-end">
-          <button onclick="showTab('dashboard')" aria-label="Go to Dashboard"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-home mr-2" aria-hidden="true"></i><span>Dashboard</span>
-          </button>
-          <button onclick="showTab('medications')" aria-label="Go to Medications"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-pills mr-2" aria-hidden="true"></i><span>Meds</span>
-          </button>
-          <button onclick="showTab('schedules')" aria-label="Go to Schedules"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-clock mr-2" aria-hidden="true"></i><span>Schedule</span>
-          </button>
-          <button onclick="showTab('history')" aria-label="Go to History"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-history mr-2" aria-hidden="true"></i><span>History</span>
+          <button onclick="openSettings()" aria-label="Open Settings"
+            class="p-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all">
+            <i class="fas fa-cog text-xl" aria-hidden="true"></i>
           </button>
           <button onclick="handleLogout()" aria-label="Logout from account"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 hover:shadow-md transition-all font-medium text-sm"
-            title="Logout">
-            <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i><span>Logout</span>
-          </button>
-          <button onclick="showTab('stats')" aria-label="Go to Statistics"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-chart-line mr-2" aria-hidden="true"></i><span>Stats</span>
-          </button>
-          <button onclick="openSettings()" aria-label="Open Settings"
-            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-cog mr-2" aria-hidden="true"></i><span>Settings</span>
+            class="p-2 rounded-xl text-red-600 hover:bg-red-50 hover:shadow-md transition-all" title="Logout">
+            <i class="fas fa-sign-out-alt text-xl" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -863,32 +850,18 @@
         }
       }
 
-      // Event listeners
-      if (chatToggleBtn) chatToggleBtn.addEventListener('click', toggleChat);
-      if (closeChatBtn) closeChatBtn.addEventListener('click', toggleChat);
-
-      sendBtn.addEventListener('click', sendMessage);
-      input.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter' && !isProcessing) sendMessage();
-      });
-
-      // Quick actions
-      document.querySelectorAll('.quick-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const action = btn.dataset.action;
-          if (action === 'today') await showTodaySchedule();
-          else if (action === 'add') addMessage('What medication would you like to add? Tell me naturally, like: "Add aspirin 500mg tablet for headaches"', 'bot');
-          else if (action === 'stats') await showStats();
+      // Event Listeners
+      if (toggleBtn) toggleBtn.addEventListener('click', toggleChat);
+      if (closeBtn) closeBtn.addEventListener('click', toggleChat);
+      if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+      if (input) {
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && !isProcessing) sendMessage();
         });
-      });
+      }
 
-      // Hover effect
-      toggleBtn.addEventListener('mouseenter', () => {
-        toggleBtn.style.transform = 'scale(1.1)';
-        toggleBtn.style.boxShadow = '0 15px 40px rgba(124, 58, 237, 0.6)';
-      });
-      toggleBtn.addEventListener('mouseleave', () => {
-        toggleBtn.style.transform = 'scale(1)';
+      // Quick Action Buttons
+      document.querySelectorAll('.quick-btn').forEach(btn => {
         toggleBtn.style.boxShadow = '0 10px 30px rgba(124, 58, 237, 0.5)';
       });
 
