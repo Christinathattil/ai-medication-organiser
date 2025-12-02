@@ -4,76 +4,94 @@
    ============================================ */
 
 :root {
-  /* Typography - Professional Standard Sizing */
+  /* Typography */
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-
-  /* Standard Professional Text Sizes */
-  --text-size-small: 13px;
-  --text-size-medium: 15px;
-  --text-size-large: 17px;
-  --text-size: var(--text-size-medium);
+  --text-size: 15px;
   --line-height: 1.5;
 
-  /* Touch-Friendly Sizing - WCAG Standard */
+  /* Sizing */
   --button-min-height: 44px;
   --button-min-width: 44px;
   --touch-target: 44px;
   --input-height: 44px;
 
-  /* Modern Healthcare Theme - Soft, Friendly & Professional */
-  /* Primary: Soft Royal Blue - Trustworthy but approachable */
-  --color-primary: #3b82f6;
-  --color-primary-light: #60a5fa;
-  --color-primary-dark: #2563eb;
+  /* STRICT PROFESSIONAL PALETTE (Light Mode Default) */
+  /* Primary: Slate 700 - Professional, Neutral, Strong */
+  --color-primary: #334155;
+  --color-primary-hover: #1e293b;
+  --color-primary-active: #0f172a;
 
-  /* Accent: Calming Mint/Teal - Health & Wellness */
-  --color-accent: #14b8a6;
-  --color-accent-light: #2dd4bf;
-  --color-accent-dark: #0d9488;
+  /* Accent: Sky 600 - Clear, Actionable */
+  --color-accent: #0284c7;
+  --color-accent-hover: #0369a1;
+  --color-accent-active: #075985;
 
-  /* Secondary: Warm Lavender - Gentle support */
-  --color-secondary: #8b5cf6;
-
-  /* Functional Colors - Softened */
-  --color-success: #10b981;
-  /* Emerald */
-  --color-warning: #f59e0b;
-  /* Amber */
-  --color-danger: #ef4444;
-  /* Red */
-
-  /* Backgrounds & Surfaces */
+  /* Neutrals */
   --color-bg: #f8fafc;
-  /* Slate-50 - Warm White */
-  --color-bg-card: #ffffff;
+  /* Slate 50 */
   --color-surface: #ffffff;
-
-  /* Text Colors - High Contrast but not harsh */
-  --color-text: #1e293b;
-  /* Slate-800 */
-  --color-text-secondary: #64748b;
-  /* Slate-500 */
-  --color-text-muted: #94a3b8;
-  /* Slate-400 */
-
-  /* Borders */
+  /* White */
+  --color-text: #0f172a;
+  /* Slate 900 */
+  --color-text-muted: #64748b;
+  /* Slate 500 */
   --color-border: #e2e8f0;
-  /* Slate-200 */
+  /* Slate 200 */
 
-  /* Gradients (Subtle & Friendly) */
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  --gradient-accent: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  /* Functional (Muted) */
+  --color-success: #059669;
+  /* Emerald 600 */
+  --color-warning: #d97706;
+  /* Amber 600 */
+  --color-danger: #dc2626;
+  /* Red 600 */
 
-  /* Shadows - Soft & Diffused */
-  --shadow-sm: 0 1px 2px 0 rgba(59, 130, 246, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(59, 130, 246, 0.1), 0 2px 4px -1px rgba(59, 130, 246, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(59, 130, 246, 0.1), 0 4px 6px -2px rgba(59, 130, 246, 0.05);
-  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
-  /* Bottom Navigation */
+  /* Bottom Nav */
   --bottom-nav-height: 64px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Dark Mode Support (System) */
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Primary: Slate 400 - Softer for dark */
+    --color-primary: #94a3b8;
+    --color-primary-hover: #cbd5e1;
+    --color-primary-active: #f1f5f9;
+
+    /* Accent: Sky 400 - Bright enough to stand out */
+    --color-accent: #38bdf8;
+    --color-accent-hover: #7dd3fc;
+    --color-accent-active: #bae6fd;
+
+    /* Neutrals */
+    --color-bg: #0f172a;
+    /* Slate 900 */
+    --color-surface: #1e293b;
+    /* Slate 800 */
+    --color-text: #f1f5f9;
+    /* Slate 100 */
+    --color-text-muted: #94a3b8;
+    /* Slate 400 */
+    --color-border: #334155;
+    /* Slate 700 */
+
+    /* Functional */
+    --color-success: #34d399;
+    /* Emerald 400 */
+    --color-warning: #fbbf24;
+    /* Amber 400 */
+    --color-danger: #f87171;
+    /* Red 400 */
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  }
 }
 
 /* Base Styles */
@@ -85,6 +103,23 @@ body {
   background-color: var(--color-bg);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Global Interactive States */
+button,
+a {
+  transition: all 0.2s ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+button:active {
+  transform: scale(0.98);
 }
 
 /* Theme: Dark */
@@ -675,7 +710,7 @@ html {
   left: 0;
   right: 0;
   height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
-  background: rgba(255, 255, 255, 0.98);
+  background: var(--color-surface);
   border-top: 1px solid var(--color-border);
   box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
   display: flex;
@@ -683,8 +718,6 @@ html {
   align-items: center;
   padding-bottom: var(--safe-area-bottom);
   z-index: 9999;
-  /* Ensure it's always on top */
-  backdrop-filter: blur(12px);
 }
 
 .bottom-nav-item {
@@ -714,8 +747,13 @@ html {
   transition: all 0.2s ease;
 }
 
-.bottom-nav-item.active {
+.bottom-nav-item:hover {
   color: var(--color-primary);
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.bottom-nav-item.active {
+  color: var(--color-accent);
 }
 
 .bottom-nav-item.active i {
@@ -737,32 +775,60 @@ html {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border: 4px solid white;
+  color: var(--color-surface);
+  /* White text on primary */
+  box-shadow: var(--shadow-md);
+  transition: all 0.2s ease;
+  border: 4px solid var(--color-surface);
+}
+
+.ai-dock-btn:hover .ai-icon-container {
+  background: var(--color-primary-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.ai-dock-btn:active .ai-icon-container {
+  transform: scale(0.95);
+  background: var(--color-primary-active);
 }
 
 .ai-dock-btn i {
   font-size: 20px;
 }
 
-.ai-dock-btn:active .ai-icon-container {
-  transform: scale(0.95);
+/* Cards */
+.card {
+  background: var(--color-surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s ease;
 }
 
-/* Add padding to body to account for bottom nav */
-body {
-  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 24px) !important;
+.card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--color-accent);
 }
 
-/* Hide bottom nav on desktop */
-@media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
+/* Status Badges */
+.status-pending {
+  background: var(--color-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+}
 
-  body {
-    padding-bottom: 24px !important;
-  }
+.status-taken {
+  background: var(--color-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
+}
+
+.status-missed {
+  background: var(--color-bg);
+  color: var(--color-danger);
+  border: 1px solid var(--color-border);
+  font-weight: 600;
 }
