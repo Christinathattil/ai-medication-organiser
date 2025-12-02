@@ -2385,8 +2385,8 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
           toggleChat();
         }
 
-        // Left Swipe (Open) - Only if starting from right edge
-        if (touchStartX - touchEndX > swipeThreshold && !isOpen && touchStartX > window.innerWidth - 50) {
+        // Left Swipe (Open)
+        if (touchStartX - touchEndX > swipeThreshold && !isOpen) {
           console.log('👈 Left swipe detected: Opening chat');
           toggleChat();
         }
@@ -2552,10 +2552,20 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         if (size === 'medium') root.style.setProperty('--text-size', '15px');
         if (size === 'large') root.style.setProperty('--text-size', '18px');
 
-        // Update active state
-        // (Simplified for now)
+        // Highlight active button
+        document.querySelectorAll('#settings-modal button[onclick^="setTextSize"]').forEach((btn) => {
+          btn.classList.remove('bg-blue-50','border-blue-200','text-blue-700');
+        });
+        const idx = size === 'small' ? 0 : (size === 'medium' ? 1 : 2);
+        const activeBtn = document.querySelectorAll('#settings-modal button[onclick^="setTextSize"]')[idx];
+        if (activeBtn) activeBtn.classList.add('bg-blue-50','border-blue-200','text-blue-700');
+
         localStorage.setItem('med-manager-text-size', size);
       };
+
+      // Apply saved preference on load
+      const savedSize = localStorage.getItem('med-manager-text-size') || 'medium';
+      setTextSize(savedSize);
 
       // Attach Event Listeners
       const sendBtn = document.getElementById('send-btn');
