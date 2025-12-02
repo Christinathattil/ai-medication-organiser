@@ -863,6 +863,19 @@
         }
       }
 
+      // Auto-click helper for confirmations
+      function autoClick(btn, container, delay = 3000) {
+        try {
+          setTimeout(() => {
+            if (container && container.isConnected && typeof btn?.click === 'function') {
+              btn.click();
+            }
+          }, delay);
+        } catch (e) {
+          console.warn('autoClick failed', e);
+        }
+      }
+
       // Event Listeners
       if (toggleBtn) toggleBtn.addEventListener('click', toggleChat);
       if (closeBtn) closeBtn.addEventListener('click', toggleChat);
@@ -1648,9 +1661,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
             addMessage('🎉 All medications have sufficient quantity!', 'bot');
           } else {
             let msg = '🔔 Medications that need refilling:\n\n';
-            lowStock.forEach(m => {
-              const qty = m.quantity || 0;
-              msg += `⚠️ ${m.name} - Only ${qty} ${m.form || 'doses'} left\n`;
+            lowStock.forEach(med => {
+              const qty = med.quantity || 0;
+              msg += `⚠️ ${med.name} - Only ${qty} ${med.form || 'doses'} left\n`;
             });
             msg += '\nConsider refilling these soon!';
             addMessage(msg, 'bot');
@@ -1779,6 +1792,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
               confirmDiv.appendChild(noBtn);
               messagesDiv.appendChild(confirmDiv);
               messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+              // Auto-confirm this specific deletion after 3s unless cancelled
+              autoClick(yesBtn, confirmDiv, 3000);
             };
             buttonContainer.appendChild(deleteBtn);
           });
@@ -1828,6 +1844,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         buttonDiv.appendChild(cancelBtn);
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Auto-execute deletion after 3s unless cancelled
+        autoClick(deleteBtn, buttonDiv, 3000);
       }
 
       async function deleteMedication(medicationId, medicationName) {
@@ -1898,6 +1917,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         buttonDiv.appendChild(cancelBtn);
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Auto-execute schedule deletion after 3s unless cancelled
+        autoClick(deleteBtn, buttonDiv, 3000);
       }
 
       async function deleteAllMedications(medications) {
@@ -2057,6 +2079,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         buttonDiv.appendChild(cancelBtn);
         messagesDiv.appendChild(buttonDiv);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+        // Auto-execute update after 3s unless cancelled
+        autoClick(updateBtn, buttonDiv, 3000);
       }
 
       async function updateMedication(medicationId, updates, medicationName) {
