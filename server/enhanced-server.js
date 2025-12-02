@@ -10,6 +10,9 @@ import fs from 'fs';
 import { createClient } from '@supabase/supabase-js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
+import Groq from 'groq-sdk';
+import twilio from 'twilio';
+import { validateMedicationData, validateScheduleData } from './ai-validation.js';
 import pg from 'pg';
 import passport, { ensureAuthenticated, ensureAuthenticatedHTML } from './auth.js';
 import {
@@ -1020,9 +1023,6 @@ app.post('/api/sms/webhook', async (req, res) => {
   }
 });
 
-// Import AI validation functions
-const { validateMedicationData, validateScheduleData } = await import('./ai-validation.js');
-
 // AI Chat endpoint with Groq
 app.post('/api/chat', ensureAuthenticated, async (req, res) => {
   try {
@@ -1323,12 +1323,26 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       const medicationData = extractMedicationFromText(message);
       console.log('🔍 Extracted medication data:', medicationData);
 
-      // Only create action if we have REQUIRED fields (name + dosage)
-      if (medicationData.name && medicationData.dosage) {
-        action = { type: 'add_medication', data: medicationData };
-        console.log('✅ Medication action created:', action);
+      // Validate extracted medication data
+      const validation = validateMedicationData(medicationData);
+
+      if (!validation.valid) {
+        console.log('⚠️ Validation errors:', validation.errors);
+        // Log validation errors for monitoring
+        // The AI will naturally ask for missing/invalid fields based on the conversation
+      } else {
+        console.log('✅ Medication data validated successfully');
+      }
+
+      // Only create action if we have REQUIRED fields and validation passes
+      // Use sanitized data from validation if valid, otherwise use raw data (AI will ask for corrections)
+      const dataToUse = validation.valid ? validation.sanitized : medicationData;
+
+      if (dataToUse.name && dataToUse.dosage && validation.valid) {
+        action = { type: 'add_medication', data: dataToUse };
+        console.log('✅ Medication action created with validated data:', action);
       } else if (medicationData.name) {
-        console.log('⚠️ Incomplete data - name found but missing dosage. AI will ask for it.');
+        console.log('⚠️ Incomplete or invalid data - name found but missing/invalid dosage or other fields. AI will ask for it.');
       }
     }
 
@@ -1470,14 +1484,28 @@ Always validate mandatory fields, handle multiple requests, and guide users step
         const scheduleData = extractScheduleFromText(message, medList, recentlyAddedName);
         console.log('📅 Extracted schedule data from current message:', scheduleData);
 
-        // Schedule action creation - food_timing is MANDATORY
-        if (scheduleData.medication_id && scheduleData.time && scheduleData.food_timing) {
-          // Food timing must be specified - no defaults
-          action = { type: 'add_schedule', data: scheduleData };
-          console.log('✅ Follow-up schedule action created:', action);
+        // Validate schedule data
+        const scheduleValidation = validateScheduleData(scheduleData);
+
+        if (!scheduleValidation.valid) {
+          console.log('⚠️ Schedule validation errors:', scheduleValidation.errors);
+        } else {
+          console.log('✅ Schedule data validated successfully');
+        }
+
+        // Use sanitized data if validation passes
+        const schedDataToUse = scheduleValidation.valid ? scheduleValidation.sanitized : scheduleData;
+
+        // Schedule action creation - food_timing is MANDATORY and must be valid
+        if (schedDataToUse.medication_id && schedDataToUse.time && schedDataToUse.food_timing && scheduleValidation.valid) {
+          // Food timing must be specified and valid
+          action = { type: 'add_schedule', data: schedDataToUse };
+          console.log('✅ Follow-up schedule action created with validated data:', action);
         } else if (scheduleData.medication_id && scheduleData.time && !scheduleData.food_timing) {
           // Log that food timing is missing
           console.log('⚠️ Food timing missing - AI will ask for it');
+        } else if (!scheduleValidation.valid) {
+          console.log('⚠️ Schedule data invalid - AI will ask for corrections');
         }
       }
     }
@@ -1699,23 +1727,34 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       details: error.details
     });
 
-    // Determine error type for better user feedback
-    let userMessage = "I'm having trouble processing your request. Please try again or rephrase your question.";
+    // Check for specific error types and provide fallback
+    let errorResponse = "I'm having trouble processing your request. Please try again or rephrase your question.";
+    let fallbackAction = null;
 
-    if (error.message?.includes('API key')) {
-      userMessage = "⚠️ AI service configuration error. Please contact support.";
-    } else if (error.message?.includes('timeout') || error.message?.includes('ETIMEDOUT')) {
-      userMessage = "⏱️ Request timeout. Please try again in a moment.";
-    } else if (error.message?.includes('network') || error.message?.includes('ECONNREFUSED')) {
-      userMessage = "🌐 Network error. Please check your connection and try again.";
-    } else if (error.message?.includes('rate limit')) {
-      userMessage = "⏳ Too many requests. Please wait a moment and try again.";
+    // Rate limit errors
+    if (error.message?.includes('rate limit') || error.code === 'rate_limit_exceeded' || error.status === 429) {
+      console.log('🚨 Rate limit detected - providing fallback to manual forms');
+      errorResponse = "I'm experiencing high demand right now. Let me open the manual form for you - it's quick and easy!";
+      fallbackAction = { type: 'fallback_to_manual_forms' };
+    }
+    // Network/timeout errors
+    else if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.message?.includes('timeout')) {
+      console.log('🚨 Network error detected');
+      errorResponse = 'Connection issue detected. Please try again or use the manual forms.';
+      fallbackAction = { type: 'fallback_to_manual_forms' };
+    }
+    // API key errors
+    else if (error.message?.includes('API key') || error.status === 401) {
+      console.log('🚨 API key error');
+      errorResponse = 'AI service authentication issue. Please use the manual forms.';
+      fallbackAction = { type: 'fallback_to_manual_forms' };
     }
 
     res.status(500).json({
-      error: 'Failed to process chat request',
-      response: userMessage,
-      action: null
+      error: error.message,
+      response: errorResponse,
+      action: fallbackAction,
+      fallback: !!fallbackAction
     });
   }
 });

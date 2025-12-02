@@ -168,12 +168,16 @@ async function loadTodaySchedule() {
 
 // Medications Functions
 async function loadMedications() {
+  const container = document.getElementById('medications-list');
   try {
     const search = document.getElementById('search-meds')?.value || '';
     const res = await fetch(`${API_BASE}/medications?search=${search}`);
-    const data = await res.json();
 
-    const container = document.getElementById('medications-list');
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
 
     if (data.medications.length === 0) {
       container.innerHTML = '<p class="text-gray-500 col-span-3">No medications found.</p>';
@@ -212,6 +216,8 @@ async function loadMedications() {
     `).join('');
   } catch (error) {
     console.error('Error loading medications:', error);
+    container.innerHTML = '<div class="col-span-3 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Failed to load medications. Please try refreshing the page.</div>';
+    showNotification('Failed to load medications', 'error');
   }
 }
 
@@ -403,8 +409,14 @@ async function refillMedication(id, defaultQuantity) {
 
 // Schedules Functions
 async function loadSchedules() {
+  const container = document.getElementById('schedules-list');
   try {
     const res = await fetch(`${API_BASE}/schedules`);
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
     const data = await res.json();
 
     const container = document.getElementById('schedules-list');
@@ -505,6 +517,8 @@ async function loadSchedules() {
     }
   } catch (error) {
     console.error('Error loading schedules:', error);
+    container.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Failed to load schedules. Please try refreshing the page.</div>';
+    showNotification('Failed to load schedules', 'error');
   }
 }
 
@@ -782,11 +796,15 @@ async function logMedication(medicationId, scheduleId, status) {
 
 // History Functions
 async function loadHistory() {
+  const container = document.getElementById('history-list');
   try {
     const res = await fetch(`${API_BASE}/logs?limit=100`);
-    const data = await res.json();
 
-    const container = document.getElementById('history-list');
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+
+    const data = await res.json();
 
     if (data.history.length === 0) {
       container.innerHTML = '<p class="text-gray-500">No history found.</p>';

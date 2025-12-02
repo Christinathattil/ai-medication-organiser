@@ -137,3 +137,6 @@ function validateScheduleData(data) {
         sanitized
     };
 }
+
+// Export validation functions (ES6 syntax)
+export { validateMedicationData, validateScheduleData };

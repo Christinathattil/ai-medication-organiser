@@ -70,6 +70,47 @@
   --shadow-xl: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
+/* ============================================
+   ACCESSIBILITY SETTINGS
+   ============================================ */
+
+/* Text Size Settings */
+[data-text-size="small"] {
+  --text-size: var(--text-size-small);
+}
+
+[data-text-size="large"] {
+  --text-size: var(--text-size-large);
+}
+
+/* Theme Settings */
+[data-theme="dark"] {
+  --color-bg: #1f2937;
+  --color-bg-card: #374151;
+  --color-text: #f9fafb;
+  --color-text-light: #d1d5db;
+  --color-border: #4b5563;
+}
+
+/* Font Weight Settings */
+[data-font-weight="bold"] {
+  font-weight: 700;
+}
+
+[data-font-weight="bold"] h1,
+[data-font-weight="bold"] h2,
+[data-font-weight="bold"] h3,
+[data-font-weight="bold"] .font-bold {
+  font-weight: 800;
+}
+
+/* Reduced Motion Settings */
+[data-reduce-motion="true"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
 /* Theme: Dark */
 [data-theme="dark"] {
   --color-primary: #818cf8;

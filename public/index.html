@@ -287,30 +287,34 @@
           </div>
         </div>
         <div class="flex items-center space-x-1 sm:space-x-2 justify-center sm:justify-end">
-          <button onclick="showTab('dashboard')"
+          <button onclick="showTab('dashboard')" aria-label="Go to Dashboard"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-home mr-2"></i><span>Dashboard</span>
+            <i class="fas fa-home mr-2" aria-hidden="true"></i><span>Dashboard</span>
           </button>
-          <button onclick="showTab('medications')"
+          <button onclick="showTab('medications')" aria-label="Go to Medications"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-pills mr-2"></i><span>Meds</span>
+            <i class="fas fa-pills mr-2" aria-hidden="true"></i><span>Meds</span>
           </button>
-          <button onclick="showTab('schedules')"
+          <button onclick="showTab('schedules')" aria-label="Go to Schedules"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-clock mr-2"></i><span>Schedule</span>
+            <i class="fas fa-clock mr-2" aria-hidden="true"></i><span>Schedule</span>
           </button>
-          <button onclick="showTab('history')"
+          <button onclick="showTab('history')" aria-label="Go to History"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-history mr-2"></i><span>History</span>
+            <i class="fas fa-history mr-2" aria-hidden="true"></i><span>History</span>
           </button>
-          <button onclick="handleLogout()"
+          <button onclick="handleLogout()" aria-label="Logout from account"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-red-600 hover:bg-red-50 hover:shadow-md transition-all font-medium text-sm"
             title="Logout">
-            <i class="fas fa-sign-out-alt mr-2"></i><span>Logout</span>
+            <i class="fas fa-sign-out-alt mr-2" aria-hidden="true"></i><span>Logout</span>
           </button>
-          <button onclick="showTab('stats')"
+          <button onclick="showTab('stats')" aria-label="Go to Statistics"
             class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
-            <i class="fas fa-chart-line mr-2"></i><span>Stats</span>
+            <i class="fas fa-chart-line mr-2" aria-hidden="true"></i><span>Stats</span>
+          </button>
+          <button onclick="openSettings()" aria-label="Open Settings"
+            class="tab-btn px-3 sm:px-4 py-2 rounded-xl text-gray-600 hover:bg-white hover:shadow-md transition-all font-medium text-sm">
+            <i class="fas fa-cog mr-2" aria-hidden="true"></i><span>Settings</span>
           </button>
         </div>
       </div>
@@ -925,8 +929,18 @@
               { role: 'assistant', content: data.response }
             );
 
+            // Handle fallback to manual forms
+            if (data.fallback && data.action?.type === 'fallback_to_manual_forms') {
+              console.log('⚠️ AI fallback triggered - opening manual form');
+              // Determine which form to open based on context
+              if (message.toLowerCase().includes('schedule') || message.toLowerCase().includes('reminder')) {
+                setTimeout(() => showAddScheduleModal(), 1000);
+              } else {
+                setTimeout(() => showAddMedicationModal(), 1000);
+              }
+            }
             // Handle action if AI detected intent
-            if (data.action) {
+            else if (data.action) {
               console.log('🎯 Action detected:', data.action);
               await handleAction(data.action);
             } else if (lastAddedMedication &&
@@ -2288,8 +2302,101 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
   <script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
 
   <!-- QR Code Generator for Emergency Info (Free CDN) -->
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js">  </script>
 
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content" style="max-width: 500px">
+      <div class="flex justify-between items-center mb-6">
+        <h2 class="text-2xl font-bold text-gray-900">Accessibility Settings</h2>
+        <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700" aria-label="Close settings">
+          <i class="fas fa-times text-2xl"></i>
+        </button>
+      </div>
+
+      <form id="settings-form" onsubmit="saveSettings(event)">
+        <!-- Text Size -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-3">Text Size</label>
+          <div class="space-y-2">
+            <label class="flex items-center">
+              <input type="radio" name="text-size" value="small" class="mr-3">
+              <span class="text-sm">Small (14px)</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="text-size" value="medium" class="mr-3" checked>
+              <span class="text-base">Medium (16px) - Default</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="text-size" value="large" class="mr-3">
+              <span class="text-lg">Large (18px)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Theme -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-3">Theme</label>
+          <div class="space-y-2">
+            <label class="flex items-center">
+              <input type="radio" name="theme" value="light" class="mr-3" checked>
+              <span>Light (Default)</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="theme" value="dark" class="mr-3">
+              <span>Dark</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Font Weight -->
+        <div class="mb-6">
+          <label class="block text-sm font-semibold text-gray-700 mb-3">Font Weight</label>
+          <div class="space-y-2 ">
+            <label class="flex items-center">
+              <input type="radio" name="font-weight" value="normal" class="mr-3" checked>
+              <span style="font-weight: normal">Normal</span>
+            </label>
+            <label class="flex items-center">
+              <input type="radio" name="font-weight" value="bold" class="mr-3">
+              <span style="font-weight: 700">Bold</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Reduce Motion -->
+        <div class="mb-6">
+          <label class="flex items-center">
+            <input type="checkbox" id="reduce-motion" name="reduce-motion" class="mr-3">
+            <div>
+              <span class="font-semibold">Reduce Motion</span>
+              <p class="text-sm text-gray-600">Minimize animations for users sensitive to motion</p>
+            </div>
+          </label>
+        </div>
+
+        <!-- Buttons -->
+        <div class="flex justify-between items-center pt-4 border-t">
+          <button type="button" onclick="resetAllSettings()" class="text-red-600 hover:text-red-700 font-medium">
+            <i class="fas fa-undo mr-2"></i>Reset to Default
+          </button>
+          <div class="space-x-2">
+            <button type="button" onclick="closeSettings()"
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+              Cancel
+            </button>
+            <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Load Settings Script -->
+  <script src="settings.js"></script>
+  <script src="app.js"></script>
 </body>
 
 </html>
