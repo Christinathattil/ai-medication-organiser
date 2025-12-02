@@ -15,40 +15,40 @@
   --touch-target: 44px;
   --input-height: 44px;
 
-  /* STRICT PROFESSIONAL PALETTE (Light Mode Default) */
-  /* Primary: Slate 700 - Professional, Neutral, Strong */
-  --color-primary: #334155;
-  --color-primary-hover: #1e293b;
-  --color-primary-active: #0f172a;
+  /* STRICT PROFESSIONAL PALETTE (High Intensity) */
+  /* Primary: Bold Blue 700 - Strong, Confident */
+  --color-primary: #1d4ed8;
+  --color-primary-hover: #1e40af;
+  --color-primary-active: #1e3a8a;
 
-  /* Accent: Sky 600 - Clear, Actionable */
-  --color-accent: #0284c7;
-  --color-accent-hover: #0369a1;
-  --color-accent-active: #075985;
+  /* Accent: Vivid Cyan 500 - High Energy, Distinct */
+  --color-accent: #06b6d4;
+  --color-accent-hover: #0891b2;
+  --color-accent-active: #0e7490;
 
   /* Neutrals */
-  --color-bg: #f8fafc;
-  /* Slate 50 */
+  --color-bg: #f1f5f9;
+  /* Slate 100 - Crisp Contrast */
   --color-surface: #ffffff;
   /* White */
   --color-text: #0f172a;
   /* Slate 900 */
-  --color-text-muted: #64748b;
-  /* Slate 500 */
-  --color-border: #e2e8f0;
-  /* Slate 200 */
+  --color-text-muted: #475569;
+  /* Slate 600 */
+  --color-border: #cbd5e1;
+  /* Slate 300 */
 
-  /* Functional (Muted) */
-  --color-success: #0ea5e9;
-  /* Sky 500 - Professional Blue (No Green) */
-  --color-warning: #f59e0b;
-  /* Amber 500 */
-  --color-danger: #ef4444;
-  /* Red 500 */
+  /* Functional (Intense) */
+  --color-success: #15803d;
+  /* Green 700 - Deep & Clear */
+  --color-warning: #b45309;
+  /* Amber 700 */
+  --color-danger: #b91c1c;
+  /* Red 700 */
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  /* Shadows - Sharper */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
 
   /* Bottom Nav */
   --bottom-nav-height: 64px;
@@ -81,8 +81,8 @@
     /* Slate 700 */
 
     /* Functional */
-    --color-success: #38bdf8;
-    /* Sky 400 - Bright Blue for Dark Mode */
+    --color-success: #34d399;
+    /* Emerald 400 */
     --color-warning: #fbbf24;
     /* Amber 400 */
     --color-danger: #f87171;
@@ -571,14 +571,6 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Gradients (Subtle & Friendly) */
-:root {
-  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  --gradient-accent: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
-  --gradient-success: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
-  /* Sky Blue Gradient */
-}
-
 /* ============================================
    LOADING & SKELETON STATES
    ============================================ */
@@ -735,12 +727,15 @@ html {
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 8px 4px;
+  padding: 8px 2px;
+  /* Reduced padding */
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
   background: transparent;
   min-height: 56px;
+  min-width: 0;
+  /* Critical for flexbox to shrink items */
   color: var(--color-text-muted);
 }
 

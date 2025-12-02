@@ -2446,18 +2446,21 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       // Helper: Add Message
       window.addMessage = function (text, sender, isError = false) {
-        const messagesDiv = document.getElementById('chat-messages');
-        if (!messagesDiv) return;
+        const messagesDiv = document.getElementById('ai-chat-messages'); // Corrected ID
+        if (!messagesDiv) {
+          console.error('❌ Chat messages container not found!');
+          return;
+        }
 
         const div = document.createElement('div');
         div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
 
         const bubble = document.createElement('div');
         bubble.className = `max-w-[85%] p-3 rounded-2xl text-[15px] leading-relaxed shadow-sm ${sender === 'user'
-            ? 'bg-slate-800 text-white rounded-br-sm'
+            ? 'bg-blue-700 text-white rounded-br-sm' // Intense Blue
             : isError
               ? 'bg-red-50 text-red-800 border border-red-100 rounded-bl-sm'
-              : 'bg-white text-slate-800 border border-slate-200 rounded-bl-sm'
+              : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
           }`;
         bubble.textContent = text;
 
@@ -2469,7 +2472,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       // Helper: Typing Indicator
       window.addTypingIndicator = function () {
-        const messagesDiv = document.getElementById('chat-messages');
+        const messagesDiv = document.getElementById('ai-chat-messages'); // Corrected ID
         if (!messagesDiv) return null;
 
         const id = 'typing-' + Date.now();
