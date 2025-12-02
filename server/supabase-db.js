@@ -61,6 +61,10 @@ class SupabaseDatabase {
     if (userId) await this.setUserContext(userId);
 
     let query = supabase.from('medications').select('*');
+    // Explicitly filter by user_id to enforce per-account isolation in addition to RLS
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
 
     // RLS will automatically filter by user_id
     if (filter.search) {
@@ -144,6 +148,9 @@ class SupabaseDatabase {
         *,
         medications (name)
       `);
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
 
     if (filter.medication_id) {
       query = query.eq('medication_id', filter.medication_id);
@@ -221,6 +228,9 @@ class SupabaseDatabase {
         *,
         medications (name, dosage)
       `);
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
 
     if (filter.medication_id) {
       query = query.eq('medication_id', filter.medication_id);
@@ -312,13 +322,20 @@ class SupabaseDatabase {
   async getRefillAlerts(threshold = 7, userId = null) {
     if (userId) await this.setUserContext(userId);
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('medications')
-      .select('*')
+      .select('*');
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    query = query
       .not('remaining_quantity', 'is', null)
       .lte('remaining_quantity', threshold)
       .gt('remaining_quantity', 0)
       .order('remaining_quantity');
+
+    const { data, error } = await query;
 
     if (error) throw error;
     return data || [];
@@ -367,6 +384,10 @@ class SupabaseDatabase {
         medications (name)
       `)
       .gte('taken_at', startDateStr);
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
 
     if (medicationId) {
       query = query.eq('medication_id', medicationId);
