@@ -275,46 +275,194 @@ async function addMedication(event) {
     console.log('📥 Response status:', res.status);
 
     if (res.ok) {
-      const data = await res.json();
-      console.log('✅ Success:', data);
 
-      // Reset modal to add mode
-      event.target.removeAttribute('data-edit-id');
-      document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
-
-      closeModal('add-medication-modal');
-      event.target.reset();
-      loadMedications();
-      showNotification(isEditing ? 'Medication updated successfully!' : 'Medication added successfully!', 'success');
-    } else {
-      const errorText = await res.text();
-      console.error('❌ Server error:', errorText);
-      showNotification('Error: ' + errorText, 'error');
+      // Create and show a modal with the medication details
+      const modal = document.createElement('div');
+      modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+      modal.innerHTML = `
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex justify-between items-start mb-4">
+              <h3 class="text-xl font-bold text-gray-900">${med.name}</h3>
+              <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div class="space-y-4">
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Dosage</div>
+                <div class="w-2/3">${med.dosage || 'Not specified'}</div>
+              </div>
+              
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Form</div>
+                <div class="w-2/3">${med.form || 'Not specified'}</div>
+              </div>
+              
+              ${med.purpose ? `
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Purpose</div>
+                <div class="w-2/3">${med.purpose}</div>
+              </div>
+              ` : ''}
+              
+              ${med.prescribing_doctor ? `
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Prescribing Doctor</div>
+                <div class="w-2/3">${med.prescribing_doctor}</div>
+              </div>
+              ` : ''}
+              
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Quantity</div>
+                <div class="w-2/3">
+                  ${med.remaining_quantity || 0}${med.total_quantity ? ` of ${med.total_quantity}` : ''} remaining
+                </div>
+              </div>
+              
+              ${med.side_effects ? `
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Side Effects</div>
+                <div class="w-2/3">${med.side_effects}</div>
+              </div>
+              ` : ''}
+              
+              ${med.notes ? `
+              <div class="flex items-start">
+                <div class="w-1/3 font-medium text-gray-600">Notes</div>
+                <div class="w-2/3 whitespace-pre-line">${med.notes}</div>
+              </div>
+              ` : ''}
+              
+              <div class="flex justify-end mt-6 space-x-3">
+                <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                  Close
+                </button>
+                <button onclick="editMedication(${med.id}); this.closest('.fixed').remove()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                  <i class="fas fa-edit mr-2"></i>Edit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+      
+      document.body.appendChild(modal);
+      modal.querySelector('button').focus();
     }
   } catch (error) {
-    console.error('❌ Network error:', error);
-    showNotification(isEditing ? 'Error updating medication: ' + error.message : 'Error adding medication: ' + error.message, 'error');
+    console.error('Error viewing medication:', error);
+    showNotification('Error loading medication details', 'error');
   }
 }
 
 async function viewMedication(id) {
   try {
     const res = await fetch(`${API_BASE}/medications/${id}`);
-    const data = await res.json();
-
-    if (data.medication) {
-      const med = data.medication;
-      alert(`Medication Details:
-
-Name: ${med.name}
-Dosage: ${med.dosage}
-Form: ${med.form}
-${med.purpose ? `Purpose: ${med.purpose}` : ''}
-${med.prescribing_doctor ? `Doctor: ${med.prescribing_doctor}` : ''}
-${med.total_quantity ? `Quantity: ${med.remaining_quantity || 0}/${med.total_quantity}` : ''}
-${med.side_effects ? `Side Effects: ${med.side_effects}` : ''}
-${med.notes ? `Notes: ${med.notes}` : ''}`);
+    
+    if (res.status === 401) {
+      // Redirect to login if not authenticated
+      window.location.href = '/login.html';
+      return;
     }
+    
+    if (res.status === 403) {
+      showNotification('You do not have permission to view this medication', 'error');
+      return;
+    }
+    
+    if (res.status === 404) {
+      showNotification('Medication not found', 'error');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    
+    if (!data.medication) {
+      throw new Error('Invalid response format');
+    }
+    
+    const med = data.medication;
+    
+    // Create and show a modal with the medication details
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50';
+    modal.innerHTML = `
+      <div class="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex justify-between items-start mb-4">
+            <h3 class="text-xl font-bold text-gray-900">${med.name}</h3>
+            <button onclick="this.closest('.fixed').remove()" class="text-gray-400 hover:text-gray-500">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          
+          <div class="space-y-4">
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Dosage</div>
+              <div class="w-2/3">${med.dosage || 'Not specified'}</div>
+            </div>
+            
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Form</div>
+              <div class="w-2/3">${med.form || 'Not specified'}</div>
+            </div>
+            
+            ${med.purpose ? `
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Purpose</div>
+              <div class="w-2/3">${med.purpose}</div>
+            </div>
+            ` : ''}
+            
+            ${med.prescribing_doctor ? `
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Prescribing Doctor</div>
+              <div class="w-2/3">${med.prescribing_doctor}</div>
+            </div>
+            ` : ''}
+            
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Quantity</div>
+              <div class="w-2/3">
+                ${med.remaining_quantity || 0}${med.total_quantity ? ` of ${med.total_quantity}` : ''} remaining
+              </div>
+            </div>
+            
+            ${med.side_effects ? `
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Side Effects</div>
+              <div class="w-2/3">${med.side_effects}</div>
+            </div>
+            ` : ''}
+            
+            ${med.notes ? `
+            <div class="flex items-start">
+              <div class="w-1/3 font-medium text-gray-600">Notes</div>
+              <div class="w-2/3 whitespace-pre-line">${med.notes}</div>
+            </div>
+            ` : ''}
+            
+            <div class="flex justify-end mt-6 space-x-3">
+              <button onclick="this.closest('.fixed').remove()" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                Close
+              </button>
+              <button onclick="editMedication(${med.id}); this.closest('.fixed').remove()" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                <i class="fas fa-edit mr-2"></i>Edit
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(modal);
+    modal.querySelector('button').focus();
   } catch (error) {
     console.error('Error viewing medication:', error);
     showNotification('Error loading medication details', 'error');
@@ -324,39 +472,67 @@ ${med.notes ? `Notes: ${med.notes}` : ''}`);
 async function editMedication(id) {
   try {
     const res = await fetch(`${API_BASE}/medications/${id}`);
-    const data = await res.json();
-
-    if (data.medication) {
-      const med = data.medication;
-
-      // Fill the form with existing data
-      document.getElementById('med-name').value = med.name || '';
-      document.getElementById('med-dosage').value = med.dosage || '';
-      document.getElementById('med-form').value = med.form || 'tablet';
-      document.getElementById('med-purpose').value = med.purpose || '';
-      document.getElementById('med-doctor').value = med.prescribing_doctor || '';
-      document.getElementById('med-prescription-date').value = med.prescription_date || '';
-      document.getElementById('med-quantity').value = med.total_quantity || '';
-      document.getElementById('med-side-effects').value = med.side_effects || '';
-      document.getElementById('med-notes').value = med.notes || '';
-
-      // Change modal title and button
-      const modal = document.getElementById('add-medication-modal');
-      modal.querySelector('h2').textContent = 'Edit Medication';
-
-      // Change submit button text
-      const submitBtn = document.querySelector('#medication-form button[type="submit"]');
-      submitBtn.textContent = 'Update Medication';
-
-      // Store the ID in a data attribute for the submit handler
-      document.getElementById('medication-form').dataset.editId = id;
-
-      // Open the modal
-      openModal('add-medication-modal');
+    
+    if (res.status === 401) {
+      // Redirect to login if not authenticated
+      window.location.href = '/login.html';
+      return;
     }
+    
+    if (res.status === 403) {
+      showNotification('You do not have permission to edit this medication', 'error');
+      return;
+    }
+    
+    if (res.status === 404) {
+      showNotification('Medication not found', 'error');
+      return;
+    }
+    
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    
+    const data = await res.json();
+    
+    if (!data.medication) {
+      throw new Error('Invalid response format');
+    }
+    
+    const med = data.medication;
+
+    // Reset the form
+    const form = document.getElementById('medication-form');
+    form.reset();
+    
+    // Fill the form with existing data
+    document.getElementById('med-name').value = med.name || '';
+    document.getElementById('med-dosage').value = med.dosage || '';
+    document.getElementById('med-form').value = med.form || 'tablet';
+    document.getElementById('med-purpose').value = med.purpose || '';
+    document.getElementById('med-doctor').value = med.prescribing_doctor || '';
+    document.getElementById('med-prescription-date').value = med.prescription_date || '';
+    document.getElementById('med-quantity').value = med.total_quantity || '';
+    document.getElementById('med-side-effects').value = med.side_effects || '';
+    document.getElementById('med-notes').value = med.notes || '';
+
+    // Change modal title and button
+    const modal = document.getElementById('add-medication-modal');
+    modal.querySelector('h2').textContent = 'Edit Medication';
+
+    // Change submit button text
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.textContent = 'Update Medication';
+    submitBtn.innerHTML = '<i class="fas fa-save mr-2"></i>Update Medication';
+
+    // Store the ID in a data attribute for the submit handler
+    form.dataset.editId = id;
+
+    // Open the modal
+    openModal('add-medication-modal');
   } catch (error) {
     console.error('Error loading medication for edit:', error);
-    showNotification('Error loading medication details', 'error');
+    showNotification('Error loading medication details. Please try again.', 'error');
   }
 }
 
