@@ -320,17 +320,24 @@
     <h1 class="title animate-title">Welcome&nbsp;Back!</h1>
     <p class="subtitle">Taking care of your health journey ✨</p>
     
-    <!-- Message carousel -->
-    <div class="message-container">
-      <div class="message" id="message-1" style="animation-delay: 0s;">
-        Setting up your personalized dashboard...
-      </div>
-      <div class="message" id="message-2" style="animation-delay: 3s;">
-        Your health data is secure with us 🔒
-      </div>
-      <div class="message" id="message-3" style="animation-delay: 6s;">
-        Almost there! Get ready to stay healthy 💪
-      </div>
+    <!-- Random tagline -->
+    <p id="tagline" class="subtitle" style="opacity:0;transform:translateY(10px);"></p>
+    <script>
+      const taglines=[
+        'Dispensing motivation... 💊',
+        'Organising your pills & thrills 🚀',
+        'Brewing a healthy routine ☕',
+        'Calibrating medication matrix 🧮',
+        'Greasing the gears of good health ⚙️',
+        'Counting pills not sheep 🐑',
+        'Downloading discipline 📥',
+        'Shaking not stirring your syrup 🍹'
+      ];
+      const t=document.getElementById('tagline');
+      const line=taglines[Math.floor(Math.random()*taglines.length)];
+      t.textContent=line;
+      setTimeout(()=>{t.style.transition='all 0.8s ease';t.style.opacity='1';t.style.transform='translateY(0)';},400);
+    </script>
     </div>
     
     <!-- Loading dots -->
