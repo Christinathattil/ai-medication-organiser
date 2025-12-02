@@ -832,6 +832,13 @@
       const chatSidebar = document.getElementById('ai-chat-sidebar');
       const closeChatBtn = document.getElementById('close-chat-btn'); // Ensure this ID matches your HTML
 
+      // Utility to hide chat sidebar if it is open
+      function closeChatSidebar() {
+        if (chatSidebar && chatSidebar.style.transform === 'translateX(0%)') {
+          toggleChat();
+        }
+      }
+
       function toggleChat() {
         const isOpen = chatSidebar.style.transform === 'translateX(0%)';
         if (isOpen) {
@@ -1174,8 +1181,13 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
         // Always attempt to open the modal even if some fields failed to prefill
         const modal = document.getElementById('add-medication-modal');
-        if (modal) modal.classList.add('active');
-        else if (typeof openModal === 'function') openModal('add-medication-modal');
+        if (modal) {
+          modal.classList.add('active');
+          modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (typeof openModal === 'function') openModal('add-medication-modal');
+
+        // Hide chat sidebar so user sees the form
+        closeChatSidebar();
 
         // Guide the user
         setTimeout(() => {
@@ -1264,8 +1276,13 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
         // Always attempt to open the modal
         const modal = document.getElementById('add-schedule-modal');
-        if (modal) modal.classList.add('active');
-        else if (typeof openModal === 'function') openModal('add-schedule-modal');
+        if (modal) {
+          modal.classList.add('active');
+          modal.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else if (typeof openModal === 'function') openModal('add-schedule-modal');
+
+        // Hide chat sidebar so user sees the form
+        closeChatSidebar();
 
         // Guide the user
         setTimeout(() => {

@@ -44,6 +44,67 @@ body, input, select, textarea, button {
   display: none;
 }
 
+/* Timeline Schedule Styles */
+.timeline-container {
+  position: relative;
+  margin-left: 24px;
+  padding-left: 12px;
+  border-left: 2px solid rgba(0,0,0,0.07);
+}
+.timeline-item {
+  position: relative;
+  margin-bottom: 32px;
+}
+.timeline-dot {
+  position: absolute;
+  left: -13px;
+  top: 4px;
+  width: 10px;
+  height: 10px;
+  background: #14b8a6;
+  border-radius: 50%;
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.15);
+}
+.timeline-time {
+  font-weight: 600;
+  color: #0f766e;
+  margin-bottom: 8px;
+}
+.timeline-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.05);
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  width: 100%;
+  max-width: 480px;
+}
+.timeline-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 12px;
+}
+.timeline-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.timeline-btn-take {
+  background: #dcfce7;
+  color: #166534;
+}
+.timeline-btn-take:hover { background:#bbf7d0; }
+.timeline-btn-skip {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.timeline-btn-skip:hover { background:#fecaca; }
+
 /* Hide deprecated AI nav button and accessibility controls */
 .bottom-nav-item.ai-dock-btn,
 #accessibility-controls,
