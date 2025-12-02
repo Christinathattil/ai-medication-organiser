@@ -275,6 +275,15 @@ async function addMedication(event) {
     console.log('📥 Response status:', res.status);
 
     if (res.ok) {
+      // Parse response JSON to get medication details (if provided)
+      let med = {};
+      try {
+        const result = await res.json();
+        med = result.medication || result || {};
+      } catch (jsonErr) {
+        console.warn('No JSON body returned after save:', jsonErr);
+      }
+
 
       // Create and show a modal with the medication details
       const modal = document.createElement('div');
