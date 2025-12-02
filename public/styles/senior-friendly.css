@@ -39,8 +39,8 @@
   /* Slate 200 */
 
   /* Functional (Muted) */
-  --color-success: #10b981;
-  /* Emerald 500 - Fresh & Friendly */
+  --color-success: #0ea5e9;
+  /* Sky 500 - Professional Blue (No Green) */
   --color-warning: #f59e0b;
   /* Amber 500 */
   --color-danger: #ef4444;
@@ -81,8 +81,8 @@
     /* Slate 700 */
 
     /* Functional */
-    --color-success: #34d399;
-    /* Emerald 400 */
+    --color-success: #38bdf8;
+    /* Sky 400 - Bright Blue for Dark Mode */
     --color-warning: #fbbf24;
     /* Amber 400 */
     --color-danger: #f87171;
@@ -569,6 +569,14 @@ select,
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;
+}
+
+/* Gradients (Subtle & Friendly) */
+:root {
+  --gradient-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  --gradient-accent: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%);
+  --gradient-success: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  /* Sky Blue Gradient */
 }
 
 /* ============================================
