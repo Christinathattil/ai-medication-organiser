@@ -9,9 +9,6 @@ class SettingsManager {
 
     loadSettings() {
         const defaults = {
-            textSize: 'medium', // small (14px), medium (16px), large (18px)
-            theme: 'light', // light, dark
-            fontWeight: 'normal', // normal, bold
             reduceMotion: false
         };
 
@@ -36,15 +33,6 @@ class SettingsManager {
     applySettings() {
         const root = document.documentElement;
 
-        // Apply text size
-        root.setAttribute('data-text-size', this.settings.textSize);
-
-        // Apply theme
-        root.setAttribute('data-theme', this.settings.theme);
-
-        // Apply font weight
-        root.setAttribute('data-font-weight', this.settings.fontWeight);
-
         // Apply reduced motion
         root.setAttribute('data-reduce-motion', this.settings.reduceMotion);
 
@@ -63,9 +51,6 @@ class SettingsManager {
 
     resetSettings() {
         this.settings = {
-            textSize: 'medium',
-            theme: 'light',
-            fontWeight: 'normal',
             reduceMotion: false
         };
         this.saveSettings();
@@ -79,11 +64,10 @@ const settingsManager = new SettingsManager();
 // Settings modal functions
 window.openSettings = function () {
     // Update UI to reflect current settings
-    document.querySelector(`input[name="text-size"][value="${settingsManager.getSetting('textSize')}"]`).checked = true;
-    document.querySelector(`input[name="theme"][value="${settingsManager.getSetting('theme')}"]`).checked = true;
-    document.querySelector(`input[name="font-weight"][value="${settingsManager.getSetting('fontWeight')}"]`).checked = true;
-    document.getElementById('reduce-motion').checked = settingsManager.getSetting('reduceMotion');
-
+    const reduceMotionInput = document.getElementById('reduce-motion');
+    if (reduceMotionInput) {
+        reduceMotionInput.checked = settingsManager.getSetting('reduceMotion');
+    }
     document.getElementById('settings-modal').classList.add('active');
 };
 
@@ -95,10 +79,6 @@ window.saveSettings = function (event) {
     event.preventDefault();
 
     const formData = new FormData(event.target);
-
-    settingsManager.updateSetting('textSize', formData.get('text-size'));
-    settingsManager.updateSetting('theme', formData.get('theme'));
-    settingsManager.updateSetting('fontWeight', formData.get('font-weight'));
     settingsManager.updateSetting('reduceMotion', formData.get('reduce-motion') === 'on');
 
     closeSettings();
@@ -110,7 +90,7 @@ window.saveSettings = function (event) {
 };
 
 window.resetAllSettings = function () {
-    if (confirm('Reset all settings to default?')) {
+    if (confirm('Reset settings to default?')) {
         settingsManager.resetSettings();
         closeSettings();
 

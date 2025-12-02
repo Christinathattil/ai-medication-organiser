@@ -883,19 +883,28 @@
           message = message.replace(/the medication/gi, lastAddedMedication.name);
           console.log('💡 Replaced "it" with medication name:', message);
         }
-
-        addMessage(input.value.trim(), 'user'); // Show original message
-        input.value = '';
-        isProcessing = true;
+        const chatInput = input; // Alias for consistency with provided snippet
+        // UI Updates
+        chatInput.value = '';
+        chatInput.disabled = true;
         sendBtn.disabled = true;
+        sendBtn.style.opacity = '0.5';
+        sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
 
+        isProcessing = true;
+        addMessage(message, 'user');
+
+        // Show typing indicator
         const typingId = addTypingIndicator();
 
         try {
           const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ message, history: chatHistory.slice(-10) })
+            body: JSON.stringify({
+              message,
+              history: chatHistory.slice(-10) // Keep context manageable
+            })
           });
 
           removeTypingIndicator(typingId);
@@ -911,7 +920,6 @@
             // Handle fallback to manual forms
             if (data.fallback && data.action?.type === 'fallback_to_manual_forms') {
               console.log('⚠️ AI fallback triggered - opening manual form');
-              // Determine which form to open based on context
               if (message.toLowerCase().includes('schedule') || message.toLowerCase().includes('reminder')) {
                 setTimeout(() => showAddScheduleModal(), 1000);
               } else {
@@ -934,29 +942,29 @@
             }
           } else {
             const error = await response.json().catch(() => ({}));
-
-            // Provide specific error messages based on status code
             let errorMsg = 'Sorry, I encountered an error.';
-            if (response.status === 500) {
-              errorMsg = error.response || error.error || 'Server error occurred. Please try again.';
-            } else if (response.status === 401 || response.status === 403) {
+            if (response.status === 500) errorMsg = 'Server error. Please try again.';
+            else if (response.status === 401 || response.status === 403) {
               errorMsg = 'Authentication error. Please refresh and log in again.';
             } else if (response.status === 400) {
               errorMsg = error.response || error.error || 'Invalid request. Please try rephrasing your message.';
             } else {
               errorMsg = error.response || error.error || 'An error occurred. Please try again.';
             }
-
             addMessage(errorMsg, 'bot', true);
             console.error('Chat API error:', { status: response.status, error });
           }
         } catch (error) {
           removeTypingIndicator(typingId);
-          addMessage('Connection error. Please try again.', 'bot', true);
+          addMessage('Connection error. Please check your internet.', 'bot', true);
           console.error('Chat error:', error);
         } finally {
           isProcessing = false;
+          chatInput.disabled = false;
           sendBtn.disabled = false;
+          sendBtn.style.opacity = '1';
+          sendBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+          chatInput.focus();
         }
       }
 
@@ -969,20 +977,23 @@
 
         const bubble = document.createElement('div');
         bubble.style.padding = '12px 16px';
-        bubble.style.borderRadius = '16px';
-        bubble.style.maxWidth = '80%';
-        bubble.style.fontSize = '14px';
+        bubble.style.borderRadius = '18px';
+        bubble.style.maxWidth = '85%';
+        bubble.style.fontSize = '15px';
         bubble.style.lineHeight = '1.5';
         bubble.style.whiteSpace = 'pre-line';
+        bubble.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)';
 
         if (sender === 'user') {
-          bubble.style.background = 'linear-gradient(135deg, #7c3aed 0%, #2563eb 100%)';
+          bubble.style.background = '#0f172a'; /* Primary Dark Blue */
           bubble.style.color = 'white';
           bubble.style.marginLeft = 'auto';
+          bubble.style.borderBottomRightRadius = '4px';
         } else {
-          bubble.style.background = isError ? '#fee2e2' : '#f3f4f6';
-          bubble.style.color = isError ? '#991b1b' : '#111827';
-          bubble.style.border = isError ? '1px solid #fecaca' : 'none';
+          bubble.style.background = isError ? '#fee2e2' : '#ffffff';
+          bubble.style.color = isError ? '#991b1b' : '#1e293b';
+          bubble.style.border = isError ? '1px solid #fecaca' : '1px solid #e2e8f0';
+          bubble.style.borderBottomLeftRadius = '4px';
         }
 
         bubble.textContent = text;
@@ -2297,83 +2308,32 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         <!-- Text Size -->
         <div class="mb-6">
           <label class="block text-sm font-semibold text-gray-700 mb-3">Text Size</label>
-          <div class="space-y-2">
+          <!-- Reduce Motion -->
+          <div class="mb-6">
             <label class="flex items-center">
-              <input type="radio" name="text-size" value="small" class="mr-3">
-              <span class="text-sm">Small (14px)</span>
-            </label>
-            <label class="flex items-center">
-              <input type="radio" name="text-size" value="medium" class="mr-3" checked>
-              <span class="text-base">Medium (16px) - Default</span>
-            </label>
-            <label class="flex items-center">
-              <input type="radio" name="text-size" value="large" class="mr-3">
-              <span class="text-lg">Large (18px)</span>
+              <input type="checkbox" id="reduce-motion" name="reduce-motion" class="mr-3">
+              <div>
+                <span class="font-semibold">Reduce Motion</span>
+                <p class="text-sm text-gray-600">Minimize animations for users sensitive to motion</p>
+              </div>
             </label>
           </div>
-        </div>
 
-        <!-- Theme -->
-        <div class="mb-6">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">Theme</label>
-          <div class="space-y-2">
-            <label class="flex items-center">
-              <input type="radio" name="theme" value="light" class="mr-3" checked>
-              <span>Light (Default)</span>
-            </label>
-            <label class="flex items-center">
-              <input type="radio" name="theme" value="dark" class="mr-3">
-              <span>Dark</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Font Weight -->
-        <div class="mb-6">
-          <label class="block text-sm font-semibold text-gray-700 mb-3">Font Weight</label>
-          <div class="space-y-2 ">
-            <label class="flex items-center">
-              <input type="radio" name="font-weight" value="normal" class="mr-3" checked>
-              <span style="font-weight: normal">Normal</span>
-            </label>
-            <label class="flex items-center">
-              <input type="radio" name="font-weight" value="bold" class="mr-3">
-              <span style="font-weight: 700">Bold</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- Reduce Motion -->
-        <div class="mb-6">
-          <label class="flex items-center">
-            <input type="checkbox" id="reduce-motion" name="reduce-motion" class="mr-3">
-            <div>
-              <span class="font-semibold">Reduce Motion</span>
-              <p class="text-sm text-gray-600">Minimize animations for users sensitive to motion</p>
-            </div>
-          </label>
-        </div>
-
-        <!-- Buttons -->
-        <div class="flex justify-between items-center pt-4 border-t">
-          <button type="button" onclick="resetAllSettings()" class="text-red-600 hover:text-red-700 font-medium">
-            <i class="fas fa-undo mr-2"></i>Reset to Default
-          </button>
-          <div class="space-x-2">
+          <!-- Buttons -->
+          <div class="flex justify-end items-center pt-4 border-t space-x-2">
             <button type="button" onclick="closeSettings()"
               class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
               Cancel
             </button>
-            <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700">
+            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
               Save Settings
             </button>
           </div>
-        </div>
       </form>
     </div>
   </div>
 
-  <!-- Bottom Navigation (Mobile) -->
+  <!-- Bottom Navigation (Fixed & Permanent) -->
   <nav class="bottom-nav">
     <button class="bottom-nav-item active" onclick="showTab('dashboard')" aria-label="Dashboard">
       <i class="fas fa-home"></i>
@@ -2383,6 +2343,15 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
       <i class="fas fa-pills"></i>
       <span>Meds</span>
     </button>
+
+    <!-- AI Chatbot Button (Center Docked) -->
+    <button class="bottom-nav-item ai-dock-btn" onclick="toggleChat()" aria-label="AI Assistant">
+      <div class="ai-icon-container">
+        <i class="fas fa-robot"></i>
+      </div>
+      <span>Assistant</span>
+    </button>
+
     <button class="bottom-nav-item inactive" onclick="showTab('schedules')" aria-label="Schedule">
       <i class="fas fa-calendar-alt"></i>
       <span>Schedule</span>
@@ -2392,11 +2361,6 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
       <span>History</span>
     </button>
   </nav>
-
-  <!-- Floating Action Button -->
-  <button class="floating-add-btn" onclick="showAddMedicationModal()" aria-label="Add medication">
-    <i class="fas fa-plus"></i>
-  </button>
 
   <!-- Load Settings Script -->
   <script src="settings.js"></script>

@@ -7,119 +7,84 @@
   /* Typography - Professional Standard Sizing */
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
-  /* Text Size Options (for accessibility settings) */
+  /* Standard Professional Text Sizes */
   --text-size-small: 13px;
   --text-size-medium: 15px;
-  /* Standard professional size */
   --text-size-large: 17px;
   --text-size: var(--text-size-medium);
   --line-height: 1.5;
-  /* Improved readability */
 
   /* Touch-Friendly Sizing - WCAG Standard */
   --button-min-height: 44px;
-  /* WCAG minimum, not oversized */
   --button-min-width: 44px;
   --touch-target: 44px;
-  --input-height: 42px;
+  --input-height: 44px;
 
-  /* Modern Vibrant Health App Theme - Blue/Purple/Pink Gradients */
-  --color-primary-start: #667eea;
-  /* Indigo */
-  --color-primary-end: #764ba2;
-  /* Purple */
-  --color-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  /* Modern Healthcare Theme - Professional & Trustworthy */
+  /* Primary: Deep Royal Blue */
+  --color-primary: #0f172a;
+  --color-primary-light: #334155;
+  --color-primary-dark: #020617;
 
-  --color-secondary-start: #f093fb;
-  /* Pink */
-  --color-secondary-end: #f5576c;
-  /* Coral */
-  --color-secondary: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  /* Accent: Medical Blue/Teal */
+  --color-accent: #0ea5e9;
+  --color-accent-light: #38bdf8;
+  --color-accent-dark: #0284c7;
 
-  --color-success-start: #4facfe;
-  /* Light Blue */
-  --color-success-end: #00f2fe;
-  /* Cyan */
-  --color-success: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  /* Secondary: Soft Indigo */
+  --color-secondary: #6366f1;
 
-  --color-accent-start: #fa709a;
-  /* Pink */
-  --color-accent-end: #fee140;
-  /* Yellow */
-  --color-accent: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-
-  --color-danger: #ef4444;
-  /* Red-500 - Errors/alerts */
-  --color-danger-dark: #dc2626;
-  /* Red-600 */
-
+  /* Functional Colors */
+  --color-success: #10b981;
+  /* Emerald */
   --color-warning: #f59e0b;
-  /* Amber-500 - Warnings */
-  --color-warning-dark: #d97706;
-  /* Amber-600 */
+  /* Amber */
+  --color-danger: #ef4444;
+  /* Red */
 
-  /* Neutral Colors */
-  --color-bg: #f9fafb;
-  /* Gray-50 - Page background */
+  /* Backgrounds & Surfaces */
+  --color-bg: #f8fafc;
+  /* Slate-50 */
   --color-bg-card: #ffffff;
-  /* Card background */
-  --color-text: #111827;
-  /* Gray-900 - Primary text */
-  --color-text-light: #6b7280;
-  /* Gray-500 - Secondary text */
-  --color-border: #e5e7eb;
-  /* Gray-200 - Borders */
+  --color-surface: #ffffff;
 
-  /* Shadows - Subtle and professional with color tints */
-  --shadow-sm: 0 1px 2px 0 rgba(102, 126, 234, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(102, 126, 234, 0.1), 0 2px 4px -1px rgba(102, 126, 234, 0.06);
-  --shadow-lg: 0 10px 15px -3px rgba(102, 126, 234, 0.1), 0 4px 6px -2px rgba(102, 126, 234, 0.06);
-  --shadow-xl: 0 20px 25px -5px rgba(102, 126, 234, 0.1), 0 10px 10px -5px rgba(102, 126, 234, 0.04);
+  /* Text Colors */
+  --color-text: #0f172a;
+  /* Slate-900 */
+  --color-text-secondary: #64748b;
+  /* Slate-500 */
+  --color-text-muted: #94a3b8;
+  /* Slate-400 */
+
+  /* Borders */
+  --color-border: #e2e8f0;
+  /* Slate-200 */
+
+  /* Gradients (Subtle & Professional) */
+  --gradient-primary: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --gradient-accent: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
+
+  /* Shadows - Soft & Modern */
+  --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.1), 0 2px 4px -1px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.1), 0 4px 6px -2px rgba(15, 23, 42, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 10px 10px -5px rgba(15, 23, 42, 0.04);
 
   /* Bottom Navigation */
   --bottom-nav-height: 64px;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
-/* ============================================
-   ACCESSIBILITY SETTINGS
-   ============================================ */
-
-/* Text Size Settings */
-[data-text-size="small"] {
-  --text-size: var(--text-size-small);
-}
-
-[data-text-size="large"] {
-  --text-size: var(--text-size-large);
-}
-
-/* Theme Settings */
-[data-theme="dark"] {
-  --color-bg: #1f2937;
-  --color-bg-card: #374151;
-  --color-text: #f9fafb;
-  --color-text-light: #d1d5db;
-  --color-border: #4b5563;
-}
-
-/* Font Weight Settings */
-[data-font-weight="bold"] {
-  font-weight: 700;
-}
-
-[data-font-weight="bold"] h1,
-[data-font-weight="bold"] h2,
-[data-font-weight="bold"] h3,
-[data-font-weight="bold"] .font-bold {
-  font-weight: 800;
-}
-
-/* Reduced Motion Settings */
-[data-reduce-motion="true"] * {
-  animation-duration: 0.01ms !important;
-  animation-iteration-count: 1 !important;
-  transition-duration: 0.01ms !important;
+/* Base Styles */
+body {
+  font-family: var(--font-main);
+  font-size: var(--text-size);
+  line-height: var(--line-height);
+  color: var(--color-text);
+  background-color: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 /* Theme: Dark */
@@ -701,7 +666,7 @@ html {
 }
 
 /* ============================================
-   BOTTOM NAVIGATION - Modern Mobile Design
+   BOTTOM NAVIGATION - Fixed & Professional
    ============================================ */
 
 .bottom-nav {
@@ -710,17 +675,16 @@ html {
   left: 0;
   right: 0;
   height: calc(var(--bottom-nav-height) + var(--safe-area-bottom));
-  background: white;
+  background: rgba(255, 255, 255, 0.98);
   border-top: 1px solid var(--color-border);
-  box-shadow: 0 -4px 20px rgba(102, 126, 234, 0.08);
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.05);
   display: flex;
   justify-content: space-around;
-  align-items: flex-start;
-  padding-top: 8px;
+  align-items: center;
   padding-bottom: var(--safe-area-bottom);
-  z-index: 1000;
-  backdrop-filter: blur(10px);
-  background: rgba(255, 255, 255, 0.98);
+  z-index: 9999;
+  /* Ensure it's always on top */
+  backdrop-filter: blur(12px);
 }
 
 .bottom-nav-item {
@@ -732,86 +696,64 @@ html {
   gap: 4px;
   padding: 8px 4px;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.2s ease;
   border: none;
   background: transparent;
   min-height: 56px;
-  position: relative;
+  color: var(--color-text-muted);
 }
 
 .bottom-nav-item i {
-  font-size: 22px;
-  transition: all 0.3s ease;
+  font-size: 20px;
+  transition: all 0.2s ease;
 }
 
 .bottom-nav-item span {
   font-size: 11px;
-  font-weight: 600;
-  transition: all 0.3s ease;
-  letter-spacing: 0.3px;
-}
-
-.bottom-nav-item.inactive {
-  color: #9ca3af;
-}
-
-.bottom-nav-item.inactive:active {
-  transform: scale(0.95);
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .bottom-nav-item.active {
-  color: #667eea;
+  color: var(--color-primary);
 }
 
 .bottom-nav-item.active i {
   transform: translateY(-2px);
 }
 
-.bottom-nav-item.active::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 32px;
-  height: 3px;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 0 0 3px 3px;
+/* AI Dock Button */
+.ai-dock-btn {
+  position: relative;
+  top: -12px;
+  overflow: visible;
 }
 
-/* Floating Action Button */
-.floating-add-btn {
-  position: fixed;
-  bottom: calc(var(--bottom-nav-height) + 12px + var(--safe-area-bottom));
-  right: 20px;
-  width: 56px;
-  height: 56px;
+.ai-icon-container {
+  width: 48px;
+  height: 48px;
+  background: var(--color-primary);
   border-radius: 50%;
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-  border: none;
-  color: white;
-  font-size: 24px;
-  cursor: pointer;
-  box-shadow: 0 8px 24px rgba(250, 112, 154, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 999;
+  color: white;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.3);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 4px solid white;
 }
 
-.floating-add-btn:hover {
-  transform: scale(1.1) rotate(90deg);
-  box-shadow: 0 12px 32px rgba(250, 112, 154, 0.5);
+.ai-dock-btn i {
+  font-size: 20px;
 }
 
-.floating-add-btn:active {
-  transform: scale(0.95) rotate(90deg);
+.ai-dock-btn:active .ai-icon-container {
+  transform: scale(0.95);
 }
 
 /* Add padding to body to account for bottom nav */
 body {
-  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 16px);
+  padding-bottom: calc(var(--bottom-nav-height) + var(--safe-area-bottom) + 24px) !important;
 }
 
 /* Hide bottom nav on desktop */
@@ -820,11 +762,7 @@ body {
     display: none;
   }
 
-  .floating-add-btn {
-    bottom: 24px;
-  }
-
   body {
-    padding-bottom: 16px;
+    padding-bottom: 24px !important;
   }
 }
