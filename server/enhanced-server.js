@@ -1362,7 +1362,12 @@ Always validate mandatory fields, handle multiple requests, and guide users step
 
     if (!action && (isFollowUp || aiIndicatesAction)) {
       // Build conversation text ONCE for both medication and schedule extraction
-      const conversationText = recentHistory.map(h => h.content).join(' ') + ' ' + message + ' ' + aiResponse;
+      // IMPORTANT: Use ONLY user messages to avoid AI artifact words (e.g., "I've extracted ...")
+      const historyUserText = recentHistory
+        .filter(h => h.role === 'user')
+        .map(h => h.content)
+        .join(' ');
+      const conversationText = `${historyUserText} ${message}`.trim();
 
       // Skip if this is clearly a scheduling response
       // BUT: If message contains form/quantity keywords, it's likely medication details, not scheduling
@@ -2202,7 +2207,7 @@ function extractMedicationFromText(text) {
     const additionalSkipWords = ['one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten',
       'default', 'like', 'you', 'your', 'have', 'many', 'how', 'what', 'when', 'where',
       'would', 'should', 'could', 'can', 'will', 'it', 'is', 'be', 'to', 'for', 'that',
-      'this', 'these', 'those', 'if', 'also', 'previously', 'noted', 'mentioned'];
+      'this', 'these', 'those', 'if', 'also', 'previously', 'noted', 'mentioned', 'extracted'];
 
     const words = text.split(/\s+/);
     for (let i = 0; i < words.length; i++) {

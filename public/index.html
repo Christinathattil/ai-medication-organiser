@@ -1140,40 +1140,44 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         openAndFillMedicationForm(data);
       }
 
-      // Helper function to open and pre-fill medication form
+      // Helper function to open and pre-fill medication form (robust)
       function openAndFillMedicationForm(data) {
-        // Fill the form with extracted data
-        document.getElementById('med-name').value = data.name || '';
-        document.getElementById('med-dosage').value = data.dosage || '';
-        document.getElementById('med-form').value = data.form || 'tablet';
-        document.getElementById('med-purpose').value = data.purpose || '';
-        document.getElementById('med-quantity').value = data.total_quantity || 30;
+        try {
+          const setValue = (id, value) => {
+            const el = document.getElementById(id);
+            if (el != null && value !== undefined) el.value = value;
+          };
 
-        // Fill optional fields if provided
-        if (data.prescribing_doctor) {
-          document.getElementById('med-doctor').value = data.prescribing_doctor;
-        }
-        if (data.prescription_date) {
-          document.getElementById('med-prescription-date').value = data.prescription_date;
-        }
-        if (data.side_effects) {
-          document.getElementById('med-side-effects').value = data.side_effects;
-        }
-        if (data.notes) {
-          document.getElementById('med-notes').value = data.notes;
+          // Fill the form with extracted data
+          setValue('med-name', data.name || '');
+          setValue('med-dosage', data.dosage || '');
+          setValue('med-form', data.form || 'tablet');
+          setValue('med-purpose', data.purpose || '');
+          setValue('med-quantity', data.total_quantity || 30);
+
+          // Fill optional fields if provided
+          if (data.prescribing_doctor) setValue('med-doctor', data.prescribing_doctor);
+          if (data.prescription_date) setValue('med-prescription-date', data.prescription_date);
+          if (data.side_effects) setValue('med-side-effects', data.side_effects);
+          if (data.notes) setValue('med-notes', data.notes);
+
+          // Reset modal to add mode (not edit mode)
+          const form = document.getElementById('medication-form');
+          if (form) form.removeAttribute('data-edit-id');
+          const titleEl = document.querySelector('#add-medication-modal h2');
+          if (titleEl) titleEl.textContent = 'Add New Medication';
+          const submitBtn = document.querySelector('#medication-form button[type="submit"]');
+          if (submitBtn) submitBtn.textContent = 'Add Medication';
+        } catch (err) {
+          console.error('openAndFillMedicationForm error:', err);
         }
 
-        // Reset modal to add mode (not edit mode)
-        const form = document.getElementById('medication-form');
-        form.removeAttribute('data-edit-id');
-        document.querySelector('#add-medication-modal h2').textContent = 'Add New Medication';
-        const submitBtn = document.querySelector('#medication-form button[type="submit"]');
-        submitBtn.textContent = 'Add Medication';
+        // Always attempt to open the modal even if some fields failed to prefill
+        const modal = document.getElementById('add-medication-modal');
+        if (modal) modal.classList.add('active');
+        else if (typeof openModal === 'function') openModal('add-medication-modal');
 
-        // Open the modal
-        document.getElementById('add-medication-modal').classList.add('active');
-
-        // Add a message to guide the user
+        // Guide the user
         setTimeout(() => {
           addMessage('✅ Form opened! Please review the details, make any changes if needed, and click "Add Medication" to confirm.', 'bot');
         }, 500);
@@ -1207,71 +1211,63 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         openAndFillScheduleForm(data);
       }
 
-      // Helper function to open and pre-fill schedule form
+      // Helper function to open and pre-fill schedule form (robust)
       async function openAndFillScheduleForm(data) {
-        // First, load medications for the dropdown
-        await loadMedicationsForSchedule();
-
-        // Fill the form with extracted data
-        const medSelect = document.getElementById('schedule-medication-select');
-        if (data.medication_id) {
-          medSelect.value = data.medication_id;
-        }
-
-        // Fill time field
-        const timeInput = document.querySelector('#add-schedule-form input[name="time"]');
-        if (timeInput && data.time) {
-          timeInput.value = data.time;
-        }
-
-        // Fill frequency field
-        const frequencySelect = document.querySelector('#add-schedule-form select[name="frequency"]');
-        if (frequencySelect && data.frequency) {
-          frequencySelect.value = data.frequency;
-        }
-
-        // Fill start date (default to today if not provided)
-        const startDateInput = document.querySelector('#add-schedule-form input[name="start_date"]');
-        if (startDateInput) {
-          startDateInput.value = data.start_date || new Date().toISOString().split('T')[0];
-        }
-
-        // Fill end date if provided
-        if (data.end_date) {
-          const endDateInput = document.querySelector('#add-schedule-form input[name="end_date"]');
-          if (endDateInput) {
-            endDateInput.value = data.end_date;
+        try {
+          // First, load medications for the dropdown
+          if (typeof loadMedicationsForSchedule === 'function') {
+            await loadMedicationsForSchedule();
           }
-        }
 
-        // Fill days of week if provided
-        if (data.days_of_week) {
-          const daysInput = document.querySelector('#add-schedule-form input[name="days_of_week"]');
-          if (daysInput) {
-            daysInput.value = data.days_of_week;
+          // Fill the form with extracted data
+          const medSelect = document.getElementById('schedule-medication-select');
+          if (medSelect && data.medication_id) medSelect.value = data.medication_id;
+
+          // Fill time field
+          const timeInput = document.querySelector('#add-schedule-form input[name="time"]');
+          if (timeInput && data.time) timeInput.value = data.time;
+
+          // Fill frequency field
+          const frequencySelect = document.querySelector('#add-schedule-form select[name="frequency"]');
+          if (frequencySelect && data.frequency) frequencySelect.value = data.frequency;
+
+          // Fill start date (default to today if not provided)
+          const startDateInput = document.querySelector('#add-schedule-form input[name="start_date"]');
+          if (startDateInput) startDateInput.value = data.start_date || new Date().toISOString().split('T')[0];
+
+          // Fill end date if provided
+          if (data.end_date) {
+            const endDateInput = document.querySelector('#add-schedule-form input[name="end_date"]');
+            if (endDateInput) endDateInput.value = data.end_date;
           }
-        }
 
-        // Fill food timing radio button
-        if (data.food_timing) {
-          const foodRadio = document.querySelector(`#add-schedule-form input[name="food_timing"][value="${data.food_timing}"]`);
-          if (foodRadio) {
-            foodRadio.checked = true;
+          // Fill days of week if provided
+          if (data.days_of_week) {
+            const daysInput = document.querySelector('#add-schedule-form input[name="days_of_week"]');
+            if (daysInput) daysInput.value = data.days_of_week;
           }
-        }
 
-        // Fill special instructions if provided
-        if (data.special_instructions) {
-          const instructionsTextarea = document.querySelector('#add-schedule-form textarea[name="special_instructions"]');
-          if (instructionsTextarea) {
-            instructionsTextarea.value = data.special_instructions;
+          // Fill food timing radio button
+          if (data.food_timing) {
+            const foodRadio = document.querySelector(`#add-schedule-form input[name="food_timing"][value="${data.food_timing}"]`);
+            if (foodRadio) foodRadio.checked = true;
           }
+
+          // Fill special instructions if provided
+          if (data.special_instructions) {
+            const instructionsTextarea = document.querySelector('#add-schedule-form textarea[name="special_instructions"]');
+            if (instructionsTextarea) instructionsTextarea.value = data.special_instructions;
+          }
+        } catch (err) {
+          console.error('openAndFillScheduleForm error:', err);
         }
 
-        // Open the modal
-        document.getElementById('add-schedule-modal').classList.add('active');
+        // Always attempt to open the modal
+        const modal = document.getElementById('add-schedule-modal');
+        if (modal) modal.classList.add('active');
+        else if (typeof openModal === 'function') openModal('add-schedule-modal');
 
-        // Add a message to guide the user
+        // Guide the user
         setTimeout(() => {
           addMessage('✅ Form opened! Please review the details, make any changes if needed, and click "Add Schedule" to confirm.', 'bot');
         }, 500);
@@ -1328,6 +1324,11 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
           addMessage(`After adding the medication, I'll automatically open the schedule form next.`, 'bot');
         }, 1000);
       }
+
+      // Expose preview helpers globally for robust action handling
+      window.showMedicationPreview = showMedicationPreview;
+      window.showSchedulePreview = showSchedulePreview;
+      window.showCombinedPreview = showCombinedPreview;
 
       async function addMedicationAndSchedule(medData, schedData) {
         try {
