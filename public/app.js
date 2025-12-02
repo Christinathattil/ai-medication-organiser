@@ -435,36 +435,50 @@ async function loadSchedules() {
       return;
     }
 
-    // Always group by time for timeline view
     const schedules = [...data.schedules];
 
-    // Sort by time
-    schedules.sort((a, b) => a.time.localeCompare(b.time));
+    // Read sort & grouping preferences
+    const sortBy = document.getElementById('schedule-sort').value;
+    const groupByTime = document.getElementById('schedule-group').checked;
 
-    const grouped = {};
-    schedules.forEach(schedule => {
-      if (!grouped[schedule.time]) {
-        grouped[schedule.time] = [];
-      }
-      grouped[schedule.time].push(schedule);
-    });
+    // Apply sorting
+    if (sortBy === 'medication') {
+      schedules.sort((a, b) => a.medication_name.localeCompare(b.medication_name));
+    } else if (sortBy === 'frequency') {
+      schedules.sort((a, b) => a.frequency.localeCompare(b.frequency));
+    } else { // time (default)
+      schedules.sort((a, b) => a.time.localeCompare(b.time));
+    }
 
-    container.innerHTML = `
-      <div class="timeline-container">
-        ${Object.keys(grouped).sort().map(time => {
-      const timeSchedules = grouped[time];
-      return `
-            <div class="timeline-item">
-              <div class="timeline-dot"></div>
-              <div class="timeline-time">${formatTime(time)}</div>
-              <div class="space-y-3">
-                ${timeSchedules.map(schedule => renderTimelineCard(schedule)).join('')}
-              </div>
-            </div>
-          `;
-    }).join('')}
-      </div>
-    `;
+    // Grouping output
+    if (groupByTime) {
+      const grouped = {};
+      schedules.forEach(sch => {
+        if (!grouped[sch.time]) grouped[sch.time] = [];
+        grouped[sch.time].push(sch);
+      });
+
+      container.innerHTML = `
+        <div class="timeline-container">
+          ${Object.keys(grouped).sort().map(time => {
+            const timeSchedules = grouped[time];
+            return `
+              <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-time">${formatTime(time)}</div>
+                <div class="space-y-3">
+                  ${timeSchedules.map(schedule => renderTimelineCard(schedule)).join('')}
+                </div>
+              </div>`;
+          }).join('')}
+        </div>`;
+    } else {
+      // Simple list
+      container.innerHTML = `
+        <div class="space-y-6">
+          ${schedules.map(schedule => renderTimelineCard(schedule)).join('')}
+        </div>`;
+    }
   } catch (error) {
     console.error('Error loading schedules:', error);
     container.innerHTML = '<div class="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700"><i class="fas fa-exclamation-circle mr-2"></i>Failed to load schedules. Please try refreshing the page.</div>';
@@ -483,14 +497,17 @@ function formatTime(timeStr) {
 
 // Helper function to render a timeline card
 function renderTimelineCard(schedule) {
+  const displayDosage = schedule.dosage || schedule.medication_dosage || (schedule.medication ? schedule.medication.dosage : '') || '';
+  const subtitleParts = [];
+  if (displayDosage) subtitleParts.push(displayDosage);
+  if (schedule.frequency) subtitleParts.push(schedule.frequency);
+
   return `
     <div class="timeline-card">
       <div class="flex justify-between items-start">
         <div>
           <h3 class="text-lg font-bold text-gray-900">${schedule.medication_name}</h3>
-          <p class="text-sm text-gray-600 mt-1">
-            ${schedule.dosage} • ${schedule.frequency}
-          </p>
+          ${subtitleParts.length ? `<p class="text-sm text-gray-600 mt-1">${subtitleParts.join(' • ')}</p>` : ''}
           ${schedule.food_timing && schedule.food_timing !== 'none' ?
       `<p class="text-xs text-indigo-600 mt-1 font-medium bg-indigo-50 inline-block px-2 py-1 rounded">
               <i class="fas fa-utensils mr-1"></i>${getFoodTimingText(schedule.food_timing)}
