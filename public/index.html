@@ -742,34 +742,40 @@
 
     <!-- Messages -->
     <div id="ai-chat-messages"
-      style="flex: 1; overflow-y: auto; padding: 20px; background: linear-gradient(to bottom, #f9fafb, #ffffff);"></div>
+      style="flex: 1; overflow-y: auto; padding: 20px; background: linear-gradient(to bottom, #f9fafb, #ffffff); padding-bottom: 20px;">
+    </div>
 
-    <!-- Input -->
-    <div style="padding: 16px; border-top: 1px solid #e5e7eb; background: white;">
-      <div class="chat-input-container"
-        style="display: flex; gap: 8px; padding: 16px; background: white; border-top: 1px solid #e5e7eb;">
+    <!-- Input Area (Sticky Bottom) -->
+    <div
+      style="padding: 16px; border-top: 1px solid #e5e7eb; background: white; flex-shrink: 0; padding-bottom: calc(16px + env(safe-area-inset-bottom));">
+      <div class="chat-input-container" style="display: flex; gap: 8px; margin-bottom: 12px;">
         <button id="voice-btn" class="voice-btn" onclick="startVoiceInput('chat-input')"
-          style="min-width: 52px; min-height: 52px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; cursor: pointer; flex-shrink: 0;"
+          style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #10b981, #059669); border: none; color: white; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center;"
           title="Voice input">
-          <i class="fas fa-microphone" style="font-size: 22px;"></i>
+          <i class="fas fa-microphone" style="font-size: 18px;"></i>
         </button>
-        <input type="text" id="chat-input" placeholder="Ask me anything... or use voice 🎤"
-          style="flex: 1; padding: 14px 18px; font-size: 18px; border: 2px solid #e5e7eb; border-radius: 12px; outline: none;">
+        <input type="text" id="chat-input" placeholder="Ask me anything..."
+          style="flex: 1; padding: 10px 16px; font-size: 15px; border: 1px solid #e5e7eb; border-radius: 24px; outline: none; background: #f9fafb;">
         <button id="send-btn" onclick="sendMessage()"
-          style="min-width: 52px; min-height: 52px; border-radius: 12px; background: linear-gradient(135deg, #14b8a6, #0d9488); border: none; color: white; cursor: pointer; font-weight: 600; flex-shrink: 0;">
-          <i class="fas fa-paper-plane" style="font-size: 20px;"></i>
+          style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #667eea, #764ba2); border: none; color: white; cursor: pointer; font-weight: 600; flex-shrink: 0; display: flex; align-items: center; justify-content: center;">
+          <i class="fas fa-paper-plane" style="font-size: 16px;"></i>
         </button>
       </div>
-      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+
+      <!-- Quick Actions (Always Visible) -->
+      <div style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch;">
         <button class="quick-btn" data-action="today"
-          style="background: #dbeafe; color: #1e40af; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">📅
-          Today</button>
+          style="background: #eff6ff; color: #1d4ed8; border: 1px solid #dbeafe; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; flex-shrink: 0;">
+          📅 Today's Meds
+        </button>
         <button class="quick-btn" data-action="add"
-          style="background: #dcfce7; color: #166534; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">➕
-          Add</button>
+          style="background: #f0fdf4; color: #15803d; border: 1px solid #dcfce7; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; flex-shrink: 0;">
+          ➕ Add Med
+        </button>
         <button class="quick-btn" data-action="stats"
-          style="background: #f3e8ff; color: #6b21a8; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600;">📊
-          Stats</button>
+          style="background: #faf5ff; color: #7e22ce; border: 1px solid #f3e8ff; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; flex-shrink: 0;">
+          📊 My Stats
+        </button>
       </div>
     </div>
   </div>

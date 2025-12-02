@@ -8,12 +8,12 @@
   --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Text Size Options (for accessibility settings) */
-  --text-size-small: 14px;
-  --text-size-medium: 16px;
+  --text-size-small: 13px;
+  --text-size-medium: 15px;
   /* Standard professional size */
-  --text-size-large: 18px;
+  --text-size-large: 17px;
   --text-size: var(--text-size-medium);
-  --line-height: 1.6;
+  --line-height: 1.5;
   /* Improved readability */
 
   /* Touch-Friendly Sizing - WCAG Standard */
@@ -21,7 +21,7 @@
   /* WCAG minimum, not oversized */
   --button-min-width: 44px;
   --touch-target: 44px;
-  --input-height: 44px;
+  --input-height: 42px;
 
   /* Modern Vibrant Health App Theme - Blue/Purple/Pink Gradients */
   --color-primary-start: #667eea;
