@@ -16,7 +16,7 @@
   <link rel="manifest" href="manifest.json">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link rel="stylesheet" href="/styles/senior-friendly.css">
+  <link rel="stylesheet" href="styles/modern.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
@@ -2457,10 +2457,10 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
         const bubble = document.createElement('div');
         bubble.className = `max-w-[85%] p-3 rounded-2xl text-[15px] leading-relaxed shadow-sm ${sender === 'user'
-            ? 'bg-blue-700 text-white rounded-br-sm' // Intense Blue
-            : isError
-              ? 'bg-red-50 text-red-800 border border-red-100 rounded-bl-sm'
-              : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
+          ? 'bg-blue-700 text-white rounded-br-sm' // Intense Blue
+          : isError
+            ? 'bg-red-50 text-red-800 border border-red-100 rounded-bl-sm'
+            : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
           }`;
         bubble.textContent = text;
 
