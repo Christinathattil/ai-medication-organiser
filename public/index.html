@@ -2298,38 +2298,26 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
   <div id="settings-modal" class="modal">
     <div class="modal-content bg-white w-full mx-4 rounded-2xl shadow-xl p-6" style="max-width: 500px">
       <div class="flex justify-between items-center mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Accessibility Settings</h2>
+        <h2 class="text-2xl font-bold text-gray-900">Settings</h2>
         <button onclick="closeSettings()" class="text-gray-500 hover:text-gray-700" aria-label="Close settings">
           <i class="fas fa-times text-2xl"></i>
         </button>
       </div>
 
-      <form id="settings-form" onsubmit="saveSettings(event)">
-        <!-- Text Size -->
+      <div id="settings-content">
+        <!-- Text Size Only -->
         <div class="mb-6">
           <label class="block text-sm font-semibold text-gray-700 mb-3">Text Size</label>
-          <!-- Reduce Motion -->
-          <div class="mb-6">
-            <label class="flex items-center">
-              <input type="checkbox" id="reduce-motion" name="reduce-motion" class="mr-3">
-              <div>
-                <span class="font-semibold">Reduce Motion</span>
-                <p class="text-sm text-gray-600">Minimize animations for users sensitive to motion</p>
-              </div>
-            </label>
+          <div class="flex space-x-2">
+            <button onclick="setTextSize('small')"
+              class="flex-1 py-3 border rounded-lg hover:bg-gray-50 font-medium text-sm">A</button>
+            <button onclick="setTextSize('medium')"
+              class="flex-1 py-3 border rounded-lg hover:bg-gray-50 font-bold text-base bg-blue-50 border-blue-200 text-blue-700">A</button>
+            <button onclick="setTextSize('large')"
+              class="flex-1 py-3 border rounded-lg hover:bg-gray-50 font-extrabold text-xl">A</button>
           </div>
-
-          <!-- Buttons -->
-          <div class="flex justify-end items-center pt-4 border-t space-x-2">
-            <button type="button" onclick="closeSettings()"
-              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-              Cancel
-            </button>
-            <button type="submit" class="px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800">
-              Save Settings
-            </button>
-          </div>
-      </form>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -2371,20 +2359,79 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
     document.addEventListener('DOMContentLoaded', () => {
       console.log('🚀 App initialized. Setting up global handlers...');
 
-      // Expose Chatbot Functions Globally
+      // 1. Swipe Gestures for Chatbot
+      let touchStartX = 0;
+      let touchEndX = 0;
+
+      document.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+      }, { passive: true });
+
+      document.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+      }, { passive: true });
+
+      function handleSwipe() {
+        const swipeThreshold = 100; // Minimum distance for swipe
+        const sidebar = document.getElementById('ai-chat-sidebar');
+        if (!sidebar) return;
+
+        const isOpen = sidebar.style.transform === 'translateX(0%)';
+
+        // Right Swipe (Dismiss)
+        if (touchEndX - touchStartX > swipeThreshold && isOpen) {
+          console.log('👉 Right swipe detected: Closing chat');
+          toggleChat();
+        }
+
+        // Left Swipe (Open) - Only if starting from right edge
+        if (touchStartX - touchEndX > swipeThreshold && !isOpen && touchStartX > window.innerWidth - 50) {
+          console.log('👈 Left swipe detected: Opening chat');
+          toggleChat();
+        }
+      }
+
+      // 2. Expose handleAction Globally
+      // This function delegates to the app.js functions which should be global or attached to window
+      window.handleAction = async function (action) {
+        console.log('🔧 Global handleAction called:', action);
+
+        // Ensure the modal functions exist
+        if (typeof window.showMedicationPreview === 'function' && action.type === 'add_medication') {
+          window.showMedicationPreview(action.data);
+        } else if (typeof window.showSchedulePreview === 'function' && action.type === 'add_schedule') {
+          window.showSchedulePreview(action.data);
+        } else if (typeof window.showCombinedPreview === 'function' && action.type === 'add_medication_and_schedule') {
+          window.showCombinedPreview(action.data);
+        } else if (action.type === 'show_schedule') {
+          if (typeof window.showTodaySchedule === 'function') window.showTodaySchedule();
+          else console.warn('showTodaySchedule not found');
+        } else if (action.type === 'show_stats') {
+          if (typeof window.showStats === 'function') window.showStats();
+          else console.warn('showStats not found');
+        } else {
+          console.warn('⚠️ Unknown action or missing handler:', action.type);
+          // Fallback: Try to find functions in the global scope if they aren't explicitly on window
+          try {
+            if (action.type === 'add_medication') showMedicationPreview(action.data);
+            if (action.type === 'add_schedule') showSchedulePreview(action.data);
+          } catch (e) {
+            console.error('❌ Fallback execution failed:', e);
+            addMessage('I tried to open the form, but something went wrong. Please try the manual "Add" button.', 'bot', true);
+          }
+        }
+      };
+
+      // 3. Chatbot Logic
       window.sendMessage = async function () {
         const input = document.getElementById('chat-input');
         const sendBtn = document.getElementById('send-btn');
 
-        if (!input || !sendBtn) {
-          console.error('❌ Chat elements not found!');
-          return;
-        }
+        if (!input || !sendBtn) return;
 
         const message = input.value.trim();
         if (!message) return;
-
-        console.log('📨 Sending message:', message);
 
         // Disable UI
         input.value = '';
@@ -2399,15 +2446,21 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         const typingId = addTypingIndicator();
 
         try {
+          // Use the increased timeout from server, but also set a client-side timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s client timeout
+
           const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               message,
               history: (window.chatHistory || []).slice(-10)
-            })
+            }),
+            signal: controller.signal
           });
 
+          clearTimeout(timeoutId);
           removeTypingIndicator(typingId);
 
           if (response.ok) {
@@ -2422,11 +2475,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
             if (data.action) {
               console.log('🎯 Action detected:', data.action);
-              if (typeof handleAction === 'function') {
-                await handleAction(data.action);
-              } else {
-                console.error('❌ handleAction function missing!');
-              }
+              await window.handleAction(data.action);
             }
           } else {
             throw new Error('Server response not ok');
@@ -2434,7 +2483,9 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         } catch (error) {
           console.error('❌ Chat error:', error);
           removeTypingIndicator(typingId);
-          addMessage('Sorry, something went wrong. Please try again.', 'bot', true);
+          let errorMsg = 'Sorry, something went wrong.';
+          if (error.name === 'AbortError') errorMsg = 'Request timed out. Please try again.';
+          addMessage(errorMsg, 'bot', true);
         } finally {
           // Re-enable UI
           input.disabled = false;
@@ -2446,21 +2497,18 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       // Helper: Add Message
       window.addMessage = function (text, sender, isError = false) {
-        const messagesDiv = document.getElementById('ai-chat-messages'); // Corrected ID
-        if (!messagesDiv) {
-          console.error('❌ Chat messages container not found!');
-          return;
-        }
+        const messagesDiv = document.getElementById('ai-chat-messages');
+        if (!messagesDiv) return;
 
         const div = document.createElement('div');
         div.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'} mb-4`;
 
         const bubble = document.createElement('div');
         bubble.className = `max-w-[85%] p-3 rounded-2xl text-[15px] leading-relaxed shadow-sm ${sender === 'user'
-          ? 'bg-blue-700 text-white rounded-br-sm' // Intense Blue
-          : isError
-            ? 'bg-red-50 text-red-800 border border-red-100 rounded-bl-sm'
-            : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
+            ? 'bg-blue-700 text-white rounded-br-sm'
+            : isError
+              ? 'bg-red-50 text-red-800 border border-red-100 rounded-bl-sm'
+              : 'bg-white text-slate-900 border border-slate-200 rounded-bl-sm'
           }`;
         bubble.textContent = text;
 
@@ -2472,7 +2520,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       // Helper: Typing Indicator
       window.addTypingIndicator = function () {
-        const messagesDiv = document.getElementById('ai-chat-messages'); // Corrected ID
+        const messagesDiv = document.getElementById('ai-chat-messages');
         if (!messagesDiv) return null;
 
         const id = 'typing-' + Date.now();
@@ -2495,6 +2543,18 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
       window.removeTypingIndicator = function (id) {
         const el = document.getElementById(id);
         if (el) el.remove();
+      };
+
+      // Text Size Handler
+      window.setTextSize = function (size) {
+        const root = document.documentElement;
+        if (size === 'small') root.style.setProperty('--text-size', '13px');
+        if (size === 'medium') root.style.setProperty('--text-size', '15px');
+        if (size === 'large') root.style.setProperty('--text-size', '18px');
+
+        // Update active state
+        // (Simplified for now)
+        localStorage.setItem('med-manager-text-size', size);
       };
 
       // Attach Event Listeners

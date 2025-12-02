@@ -1249,7 +1249,7 @@ Always validate mandatory fields, handle multiple requests, and guide users step
             top_p: 0.9
           }),
           new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Request timeout after 10s')), 10000)
+            setTimeout(() => reject(new Error('Request timeout after 30s')), 30000)
           )
         ]);
         break; // Success, exit retry loop
