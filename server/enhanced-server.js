@@ -1020,6 +1020,9 @@ app.post('/api/sms/webhook', async (req, res) => {
   }
 });
 
+// Import AI validation functions
+const { validateMedicationData, validateScheduleData } = await import('./ai-validation.js');
+
 // AI Chat endpoint with Groq
 app.post('/api/chat', ensureAuthenticated, async (req, res) => {
   try {
