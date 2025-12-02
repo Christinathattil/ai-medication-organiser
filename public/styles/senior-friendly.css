@@ -39,12 +39,12 @@
   /* Slate 200 */
 
   /* Functional (Muted) */
-  --color-success: #059669;
-  /* Emerald 600 */
-  --color-warning: #d97706;
-  /* Amber 600 */
-  --color-danger: #dc2626;
-  /* Red 600 */
+  --color-success: #10b981;
+  /* Emerald 500 - Fresh & Friendly */
+  --color-warning: #f59e0b;
+  /* Amber 500 */
+  --color-danger: #ef4444;
+  /* Red 500 */
 
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
