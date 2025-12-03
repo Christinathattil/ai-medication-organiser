@@ -239,7 +239,7 @@ async function callAI(messages) {
   if (!process.env.FIREWORKS_API_KEY) {
     throw new Error('FIREWORKS_API_KEY missing');
   }
-  const r = await fetch('https://api.fireworks.ai/v1/chat/completions', {
+  const r = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
@@ -361,14 +361,10 @@ app.get('/health', (req, res) => {
 
 // Middleware to check phone verification
 function requirePhoneVerification(req, res, next) {
-  // Check if phone verification is required (can be disabled)
-  const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
+  // Phone verification permanently disabled
+  return next();
 
-  // If phone verification is disabled, skip the check
-  if (!requirePhoneVerif) {
-    return next();
-  }
-
+  /* legacy code kept for reference but unreachable */
   // Skip verification check for these routes
   const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms', '/loading'];
   if (skipRoutes.some(route => req.path.includes(route))) {
@@ -503,12 +499,6 @@ app.get('/api/auth/user', ensureAuthenticated, (req, res) => {
 // Protect the main app (redirect to login if not authenticated)
 app.get('/', ensureAuthenticatedHTML, (req, res) => {
   // Check if phone verification is required (can be disabled for testing)
-  const requirePhoneVerif = process.env.PHONE_VERIFICATION_REQUIRED !== 'false';
-
-  if (requirePhoneVerif && req.user && !req.user.phone_verified) {
-    console.log(`⚠️ Root route: User ${req.user.email} not verified, redirecting to verification`);
-    return res.redirect('/verify-phone.html');
-  }
 
   console.log(`✅ Root route: User ${req.user?.email} accessing dashboard`);
   res.sendFile(join(__dirname, '..', 'public', 'index.html'));
