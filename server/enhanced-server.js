@@ -239,14 +239,14 @@ async function callAI(messages) {
   if (!process.env.FIREWORKS_API_KEY) {
     throw new Error('FIREWORKS_API_KEY missing');
   }
-  const r = await fetch('https://api.fireworks.ai/v1/chat/completions', {
+  const r = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'accounts/fireworks/models/mixtral-8x7b',
+      model: 'accounts/fireworks/models/mixtral-8x7b-instruct',
       messages,
       temperature: 0.7,
       max_tokens: 300,
