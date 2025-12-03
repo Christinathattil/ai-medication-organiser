@@ -73,7 +73,7 @@ async function loadQuickStats() {
   try {
     const [medsRes, scheduleRes, statsRes] = await Promise.all([
       fetch(`${API_BASE}/medications?active_only=true`),
-      fetch(`${API_BASE}/schedule/today`),
+      fetch(`${API_BASE}/schedules/today`),
       fetch(`${API_BASE}/stats/adherence?days=7`)
     ]);
 
@@ -124,7 +124,7 @@ async function loadRefillAlerts() {
 
 async function loadTodaySchedule() {
   try {
-    const res = await fetch(`${API_BASE}/schedule/today`);
+    const res = await fetch(`${API_BASE}/schedules/today`);
     const data = await res.json();
 
     const container = document.getElementById('today-schedule');
