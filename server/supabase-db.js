@@ -95,7 +95,14 @@ class SupabaseDatabase {
     }
     const { data, error } = await query.single();
 
-    if (error) throw error;
+    // If no row found, Supabase returns an error with code 'PGRST116'.
+    // Treat that case as "not found" so the route can answer 404 cleanly.
+    if (error) {
+      if (error.code === 'PGRST116' || error.details?.includes('0 rows')) {
+        return null; // allow caller to send 404
+      }
+      throw error; // genuine error
+    }
     return data;
   }
 
