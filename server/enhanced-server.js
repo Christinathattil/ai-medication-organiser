@@ -665,7 +665,7 @@ app.get('/api/logs', ensureAuthenticated, async (req, res) => {
 });
 
 // Today's Schedule
-app.get('/api/schedule/today', ensureAuthenticated, async (req, res) => {
+app.get('/api/schedules/today', ensureAuthenticated, async (req, res) => {
   try {
     const userId = req.user?.id;
     const today = new Date().toISOString().split('T')[0];

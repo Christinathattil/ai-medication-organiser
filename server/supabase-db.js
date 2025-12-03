@@ -62,9 +62,8 @@ class SupabaseDatabase {
 
     let query = supabase.from('medications').select('*');
     // Explicitly filter by user_id to enforce per-account isolation in addition to RLS
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
 
     // RLS will automatically filter by user_id
     if (filter.search) {
@@ -90,9 +89,8 @@ class SupabaseDatabase {
       .from('medications')
       .select('*')
       .eq('id', id);
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
     const { data, error } = await query.single();
 
     // If no row found, Supabase returns an error with code 'PGRST116'.
@@ -158,9 +156,8 @@ class SupabaseDatabase {
         *,
         medications (name)
       `);
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
 
     if (filter.medication_id) {
       query = query.eq('medication_id', filter.medication_id);
@@ -238,9 +235,8 @@ class SupabaseDatabase {
         *,
         medications (name, dosage)
       `);
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
 
     if (filter.medication_id) {
       query = query.eq('medication_id', filter.medication_id);
@@ -335,9 +331,8 @@ class SupabaseDatabase {
     let query = supabase
       .from('medications')
       .select('*');
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
 
     query = query
       .not('remaining_quantity', 'is', null)
@@ -395,9 +390,8 @@ class SupabaseDatabase {
       `)
       .gte('taken_at', startDateStr);
 
-    if (userId) {
-      query = query.eq('user_id', userId);
-    }
+    // user_id column not present in medication_logs; rely on RLS
+
 
     if (medicationId) {
       query = query.eq('medication_id', medicationId);
