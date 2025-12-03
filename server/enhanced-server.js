@@ -2339,10 +2339,10 @@ app.listen(PORT, () => {
     console.log(`⚠️  SMS: Not configured (add FAST2SMS_API_KEY)`);
   }
 
-  if (groqClient) {
-    console.log(`🤖 AI Chatbot: Enabled`);
+  if (process.env.FIREWORKS_API_KEY) {
+    console.log('🤖 AI Chatbot: Enabled (Fireworks)');
   } else {
-    console.log(`⚠️  AI Chatbot: Not configured (GROQ_API_KEY needed)`);
+    console.log('⚠️  AI Chatbot: Not configured (FIREWORKS_API_KEY missing)');
   }
 
   console.log(`\n🚀 Server ready!`);
