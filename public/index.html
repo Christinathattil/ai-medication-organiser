@@ -799,7 +799,7 @@
     };
 
     (function () {
-      const CHAT_API_BASE = '/api';
+      // Use global API_BASE from app.js
       let currentMedicationForSchedule = null;
       let lastAddedMedication = null;
       let isProcessing = false; // Track if a message is being sent
@@ -917,7 +917,7 @@
         const typingId = addTypingIndicator();
 
         try {
-          const response = await fetch(`${CHAT_API_BASE}/chat`, {
+          const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -1045,7 +1045,7 @@
 
       async function showTodaySchedule() {
         try {
-          const response = await fetch(`${CHAT_API_BASE}/schedules/today`);
+          const response = await fetch(`${API_BASE}/schedules/today`);
           const data = await response.json();
 
           if (data.schedules.length === 0) {
@@ -1066,7 +1066,7 @@
 
       async function showStats() {
         try {
-          const response = await fetch(`${CHAT_API_BASE}/stats/adherence?days=30`);
+          const response = await fetch(`${API_BASE}/stats/adherence?days=30`);
           const data = await response.json();
 
           if (data.statistics.length === 0) {
@@ -1473,7 +1473,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         console.log('🧹 Cleaned data:', cleanData);
 
         try {
-          const response = await fetch(`${CHAT_API_BASE}/medications`, {
+          const response = await fetch(`${API_BASE}/medications`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(cleanData)
@@ -1599,11 +1599,11 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
         }
 
         console.log('✅ Validation passed, calling API...');
-        console.log('API URL:', `${CHAT_API_BASE}/schedules`);
+        console.log('API URL:', `${API_BASE}/schedules`);
         console.log('Request body:', JSON.stringify(data, null, 2));
 
         try {
-          const response = await fetch(`${CHAT_API_BASE}/schedules`, {
+          const response = await fetch(`${API_BASE}/schedules`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
@@ -1648,7 +1648,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       async function showRefills() {
         try {
-          const response = await fetch(`${CHAT_API_BASE}/medications`);
+          const response = await fetch(`${API_BASE}/medications`);
           const data = await response.json();
 
           const lowStock = data.medications.filter(m => {
@@ -1850,7 +1850,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       async function deleteMedication(medicationId, medicationName) {
         try {
-          const response = await fetch(`${CHAT_API_BASE}/medications/${medicationId}`, {
+          const response = await fetch(`${API_BASE}/medications/${medicationId}`, {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' }
           });
@@ -1931,7 +1931,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
           // Delete each medication sequentially
           for (const med of medications) {
             try {
-              const response = await fetch(`${CHAT_API_BASE}/medications/${med.id}`, {
+              const response = await fetch(`${API_BASE}/medications/${med.id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
               });
@@ -2013,7 +2013,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
           if (data.schedules && data.schedules.length > 0) {
             // Delete all schedules for this medication
             for (const schedule of data.schedules) {
-              await fetch(`${CHAT_API_BASE}/schedules/${schedule.id}`, {
+              await fetch(`${API_BASE}/schedules/${schedule.id}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
               });
@@ -2085,7 +2085,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
 
       async function updateMedication(medicationId, updates, medicationName) {
         try {
-          const response = await fetch(`${CHAT_API_BASE}/medications/${medicationId}`, {
+          const response = await fetch(`${API_BASE}/medications/${medicationId}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(updates)
@@ -2167,7 +2167,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
             // Update the first schedule (or all if needed)
             const schedule = data.schedules[0];
 
-            const updateResponse = await fetch(`${CHAT_API_BASE}/schedules/${schedule.id}`, {
+            const updateResponse = await fetch(`${API_BASE}/schedules/${schedule.id}`, {
               method: 'PUT',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(updates)
@@ -2502,7 +2502,7 @@ ${data.purpose ? `• Purpose: ${data.purpose}` : ''}
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s client timeout
 
-          const response = await fetch(`${CHAT_API_BASE}/chat`, {
+          const response = await fetch(`${API_BASE}/chat`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
