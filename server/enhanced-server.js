@@ -231,14 +231,31 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.e
   console.log('   Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env');
 }
 
-// Groq AI setup
-let groqClient = null;
-if (process.env.GROQ_API_KEY) {
-  const Groq = await import('groq-sdk');
-  groqClient = new Groq.default({ apiKey: process.env.GROQ_API_KEY });
-  console.log('✅ Groq AI enabled');
-} else {
-  console.log('⚠️  Groq not configured. AI chatbot will use fallback mode.');
+// Fireworks AI setup (single provider)
+console.log('✅ Using Fireworks AI for chatbot');
+
+// Fireworks AI caller helper
+async function callAI(messages) {
+  if (!process.env.FIREWORKS_API_KEY) {
+    throw new Error('FIREWORKS_API_KEY missing');
+  }
+  const r = await fetch('https://api.fireworks.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'accounts/fireworks/models/mixtral-8x7b-instruct',
+      messages,
+      temperature: 0.7,
+      max_tokens: 300,
+      top_p: 0.9
+    })
+  });
+  if (!r.ok) throw new Error(`Fireworks API error ${r.status}`);
+  const j = await r.json();
+  return j.choices?.[0]?.message?.content || '';
 }
 
 // Helper function to send SMS with database tracking using Twilio
@@ -1037,16 +1054,7 @@ app.post('/api/chat', ensureAuthenticated, async (req, res) => {
       });
     }
 
-    if (!groqClient) {
-      // Return error if Groq is not configured
-      console.error('❌ Groq API not configured - GROQ_API_KEY missing');
-      return res.status(500).json({
-        error: 'AI service not configured',
-        response: "⚠️ AI Assistant is not configured. Please ensure GROQ_API_KEY is set in your environment variables.",
-        action: null
-      });
-    }
-
+    
     // Get current medication context with userId
     console.log('🔍 Fetching medications for chat context...');
     const medications = await db.getMedications({}, userId);
@@ -1233,41 +1241,8 @@ Always validate mandatory fields, handle multiple requests, and guide users step
       { role: 'user', content: message }
     ];
 
-    // Call Groq API with retry logic
-    let completion;
-    let retries = 3;
-    let lastError;
-
-    while (retries > 0) {
-      try {
-        completion = await Promise.race([
-          groqClient.chat.completions.create({
-            model: 'llama-3.1-8b-instant', // Faster model for lower latency
-            messages,
-            temperature: 0.7,
-            max_tokens: 300, // Limit response length for faster replies
-            top_p: 0.9
-          }),
-          new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Request timeout after 30s')), 30000)
-          )
-        ]);
-        break; // Success, exit retry loop
-      } catch (err) {
-        lastError = err;
-        retries--;
-        console.warn(`⚠️ Groq API attempt failed, ${retries} retries left:`, err.message);
-        if (retries > 0) {
-          await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s before retry
-        }
-      }
-    }
-
-    if (!completion) {
-      throw lastError || new Error('Failed to get AI response after retries');
-    }
-
-    const aiResponse = completion.choices[0].message.content;
+    // Obtain AI response from Fireworks
+    const aiResponse = await callAI(messages);
 
     // Enhanced intent detection and action extraction
     let action = null;
