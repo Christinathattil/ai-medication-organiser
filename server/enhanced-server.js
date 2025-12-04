@@ -231,35 +231,87 @@ if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.e
   console.log('   Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env');
 }
 
-// Fireworks AI setup (single provider)
-console.log('✅ Using Fireworks AI for chatbot');
 
-// Fireworks AI caller helper
+// Google Gemini AI setup
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+let genAI = null;
+let geminiModel = null;
+
+if (process.env.GEMINI_API_KEY) {
+  genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  geminiModel = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+  console.log('✅ Using Google Gemini AI for chatbot (gemini-1.5-flash)');
+} else {
+  console.log('⚠️  GEMINI_API_KEY not configured. Chatbot will not work.');
+  console.log('   Get your free API key from: https://aistudio.google.com/app/apikey');
+}
+
+// Gemini AI caller helper with retry logic
 async function callAI(messages) {
-  if (!process.env.FIREWORKS_API_KEY) {
-    throw new Error('FIREWORKS_API_KEY missing');
+  if (!geminiModel) {
+    throw new Error('GEMINI_API_KEY missing. Get one from: https://aistudio.google.com/app/apikey');
   }
-  const r = await fetch('https://api.fireworks.ai/inference/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${process.env.FIREWORKS_API_KEY}`,
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      model: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
-      messages,
-      temperature: 0.7,
-      max_tokens: 300,
-      top_p: 0.9
-    })
-  });
-  if (!r.ok) {
-    const errorText = await r.text();
-    console.error(`Fireworks API error ${r.status}:`, errorText);
-    throw new Error(`Fireworks API error ${r.status}: ${errorText}`);
+
+  try {
+    // Convert messages to Gemini format
+    // Gemini uses a simpler format: system instruction + user/model alternating messages
+    const systemMessage = messages.find(m => m.role === 'system');
+    const conversationMessages = messages.filter(m => m.role !== 'system');
+
+    // Build the prompt with system context
+    let prompt = '';
+    if (systemMessage) {
+      prompt = `${systemMessage.content}\n\n`;
+    }
+
+    // Add conversation history
+    conversationMessages.forEach(msg => {
+      if (msg.role === 'user') {
+        prompt += `User: ${msg.content}\n`;
+      } else if (msg.role === 'assistant') {
+        prompt += `Assistant: ${msg.content}\n`;
+      }
+    });
+
+    // Add final prompt
+    prompt += '\nAssistant:';
+
+    // Call Gemini API with retry logic
+    let lastError = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const result = await geminiModel.generateContent(prompt);
+        const response = await result.response;
+        const text = response.text();
+
+        if (!text) {
+          throw new Error('Empty response from Gemini');
+        }
+
+        return text;
+      } catch (error) {
+        lastError = error;
+        console.error(`Gemini API attempt ${attempt} failed:`, error.message);
+
+        // Don't retry on quota errors
+        if (error.message?.includes('quota') || error.message?.includes('RESOURCE_EXHAUSTED')) {
+          throw new Error('Gemini API quota exceeded. Please try again later or upgrade to a paid plan.');
+        }
+
+        // Wait before retry (exponential backoff)
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
+
+    // All retries failed
+    throw new Error(`Gemini API failed after 3 attempts: ${lastError?.message || 'Unknown error'}`);
+  } catch (error) {
+    console.error('❌ Gemini API error:', error);
+    throw error;
   }
-  const j = await r.json();
-  return j.choices?.[0]?.message?.content || '';
 }
 
 // Helper function to send SMS with database tracking using Twilio
@@ -2333,10 +2385,11 @@ app.listen(PORT, () => {
     console.log(`⚠️  SMS: Not configured (add FAST2SMS_API_KEY)`);
   }
 
-  if (process.env.FIREWORKS_API_KEY) {
-    console.log('🤖 AI Chatbot: Enabled (Fireworks)');
+  if (process.env.GEMINI_API_KEY) {
+    console.log('🤖 AI Chatbot: Enabled (Google Gemini 1.5 Flash)');
   } else {
-    console.log('⚠️  AI Chatbot: Not configured (FIREWORKS_API_KEY missing)');
+    console.log('⚠️  AI Chatbot: Not configured (GEMINI_API_KEY missing)');
+    console.log('   Get your free API key: https://aistudio.google.com/app/apikey');
   }
 
   console.log(`\n🚀 Server ready!`);
