@@ -1922,11 +1922,7 @@ app.listen(PORT, () => {
     console.log(`⚠️  Database: JSON (temporary - setup Supabase!)`);
   }
 
-  if (smsEnabled) {
-    console.log(`📱 SMS: Enabled (Fast2SMS)`);
-  } else {
-    console.log(`⚠️  SMS: Not configured (add FAST2SMS_API_KEY)`);
-  }
+
 
   if (process.env.GEMINI_API_KEY) {
     console.log('🤖 AI Chatbot: Enabled (Google Gemini 1.5 Flash)');
