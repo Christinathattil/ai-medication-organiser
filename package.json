@@ -40,7 +40,6 @@
     "node-notifier": "^10.0.1",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
-    "pg": "^8.16.3",
-    "twilio": "^5.3.5"
+    "pg": "^8.16.3"
   }
 }

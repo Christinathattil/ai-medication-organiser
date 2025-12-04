@@ -11,7 +11,7 @@ import { createClient } from '@supabase/supabase-js';
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import Groq from 'groq-sdk';
-import twilio from 'twilio';
+
 import { validateMedicationData, validateScheduleData } from './ai-validation.js';
 import pg from 'pg';
 import passport, { ensureAuthenticated, ensureAuthenticatedHTML } from './auth.js';
@@ -19,7 +19,7 @@ import {
   securityHeaders,
   apiLimiter,
   authLimiter,
-  smsLimiter,
+
   parameterPollutionProtection,
   stripSensitiveData,
   secureErrorHandler,
@@ -93,7 +93,7 @@ app.use(cors({
   credentials: true
 }));
 app.use(express.json());
-app.use(express.urlencoded({ extended: false })); // For Twilio webhooks
+app.use(express.urlencoded({ extended: false }));
 
 // Session configuration - Using PostgreSQL for persistent storage
 const isProduction = process.env.NODE_ENV === 'production';
@@ -213,23 +213,7 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
   console.log('⚠️  Using JSON storage (temporary). Setup Supabase for persistence!');
 }
 
-// Twilio setup for SMS
-let twilioClient = null;
-let smsEnabled = false;
 
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
-  const twilio = await import('twilio');
-  twilioClient = twilio.default(
-    process.env.TWILIO_ACCOUNT_SID,
-    process.env.TWILIO_AUTH_TOKEN
-  );
-  smsEnabled = true;
-  console.log('✅ Twilio SMS enabled');
-  console.log('📱 Twilio phone number:', process.env.TWILIO_PHONE_NUMBER);
-} else {
-  console.log('⚠️  Twilio not configured. SMS notifications disabled.');
-  console.log('   Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env');
-}
 
 
 // Google Gemini AI setup
@@ -314,92 +298,6 @@ async function callAI(messages) {
   }
 }
 
-// Helper function to send SMS with database tracking using Twilio
-async function sendSMS(to, message, metadata = {}) {
-  // If Twilio not configured, but Fast2SMS key present, use Fast2SMS
-  if (!smsEnabled && process.env.FAST2SMS_API_KEY) {
-    try {
-      const phoneNumber = to.replace(/\D/g, '');
-      const payload = {
-        route: 'q',
-        message,
-        language: 'english',
-        flash: 0,
-        numbers: phoneNumber.startsWith('91') ? phoneNumber : '91' + phoneNumber,
-      };
-      const res = await fetch('https://www.fast2sms.com/dev/bulkV2', {
-        method: 'POST',
-        headers: {
-          'Authorization': process.env.FAST2SMS_API_KEY,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      });
-      const json = await res.json();
-      if (json.return) {
-        return { success: true, provider: 'fast2sms' };
-      }
-      return { success: false, error: json.message || 'Fast2SMS error' };
-    } catch (e) {
-      return { success: false, error: e.message };
-    }
-  }
-
-  if (!smsEnabled) return { success: false, error: 'SMS API not configured' };
-
-  try {
-    // Ensure phone number has country code
-    let phoneNumber = to.replace(/\D/g, '');
-
-    // Add +91 for Indian numbers if not present
-    if (phoneNumber.length === 10) {
-      phoneNumber = '+91' + phoneNumber;
-    } else if (!phoneNumber.startsWith('+')) {
-      phoneNumber = '+' + phoneNumber;
-    }
-
-    // Send SMS via Twilio
-    const twilioMessage = await twilioClient.messages.create({
-      body: message,
-      to: phoneNumber,
-      from: process.env.TWILIO_PHONE_NUMBER
-    });
-
-    const messageSid = twilioMessage.sid;
-    console.log('✅ SMS sent via Twilio:', messageSid);
-    console.log('   Status:', twilioMessage.status);
-
-    // Track SMS in database if metadata provided
-    if (metadata.medication_id && metadata.schedule_id && db.addSMSReminder) {
-      try {
-        await db.addSMSReminder({
-          medication_id: metadata.medication_id,
-          schedule_id: metadata.schedule_id,
-          phone_number: phoneNumber,
-          reminder_message: message,
-          twilio_message_sid: messageSid,
-          status: twilioMessage.status
-        });
-        console.log('✅ SMS tracked in database');
-      } catch (dbError) {
-        console.error('Failed to track SMS in database:', dbError);
-      }
-    }
-
-    return {
-      success: true,
-      sid: messageSid,
-      status: twilioMessage.status,
-      to: phoneNumber
-    };
-  } catch (error) {
-    console.error('❌ Twilio SMS Error:', error.message);
-    return {
-      success: false,
-      error: error.message
-    };
-  }
-}
 
 // Health check endpoint for Render
 app.get('/health', (req, res) => {
@@ -415,46 +313,6 @@ app.get('/health', (req, res) => {
 // Authentication Routes (with rate limiting)
 // ========================================
 
-// Middleware to check phone verification
-function requirePhoneVerification(req, res, next) {
-  // Phone verification permanently disabled
-  return next();
-
-  /* legacy code kept for reference but unreachable */
-  // Skip verification check for these routes
-  const skipRoutes = ['/verify-phone.html', '/api/verify/', '/auth/', '/login', '/health', '/test-sms', '/loading'];
-  if (skipRoutes.some(route => req.path.includes(route))) {
-    return next();
-  }
-
-  // Check if user is logged in (Passport uses req.user)
-  if (!req.user) {
-    return next(); // Let auth middleware handle this
-  }
-
-  // If user is logged in but phone not verified, redirect to verification
-  if (!req.user.phone_verified) {
-    console.log(`⚠️ User ${req.user.email} needs phone verification`);
-
-    if (req.xhr || req.headers.accept?.indexOf('json') > -1) {
-      return res.status(403).json({
-        error: 'Phone verification required',
-        redirect: '/verify-phone.html',
-        message: 'Please verify your phone number to continue'
-      });
-    }
-    return res.redirect('/verify-phone.html');
-  }
-
-  console.log(`✅ User ${req.user.email} phone verified: ${req.user.phone}`);
-  next();
-}
-
-// Apply phone verification middleware to protected routes
-app.use('/api/medications', requirePhoneVerification);
-app.use('/api/schedules', requirePhoneVerification);
-app.use('/api/logs', requirePhoneVerification);
-app.use('/api/chat', requirePhoneVerification);
 
 // Google OAuth login
 app.get('/auth/google',
@@ -800,291 +658,8 @@ app.post('/api/interactions', ensureAuthenticated, async (req, res) => {
   }
 });
 
-// SMS Notification endpoint
-app.post('/api/send-sms', async (req, res) => {
-  try {
-    const { phone, message } = req.body;
-    const result = await sendSMS(phone, message);
-    res.json({ success: result.success, message: result.success ? 'SMS sent' : result.error || 'SMS not configured' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
 
-// Store verification codes temporarily (in production, use Redis)
-const verificationCodes = new Map();
 
-// Send OTP for phone verification
-app.post('/api/verify/send-otp', async (req, res) => {
-  try {
-    const { phone } = req.body;
-
-    if (!phone) {
-      return res.status(400).json({ error: 'Phone number required' });
-    }
-
-    // Generate 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP with 5-minute expiry
-    verificationCodes.set(phone, {
-      otp,
-      createdAt: Date.now(),
-      expiresAt: Date.now() + 5 * 60 * 1000 // 5 minutes
-    });
-
-    // Send OTP via SMS
-    const message = `Your MediCare Pro verification code is: ${otp}. Valid for 5 minutes. Do not share this code.`;
-    const result = await sendSMS(phone, message);
-
-    if (result.success) {
-      res.json({
-        success: true,
-        message: 'OTP sent successfully',
-        phone: phone
-      });
-    } else {
-      res.status(500).json({
-        success: false,
-        error: result.error || 'Failed to send OTP'
-      });
-    }
-  } catch (error) {
-    console.error('Send OTP error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Verify OTP
-app.post('/api/verify/check-otp', async (req, res) => {
-  try {
-    const { phone, otp } = req.body;
-
-    if (!phone || !otp) {
-      return res.status(400).json({ error: 'Phone number and OTP required' });
-    }
-
-    const stored = verificationCodes.get(phone);
-
-    if (!stored) {
-      return res.status(400).json({ error: 'No OTP found for this phone number' });
-    }
-
-    if (Date.now() > stored.expiresAt) {
-      verificationCodes.delete(phone);
-      return res.status(400).json({ error: 'OTP expired. Please request a new one.' });
-    }
-
-    if (stored.otp !== otp) {
-      return res.status(400).json({ error: 'Invalid OTP' });
-    }
-
-    // OTP verified - update user in database and session
-    if (req.isAuthenticated() && req.user) {
-      // Try to update user in database (may fail due to RLS, but that's OK)
-      let dbUpdateSuccess = false;
-      if (db.updateUserPhone) {
-        try {
-          await db.updateUserPhone(req.user.id, phone);
-          dbUpdateSuccess = true;
-        } catch (dbError) {
-          console.warn('⚠️ Database update failed (continuing with session-only):', dbError.message);
-          // Don't fail - we'll update the session instead
-        }
-      }
-
-      // Update req.user with verified status
-      req.user.phone = phone;
-      req.user.phone_verified = true;
-      req.user.phone_verified_at = new Date().toISOString();
-
-      // If DB update succeeded, reload from database to get any other changes
-      if (dbUpdateSuccess && supabase) {
-        const { data: updatedUser, error } = await supabase
-          .from('users')
-          .select('*')
-          .eq('id', req.user.id)
-          .maybeSingle();
-
-        if (!error && updatedUser) {
-          req.user = updatedUser;
-        }
-      }
-
-      // Save session to persist verified status
-      await new Promise((resolve, reject) => {
-        req.session.save((err) => {
-          if (err) {
-            console.error('❌ Session save error after phone verification:', err);
-            reject(err);
-          } else {
-            console.log('✅ Session updated with verified phone (phone_verified=true)');
-            resolve();
-          }
-        });
-      });
-    }
-
-    // Clean up verification code
-    verificationCodes.delete(phone);
-
-    res.json({
-      success: true,
-      message: 'Phone verified successfully'
-    });
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Check if phone is verified
-app.get('/api/verify/status', (req, res) => {
-  console.log('📱 Verify status check:');
-  console.log('  - Is authenticated:', req.isAuthenticated());
-  console.log('  - User exists:', !!req.user);
-  console.log('  - Phone verified:', req.user?.phone_verified || false);
-
-  // Use req.user from Passport, not req.session.user
-  if (req.isAuthenticated() && req.user && req.user.phone_verified) {
-    console.log('  ✅ Phone verified:', req.user.phone);
-    res.json({
-      verified: true,
-      phone: req.user.phone
-    });
-  } else {
-    console.log('  ❌ Phone not verified');
-    res.json({ verified: false });
-  }
-});
-
-// Test SMS endpoint
-app.get('/api/test-sms', async (req, res) => {
-  try {
-    if (!smsEnabled) {
-      return res.json({
-        success: false,
-        message: 'Twilio not configured. Add TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER to .env'
-      });
-    }
-
-    const testPhone = req.query.phone || req.user?.phone;
-
-    if (!testPhone) {
-      return res.json({
-        success: false,
-        message: 'Phone number not provided. Add ?phone=XXXXXXXXXX to URL'
-      });
-    }
-
-    const testMessage = '🧪 Test SMS from MediCare Pro - Your SMS notifications are working! 💊';
-    const result = await sendSMS(testPhone, testMessage);
-
-    res.json({
-      success: result.success,
-      message: result.success ? 'Test SMS sent successfully!' : `Failed: ${result.error}`,
-      sentTo: testPhone
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message
-    });
-  }
-});
-
-// SMS webhook endpoint for 2-way SMS with Twilio (YES/NO responses)
-app.post('/api/sms/webhook', async (req, res) => {
-  try {
-    const { From: phoneNumber, Body: messageBody, MessageSid } = req.body;
-
-    console.log(`📱 Received SMS from ${phoneNumber}: "${messageBody}"`);
-
-    // Parse the response
-    const response = messageBody.trim().toUpperCase();
-    let status = null;
-    let replyMessage = '';
-
-    if (response === 'YES' || response === 'Y' || response === '1') {
-      status = 'taken';
-      replyMessage = '✅ Great! Marked as taken. Stay healthy! 💊';
-    } else if (response === 'NO' || response === 'N' || response === '0') {
-      status = 'skipped';
-      replyMessage = '⏭️ Noted. Marked as skipped. Remember to take it when you can!';
-    } else {
-      // Unknown response
-      replyMessage = 'Please reply with YES if you took your medication, or NO if you skipped it.';
-
-      // Send TwiML response
-      res.type('text/xml');
-      res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${replyMessage}</Message>
-</Response>`);
-      return;
-    }
-
-    // Find the most recent SMS reminder for this phone number
-    try {
-      // Look for any recent reminder from this phone number (within last 2 hours)
-      const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
-
-      const { data: recentReminders, error } = await supabase
-        .from('sms_reminders')
-        .select('*')
-        .eq('phone_number', phoneNumber)
-        .eq('response_received', false)
-        .gte('sent_at', twoHoursAgo)
-        .order('sent_at', { ascending: false })
-        .limit(1);
-
-      if (error) throw error;
-
-      if (recentReminders && recentReminders.length > 0) {
-        const reminder = recentReminders[0];
-
-        // Update the SMS reminder
-        await db.updateSMSReminder(reminder.id, {
-          response_received: true,
-          response_text: messageBody,
-          response_at: new Date().toISOString(),
-          status: status === 'taken' ? 'responded_yes' : 'responded_no'
-        });
-
-        // Log the medication
-        await db.logMedicationFromSMS(
-          reminder.id,
-          reminder.medication_id,
-          reminder.schedule_id,
-          status
-        );
-
-        console.log(`✅ Logged medication ${status} for reminder ${reminder.id} via SMS`);
-      } else {
-        console.log('⚠️  No matching recent reminder found');
-        replyMessage = 'No recent medication reminder found. Please use the app to log your medication.';
-      }
-    } catch (dbError) {
-      console.error('❌ Database error processing SMS response:', dbError);
-      replyMessage = 'Sorry, there was an error processing your response. Please try again or use the app.';
-    }
-
-    // Send TwiML response
-    res.type('text/xml');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>${replyMessage}</Message>
-</Response>`);
-
-  } catch (error) {
-    console.error('❌ Error processing SMS webhook:', error);
-    res.type('text/xml');
-    res.send(`<?xml version="1.0" encoding="UTF-8"?>
-<Response>
-  <Message>Sorry, there was an error. Please try again later.</Message>
-</Response>`);
-  }
-});
 
 // AI Chat endpoint with Groq
 app.post('/api/chat', ensureAuthenticated, async (req, res) => {
@@ -2287,41 +1862,9 @@ cron.schedule('* * * * *', async () => {
           message: `Time to take ${schedule.name} (${schedule.dosage})`,
           sound: true,
           wait: false,
+          wait: false
         });
-
-        // SMS notification (if phone is verified)
-        const userPhone = schedule.user_phone; // User phone stored with schedule
-        if (smsEnabled && userPhone) {
-          // Enhanced SMS message with YES/NO response instructions
-          let smsMessage = `💊 Medication Reminder: Time to take ${schedule.name} (${schedule.dosage})`;
-
-          // Add food timing info
-          if (schedule.food_timing === 'before_food') {
-            smsMessage += ' - Take before food';
-          } else if (schedule.food_timing === 'after_food') {
-            smsMessage += ' - Take after food';
-          } else if (schedule.food_timing === 'with_food') {
-            smsMessage += ' - Take with food';
-          }
-
-          if (schedule.special_instructions) {
-            smsMessage += ` - ${schedule.special_instructions}`;
-          }
-          smsMessage += '\n\nReply YES when taken or NO if skipped.';
-
-          // Send SMS with tracking metadata
-          const result = await sendSMS(userPhone, smsMessage, {
-            medication_id: schedule.medication_id,
-            schedule_id: schedule.id
-          });
-
-          if (result.success) {
-            console.log(`   📱 SMS sent to ${userPhone}`);
-          } else {
-            console.error(`   ❌ SMS failed: ${result.error}`);
-          }
-        }
-
+        console.log(`\u2705 Browser notification sent`);
         notificationsSent++;
       }
     }
