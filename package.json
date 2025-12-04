@@ -10,6 +10,9 @@
     "mcp": "node mcp-server/index.js",
     "dev": "node server/enhanced-server.js"
   },
+  "engines": {
+    "node": "20.x"
+  },
   "keywords": [
     "medication",
     "health",
@@ -22,7 +25,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@modelcontextprotocol/sdk": "^1.0.4",
-    "@supabase/supabase-js": "^2.39.0",
+    "@supabase/supabase-js": "^2.86.2",
     "connect-pg-simple": "^10.0.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
