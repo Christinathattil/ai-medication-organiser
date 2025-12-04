@@ -6,19 +6,19 @@ let wizardData = {};
 let currentWizardStep = 1;
 
 function showMedicationWizard() {
-    wizardData = {};
-    currentWizardStep = 1;
+  wizardData = {};
+  currentWizardStep = 1;
 
-    const modal = document.getElementById('add-medication-modal');
-    const originalForm = document.getElementById('medication-form');
+  const modal = document.getElementById('add-medication-modal');
+  const originalForm = document.getElementById('medication-form');
 
-    // Hide original form
-    originalForm.style.display = 'none';
+  // Hide original form
+  originalForm.style.display = 'none';
 
-    // Create wizard container
-    const wizardContainer = document.createElement('div');
-    wizardContainer.id = 'medication-wizard';
-    wizardContainer.innerHTML = `
+  // Create wizard container
+  const wizardContainer = document.createElement('div');
+  wizardContainer.id = 'medication-wizard';
+  wizardContainer.innerHTML = `
     <div class="wizard-progress" style="display: flex; justify-content: space-between; margin-bottom: 24px;">
       <div class="wizard-step-indicator active" data-step="1">
         <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-success); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 20px;">1</div>
@@ -110,177 +110,177 @@ function showMedicationWizard() {
     </div>
   `;
 
-    originalForm.parentNode.insertBefore(wizardContainer, originalForm);
-    openModal('add-medication-modal');
+  originalForm.parentNode.insertBefore(wizardContainer, originalForm);
+  openModal('add-medication-modal');
 }
 
 function wizardNext() {
-    // Validate current step
-    if (currentWizardStep === 1) {
-        const name = document.getElementById('wizard-name').value.trim();
-        const dosage = document.getElementById('wizard-dosage').value.trim();
+  // Validate current step
+  if (currentWizardStep === 1) {
+    const name = document.getElementById('wizard-name').value.trim();
+    const dosage = document.getElementById('wizard-dosage').value.trim();
 
-        if (!name) {
-            showNotification('Please enter medicine name', 'warning');
-            speak('Please enter medicine name');
-            return;
-        }
-        if (!dosage) {
-            showNotification('Please enter dosage', 'warning');
-            speak('Please enter dosage');
-            return;
-        }
-
-        wizardData.name = name;
-        wizardData.dosage = dosage;
-        wizardData.form = 'tablet';
+    if (!name) {
+      showNotification('Please enter medicine name', 'warning');
+      speak('Please enter medicine name');
+      return;
+    }
+    if (!dosage) {
+      showNotification('Please enter dosage', 'warning');
+      speak('Please enter dosage');
+      return;
     }
 
-    if (currentWizardStep === 2) {
-        const time = document.getElementById('wizard-time').value;
-        if (!time) {
-            showNotification('Please select a time', 'warning');
-            speak('Please select a time');
-            return;
-        }
+    wizardData.name = name;
+    wizardData.dosage = dosage;
+    wizardData.form = 'tablet';
+  }
 
-        wizardData.time = time;
-        if (!wizardData.frequency) wizardData.frequency = 'daily';
+  if (currentWizardStep === 2) {
+    const time = document.getElementById('wizard-time').value;
+    if (!time) {
+      showNotification('Please select a time', 'warning');
+      speak('Please select a time');
+      return;
     }
 
-    // Hide current step
-    document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
+    wizardData.time = time;
+    if (!wizardData.frequency) wizardData.frequency = 'daily';
+  }
 
-    // Update progress
-    document.querySelector(`.wizard-step-indicator[data-step="${currentWizardStep}"] div`).style.background = '#10b981';
+  // Hide current step
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
 
-    // Show next step
-    currentWizardStep++;
-    document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'block';
+  // Update progress
+  document.querySelector(`.wizard-step-indicator[data-step="${currentWizardStep}"] div`).style.background = '#10b981';
 
-    // Update progress indicator
-    document.querySelector(`.wizard-step-indicator[data-step="${currentWizardStep}"] div`).style.background = '#10b981';
+  // Show next step
+  currentWizardStep++;
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'block';
 
-    // Play success sound
-    if (window.seniorFriendly && window.seniorFriendly.playSound) {
-        window.seniorFriendly.playSound('success');
-    }
+  // Update progress indicator
+  document.querySelector(`.wizard-step-indicator[data-step="${currentWizardStep}"] div`).style.background = '#10b981';
+
+  // Play success sound
+  if (window.seniorFriendly && window.seniorFriendly.playSound) {
+    window.seniorFriendly.playSound('success');
+  }
 }
 
 function wizardBack() {
-    document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
-    currentWizardStep--;
-    document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'block';
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'none';
+  currentWizardStep--;
+  document.getElementById(`wizard-step-${currentWizardStep}`).style.display = 'block';
 }
 
 function setWizardFrequency(freq) {
-    wizardData.frequency = freq;
+  wizardData.frequency = freq;
 
-    // Update button styles
-    document.querySelectorAll('.freq-btn').forEach(btn => {
-        if (btn.dataset.freq === freq) {
-            btn.style.borderColor = '#10b981';
-            btn.style.background = '#dcfce7';
-        } else {
-            btn.style.borderColor = '#d1d5db';
-            btn.style.background = 'white';
-        }
-    });
+  // Update button styles
+  document.querySelectorAll('.freq-btn').forEach(btn => {
+    if (btn.dataset.freq === freq) {
+      btn.style.borderColor = '#10b981';
+      btn.style.background = '#dcfce7';
+    } else {
+      btn.style.borderColor = '#d1d5db';
+      btn.style.background = 'white';
+    }
+  });
 }
 
 function setWizardFood(food) {
-    wizardData.food_timing = food;
+  wizardData.food_timing = food;
 
-    // Update button styles
-    document.querySelectorAll('.food-btn').forEach(btn => {
-        if (btn.dataset.food === food) {
-            btn.style.borderColor = '#10b981';
-            btn.style.background = '#dcfce7';
-        } else {
-            btn.style.borderColor = '#d1d5db';
-            btn.style.background = 'white';
-        }
-    });
+  // Update button styles
+  document.querySelectorAll('.food-btn').forEach(btn => {
+    if (btn.dataset.food === food) {
+      btn.style.borderColor = '#10b981';
+      btn.style.background = '#dcfce7';
+    } else {
+      btn.style.borderColor = '#d1d5db';
+      btn.style.background = 'white';
+    }
+  });
 
-    // Auto-advance after selection (better UX)
-    setTimeout(() => {
-        wizardFinish();
-    }, 500);
+  // Auto-advance after selection (better UX)
+  setTimeout(() => {
+    wizardFinish();
+  }, 500);
 }
 
 async function wizardFinish() {
-    try {
-        // Add medication
-        const medResponse = await fetch(`${API_BASE}/medications`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                name: wizardData.name,
-                dosage: wizardData.dosage,
-                form: wizardData.form || 'tablet',
-                total_quantity: 30
-            })
-        });
+  try {
+    // Add medication
+    const medResponse = await fetch(`${window.API_BASE || '/api'}/medications`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: wizardData.name,
+        dosage: wizardData.dosage,
+        form: wizardData.form || 'tablet',
+        total_quantity: 30
+      })
+    });
 
-        if (!medResponse.ok) {
-            const error = await medResponse.json();
-            showNotification(error.error || 'Failed to add medication', 'error');
-            return;
-        }
-
-        const medData = await medResponse.json();
-        const medicationId = medData.medication_id;
-
-        // Add schedule if time was provided
-        if (wizardData.time) {
-            await fetch(`${API_BASE}/schedules`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    medication_id: medicationId,
-                    time: wizardData.time,
-                    frequency: wizardData.frequency || 'daily',
-                    food_timing: wizardData.food_timing || 'anytime',
-                    active: true
-                })
-            });
-        }
-
-        // Success!
-        playSound('success');
-        speak(`${wizardData.name} added successfully`);
-        showNotification(`✅ ${wizardData.name} added!`, 'success');
-
-        // Clean up
-        document.getElementById('medication-wizard').remove();
-        document.getElementById('medication-form').style.display = 'block';
-        closeModal('add-medication-modal');
-
-        // Reload data
-        if (typeof loadMedications === 'function') loadMedications();
-        if (typeof loadSchedules === 'function') loadSchedules();
-
-    } catch (error) {
-        console.error('Wizard error:', error);
-        showNotification('Error adding medication', 'error');
+    if (!medResponse.ok) {
+      const error = await medResponse.json();
+      showNotification(error.error || 'Failed to add medication', 'error');
+      return;
     }
+
+    const medData = await medResponse.json();
+    const medicationId = medData.medication_id;
+
+    // Add schedule if time was provided
+    if (wizardData.time) {
+      await fetch(`${window.API_BASE || '/api'}/schedules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          medication_id: medicationId,
+          time: wizardData.time,
+          frequency: wizardData.frequency || 'daily',
+          food_timing: wizardData.food_timing || 'anytime',
+          active: true
+        })
+      });
+    }
+
+    // Success!
+    playSound('success');
+    speak(`${wizardData.name} added successfully`);
+    showNotification(`✅ ${wizardData.name} added!`, 'success');
+
+    // Clean up
+    document.getElementById('medication-wizard').remove();
+    document.getElementById('medication-form').style.display = 'block';
+    closeModal('add-medication-modal');
+
+    // Reload data
+    if (typeof loadMedications === 'function') loadMedications();
+    if (typeof loadSchedules === 'function') loadSchedules();
+
+  } catch (error) {
+    console.error('Wizard error:', error);
+    showNotification('Error adding medication', 'error');
+  }
 }
 
 // Add wizard option to the add medication button
 window.showMedicationWizardOption = function () {
-    const choice = confirm('Would you like to use the simple 3-step wizard?\n\nClick OK for wizard (easier)\nClick Cancel for full form');
+  const choice = confirm('Would you like to use the simple 3-step wizard?\n\nClick OK for wizard (easier)\nClick Cancel for full form');
 
-    if (choice) {
-        showMedicationWizard();
-    } else {
-        showAddMedicationModal();
-    }
+  if (choice) {
+    showMedicationWizard();
+  } else {
+    showAddMedicationModal();
+  }
 };
 
 // Export for use
 window.medicationWizard = {
-    show: showMedicationWizard,
-    next: wizardNext,
-    back: wizardBack,
-    finish: wizardFinish
+  show: showMedicationWizard,
+  next: wizardNext,
+  back: wizardBack,
+  finish: wizardFinish
 };

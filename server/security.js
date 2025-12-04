@@ -38,35 +38,35 @@ export const validateMedication = [
     .notEmpty().withMessage('Name is required')
     .isLength({ min: 1, max: 200 }).withMessage('Name must be 1-200 characters')
     .escape(),
-  
+
   body('dosage')
     .trim()
     .notEmpty().withMessage('Dosage is required')
     .isLength({ max: 100 }).withMessage('Dosage too long')
     .escape(),
-  
+
   body('form')
     .optional()
     .trim()
     .isIn(['tablet', 'capsule', 'liquid', 'injection', 'cream', 'inhaler', 'drops', 'patch', 'other'])
     .withMessage('Invalid medication form'),
-  
+
   body('purpose')
     .optional()
     .trim()
     .isLength({ max: 500 }).withMessage('Purpose too long')
     .escape(),
-  
+
   body('total_quantity')
     .optional()
     .isInt({ min: 0, max: 10000 }).withMessage('Invalid quantity')
     .toInt(),
-  
+
   body('remaining_quantity')
     .optional()
     .isInt({ min: 0, max: 10000 }).withMessage('Invalid quantity')
     .toInt(),
-  
+
   validate
 ];
 
@@ -76,7 +76,7 @@ export const validateMedication = [
 export const validateMedicationPatch = [
   body('name').optional().trim().isLength({ min: 1, max: 200 }),
   body('dosage').optional().trim().isLength({ max: 100 }),
-  body('form').optional().trim().isIn(['tablet','capsule','liquid','injection','cream','inhaler','drops','patch','other']),
+  body('form').optional().trim().isIn(['tablet', 'capsule', 'liquid', 'injection', 'cream', 'inhaler', 'drops', 'patch', 'other']),
   body('purpose').optional().trim().isLength({ max: 500 }),
   body('total_quantity').optional().isInt({ min: 0, max: 10000 }).toInt(),
   body('remaining_quantity').optional().isInt({ min: 0, max: 10000 }).toInt(),
@@ -90,35 +90,35 @@ export const validateSchedule = [
   body('medication_id')
     .isInt({ min: 1 }).withMessage('Invalid medication ID')
     .toInt(),
-  
+
   body('time')
     .matches(/^([01]\d|2[0-3]):([0-5]\d)$/).withMessage('Invalid time format (HH:MM required)'),
-  
+
   body('frequency')
     .optional()
     .isIn(['daily', 'weekly', 'monthly', 'as_needed'])
     .withMessage('Invalid frequency'),
-  
+
   body('with_food')
     .optional()
     .isBoolean().withMessage('with_food must be boolean')
     .toBoolean(),
-  
+
   body('food_timing')
     .optional()
     .isIn(['before_food', 'after_food', 'with_food', 'none'])
     .withMessage('Invalid food timing'),
-  
+
   body('special_instructions')
     .optional()
     .trim()
     .isLength({ max: 500 }).withMessage('Instructions too long')
     .escape(),
-  
+
   body('start_date')
     .optional()
     .matches(/^[\d]{4}-[\d]{2}-[\d]{2}$/).withMessage('Invalid date format (YYYY-MM-DD required)'),
-  
+
   validate
 ];
 
@@ -140,16 +140,16 @@ export const validateLog = [
   body('schedule_id')
     .isInt({ min: 1 }).withMessage('Invalid schedule ID')
     .toInt(),
-  
+
   body('status')
     .isIn(['taken', 'skipped', 'missed']).withMessage('Invalid status'),
-  
+
   body('notes')
     .optional()
     .trim()
     .isLength({ max: 1000 }).withMessage('Notes too long')
     .escape(),
-  
+
   validate
 ];
 
@@ -195,9 +195,9 @@ export const securityHeaders = helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
       scriptSrcAttr: ["'unsafe-inline'"], // Allow inline event handlers (onclick, etc.)
-      scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com"],
+      scriptSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://cdn.jsdelivr.net"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       styleSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.tailwindcss.com", "https://cdnjs.cloudflare.com", "https://fonts.googleapis.com"],
       styleSrcAttr: ["'unsafe-inline'"], // Allow inline style attributes
@@ -233,7 +233,7 @@ export const parameterPollutionProtection = hpp();
  */
 export function sanitizeInput(input) {
   if (typeof input !== 'string') return input;
-  
+
   return input
     .replace(/[<>]/g, '') // Remove < and >
     .trim()
@@ -247,7 +247,7 @@ export function sanitizeObject(obj) {
   if (typeof obj !== 'object' || obj === null) {
     return obj;
   }
-  
+
   const sanitized = {};
   for (const [key, value] of Object.entries(obj)) {
     if (typeof value === 'string') {
@@ -267,10 +267,10 @@ export function sanitizeObject(obj) {
 
 export function secureErrorHandler(err, req, res, next) {
   console.error('Error:', err);
-  
+
   // Don't expose internal error details in production
   const isDev = process.env.NODE_ENV === 'development';
-  
+
   res.status(err.status || 500).json({
     error: isDev ? err.message : 'An error occurred',
     ...(isDev && { stack: err.stack })
@@ -286,8 +286,8 @@ export function secureErrorHandler(err, req, res, next) {
  */
 export function stripSensitiveData(req, res, next) {
   const originalJson = res.json.bind(res);
-  
-  res.json = function(data) {
+
+  res.json = function (data) {
     // Remove sensitive fields
     if (data && typeof data === 'object') {
       delete data.password;
@@ -296,10 +296,10 @@ export function stripSensitiveData(req, res, next) {
       delete data.refreshToken;
       delete data.session_token;
     }
-    
+
     return originalJson(data);
   };
-  
+
   next();
 }
 
@@ -310,11 +310,11 @@ export async function validateOwnership(req, res, next) {
   try {
     const userId = req.user?.id;
     const resourceId = req.params.id;
-    
+
     if (!userId) {
       return res.status(401).json({ error: 'Not authenticated' });
     }
-    
+
     // Add ownership check logic based on your requirements
     // This is a placeholder - implement based on your data model
     next();

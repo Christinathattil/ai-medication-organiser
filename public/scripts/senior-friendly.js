@@ -5,7 +5,7 @@
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    loadPreferences();
+    // loadPreferences();
     initSpeechRecognition();
 
     // Check for saved theme

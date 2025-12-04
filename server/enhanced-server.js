@@ -253,7 +253,11 @@ async function callAI(messages) {
       top_p: 0.9
     })
   });
-  if (!r.ok) throw new Error(`Fireworks API error ${r.status}`);
+  if (!r.ok) {
+    const errorText = await r.text();
+    console.error(`Fireworks API error ${r.status}:`, errorText);
+    throw new Error(`Fireworks API error ${r.status}: ${errorText}`);
+  }
   const j = await r.json();
   return j.choices?.[0]?.message?.content || '';
 }
@@ -1044,7 +1048,7 @@ app.post('/api/chat', ensureAuthenticated, async (req, res) => {
       });
     }
 
-    
+
     // Get current medication context with userId
     console.log('🔍 Fetching medications for chat context...');
     const medications = await db.getMedications({}, userId);
