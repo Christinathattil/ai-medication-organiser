@@ -246,7 +246,7 @@ async function callAI(messages) {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: 'accounts/fireworks/models/mixtral-8x7b-instruct',
+      model: 'accounts/fireworks/models/llama-v3p1-70b-instruct',
       messages,
       temperature: 0.7,
       max_tokens: 300,
