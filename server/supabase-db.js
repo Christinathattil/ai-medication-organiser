@@ -1,5 +1,6 @@
-import pkg from '@supabase/supabase-js';
-const { createClient } = pkg;
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { createClient } = require('@supabase/supabase-js');
 import dotenv from 'dotenv';
 
 dotenv.config();
