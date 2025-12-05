@@ -1,6 +1,7 @@
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
-import { createClient } from '@supabase/supabase-js';
+import pkg from '@supabase/supabase-js';
+const { createClient } = pkg;
 import dotenv from 'dotenv';
 
 dotenv.config();
