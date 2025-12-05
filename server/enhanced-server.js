@@ -6,9 +6,11 @@ import multer from 'multer';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import dotenv from 'dotenv';
+dotenv.config();
 import fs from 'fs';
-import pkg from '@supabase/supabase-js';
-const { createClient } = pkg;
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const { createClient } = require('@supabase/supabase-js');
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 import Groq from 'groq-sdk';
@@ -38,7 +40,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 
 // Trust proxy - Required for Render, Railway, Heroku, etc.
 // Enables Express to correctly read X-Forwarded-* headers
